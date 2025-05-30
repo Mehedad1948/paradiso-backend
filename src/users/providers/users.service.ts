@@ -9,6 +9,7 @@ import { CreateUserDto } from '../dtos/create-user.dto';
 import { User } from '../user.entity';
 import { CreateUserProvider } from './create-user.provider';
 import { GetUserProvider } from './get-user.provider';
+import { UpdateUserProvider } from './update-usrer.provider';
 
 @Injectable()
 export class UsersService {
@@ -19,6 +20,7 @@ export class UsersService {
     private readonly createUserProvider: CreateUserProvider,
 
     private readonly getUserProvider: GetUserProvider,
+    private readonly updateUserProvider: UpdateUserProvider,
   ) {}
 
   async createUser(createUserDto: CreateUserDto) {
@@ -50,5 +52,9 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  public async updateByEmail(email: string, data: User) {
+    return await this.updateUserProvider.update(email, data);
   }
 }

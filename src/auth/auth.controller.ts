@@ -1,18 +1,19 @@
 import {
+  Body,
   Controller,
   Get,
-  Param,
-  Body,
-  Post,
   HttpCode,
   HttpStatus,
+  Param,
+  Post,
 } from '@nestjs/common';
-import { IsAuthenticatedDto } from './dtos/isAuthenticated.dto';
-import { SignInDto } from './dtos/signin.dto';
-import { AuthService } from './providers/auth.service';
 import { Auth } from './decorator/auth.decorator';
-import { AuthType } from './enums/auth.decorator';
+import { IsAuthenticatedDto } from './dtos/isAuthenticated.dto';
 import { RefreshTokenDto } from './dtos/refresh-token.dto';
+import { SignInDto } from './dtos/signin.dto';
+import { VerifyCodeDto } from './dtos/verify-code.dto';
+import { AuthType } from './enums/auth.decorator';
+import { AuthService } from './providers/auth.service';
 
 @Controller('auth')
 export class AuthController {
@@ -33,5 +34,10 @@ export class AuthController {
   @Auth(AuthType.none)
   public refreshTokens(@Body() refreshTokenDto: RefreshTokenDto) {
     return this.authService.refreshTokens(refreshTokenDto);
+  }
+
+  @Post('verify-email')
+  async verifyEmail(@Body() verifyCodeDto: VerifyCodeDto) {
+    return await this.authService.verifyEmail(verifyCodeDto);
   }
 }

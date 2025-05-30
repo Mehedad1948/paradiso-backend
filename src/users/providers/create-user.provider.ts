@@ -6,14 +6,15 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateUserDto } from '../dtos/create-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../user.entity';
-import { Repository } from 'typeorm';
-import { RoleService } from 'src/roles/providers/role.service';
-import { HashingProvider } from 'src/auth/providers/hashing.provider';
 import { plainToInstance } from 'class-transformer';
+import { HashingProvider } from 'src/auth/providers/hashing.provider';
+import { MailService } from 'src/mail/providers/mail.service';
+import { RoleService } from 'src/roles/providers/role.service';
+import { Repository } from 'typeorm';
+import { CreateUserDto } from '../dtos/create-user.dto';
 import { UserResponseDto } from '../dtos/user-response.dto';
+import { User } from '../user.entity';
 
 @Injectable()
 export class CreateUserProvider {
@@ -25,6 +26,8 @@ export class CreateUserProvider {
 
     @Inject(forwardRef(() => HashingProvider))
     private readonly hashingProvider: HashingProvider,
+
+    private readonly mailService: MailService,
   ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<UserResponseDto> {
@@ -46,6 +49,8 @@ export class CreateUserProvider {
       if (!defaultRole) {
         throw new NotFoundException('Default "user" role not found');
       }
+      const code = Math.floor(1000 + Math.random() * 9000).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
       const user = this.userRepository.create({
         ...createUserDto,
@@ -53,7 +58,15 @@ export class CreateUserProvider {
           createUserDto.password,
         ),
         role: defaultRole,
+        verificationCode: code,
+        verificationCodeExpiresAt: expiresAt,
       });
+
+      try {
+        await this.mailService.sendVerificationEmail(user);
+      } catch (error) {
+        console.log('❌❌❌ Failed to send welcome error', error);
+      }
 
       const savedUser = await this.userRepository.save(user);
 

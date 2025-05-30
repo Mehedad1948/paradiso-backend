@@ -3,11 +3,11 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn() // ✅ Good for unique user IDs
+  @PrimaryGeneratedColumn()
   @Expose()
   id: number;
 
-  @Column({ unique: true, type: 'varchar', length: 255 }) // ✅ explicit
+  @Column({ unique: true, type: 'varchar', length: 255 })
   @Expose()
   email: string;
 
@@ -19,9 +19,18 @@ export class User {
   @Expose()
   username: string;
 
-  @Column({ nullable: true, type: 'varchar', length: 255 }) // ✅ optional avatar
+  @Column({ nullable: true, type: 'varchar', length: 255 })
   @Expose()
   avatar?: string;
+
+  @Column({ nullable: true })
+  verificationCode: string | null;
+
+  @Column({ nullable: true, type: 'timestamp with time zone' })
+  verificationCodeExpiresAt: Date | null;
+
+  @Column({ default: false })
+  isEmailVerified: boolean;
 
   @Expose()
   @ManyToOne(() => Role, (role) => role.users)

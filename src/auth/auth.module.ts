@@ -13,6 +13,7 @@ import { GenerateTokensProvider } from './providers/generate-tokens.provider';
 import { RefreshTokensProvider } from './providers/refresh-tokens.provider';
 import { GoogleAuthenticationController } from './social/google-authentication.controller';
 import { GoogleAuthenticationService } from './social/providers/google-authentication.service';
+import { VerifyEmailProvider } from './providers/verify-email.provider';
 @Module({
   controllers: [AuthController, GoogleAuthenticationController],
   providers: [
@@ -22,6 +23,7 @@ import { GoogleAuthenticationService } from './social/providers/google-authentic
     GenerateTokensProvider,
     RefreshTokensProvider,
     GoogleAuthenticationService,
+    VerifyEmailProvider,
   ],
   imports: [
     forwardRef(() => UsersModule),
