@@ -10,6 +10,13 @@ import { RolesModule } from './roles/roles.module';
 import appConfig from './config/app.config';
 import databaseConfigs from './config/database.configs';
 import environmentValidation from './config/environment.validation';
+import { AuthModule } from './auth/auth.module';
+import { AuthenticationGuard } from './auth/guards/authentication/authentication.guard';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { DataResponseInterceptor } from './common/interceptor/data-response/data-response.interceptor';
+import { AccessTokenGuard } from './auth/guards/access-token/access-token.guard';
+import jwtConfig from './auth/config/jwt.config';
+import { JwtModule } from '@nestjs/jwt';
 
 const ENV = process.env.NODE_ENV || 'development';
 @Module({
@@ -21,6 +28,8 @@ const ENV = process.env.NODE_ENV || 'development';
       load: [appConfig, databaseConfigs],
       validationSchema: environmentValidation,
     }),
+    ConfigModule.forFeature(jwtConfig),
+    JwtModule.registerAsync(jwtConfig.asProvider()),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -44,8 +53,20 @@ const ENV = process.env.NODE_ENV || 'development';
     MoviesModule,
     RatingsModule,
     RolesModule,
+    AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: AuthenticationGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: DataResponseInterceptor,
+    },
+    AccessTokenGuard,
+  ],
 })
 export class AppModule {}

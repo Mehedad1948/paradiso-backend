@@ -28,7 +28,6 @@ export class RoleService {
       const createdRole = this.roleRepository.create({ name });
       return await this.roleRepository.save(createdRole);
     } catch (error) {
-
       if (error instanceof BadRequestException) {
         throw error;
       }
