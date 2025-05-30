@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -17,7 +18,6 @@ export class RoleService {
 
   async create({ name }: CreateRoleDto): Promise<Role> {
     try {
-      // Check for duplicate role
       const existingRole = await this.roleRepository.findOne({
         where: { name },
       });
@@ -31,9 +31,24 @@ export class RoleService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-
-      // Otherwise, wrap unknown errors in an internal server error
       throw new InternalServerErrorException('Failed to create role');
+    }
+  }
+
+  async findOneByName(name: string): Promise<Role> {
+    try {
+      const role = await this.roleRepository.findOne({ where: { name } });
+
+      if (!role) {
+        throw new NotFoundException(`Role '${name}' not found`);
+      }
+
+      return role;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to retrieve role');
     }
   }
 }

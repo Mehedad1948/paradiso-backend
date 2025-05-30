@@ -9,7 +9,7 @@ export class RolesController {
   constructor(private readonly roleServices: RoleService) {}
 
   @Post()
-  @Auth(AuthType.none)
+  // @Auth(AuthType.Bearer)
   async createRole(@Body() createRoleDto: CreateRoleDto) {
     return this.roleServices.create(createRoleDto);
   }

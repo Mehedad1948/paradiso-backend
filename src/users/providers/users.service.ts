@@ -1,22 +1,25 @@
-import { Repository } from 'typeorm';
-import { User } from '../user.entity';
-import { InjectRepository } from '@nestjs/typeorm';
 import {
   Injectable,
   NotFoundException,
   RequestTimeoutException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateUserDto } from '../dtos/create-user.dto';
+import { User } from '../user.entity';
+import { CreateUserProvider } from './create-user.provider';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+
+    private readonly createUserProvider: CreateUserProvider,
   ) {}
 
   async createUser(createUserDto: CreateUserDto) {
-    const createdUser = this.userRepository.create(createUserDto);
+    return await this.createUserProvider.createUser(createUserDto);
   }
 
   async findOneByEmail(email: string) {
