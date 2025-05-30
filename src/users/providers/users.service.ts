@@ -28,7 +28,7 @@ export class UsersService {
   }
 
   async getUserByToken() {
-    await this.getUserProvider.getWithToken();
+    return await this.getUserProvider.getWithToken();
   }
 
   async findOneByEmail(email: string) {

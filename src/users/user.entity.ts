@@ -23,7 +23,7 @@ export class User {
   @Expose()
   avatar?: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: true, type: 'varchar', length: 255 })
   verificationCode: string | null;
 
   @Column({ nullable: true, type: 'timestamp with time zone' })

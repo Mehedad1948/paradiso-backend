@@ -36,6 +36,7 @@ export class AuthController {
     return this.authService.refreshTokens(refreshTokenDto);
   }
 
+  @Auth(AuthType.none)
   @Post('verify-email')
   async verifyEmail(@Body() verifyCodeDto: VerifyCodeDto) {
     return await this.authService.verifyEmail(verifyCodeDto);

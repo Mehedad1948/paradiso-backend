@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Verify Your Email</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        color: #333333;
+        background-color: #f9f9f9;
+        padding: 20px;
+      }
+      .container {
+        max-width: 600px;
+        margin: auto;
+        background: #ffffff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      .button {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 4px;
+      }
+      .footer {
+        margin-top: 30px;
+        font-size: 12px;
+        color: #999999;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Hello <%= name %>,</h2>
+
+      <p>
+        Thank you for registering with us. Please verify your email address to
+        complete your account setup:
+      </p>
+
+      <p><strong>Email:</strong> <%= email %></p>
+
+      <a href="<%= verificationUrl %>" class="button">Verify Email</a>
+
+      <p>If you did not sign up for this account, you can ignore this email.</p>
+
+      <div class="footer">
+        &copy; <%= new Date().getFullYear() %> Your App Name. All rights
+        reserved.
+      </div>
+    </div>
+  </body>
+</html>

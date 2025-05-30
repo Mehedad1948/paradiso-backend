@@ -29,15 +29,18 @@ export class GetUserProvider {
     try {
       // Verify and decode JWT token
       const payload = this.request[REQUEST_USER_KEY];
+
       if (!payload) {
         throw new UnauthorizedException('User payload not found');
       }
       const user = await this.userRepository.findOne({
         where: { id: payload.sub },
+        relations: ['role'],
       });
       if (!user) {
         throw new UnauthorizedException('User not found');
       }
+      console.log('❤️❤️', user);
 
       return plainToInstance(UserResponseDto, user, {
         excludeExtraneousValues: true,

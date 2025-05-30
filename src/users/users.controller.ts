@@ -11,7 +11,10 @@ export class UsersController {
   @Get('me')
   @Auth(AuthType.Bearer)
   async getCurrentUser() {
-    return await this.usersService.getUserByToken(); // This calls the provider method
+    const result = await this.usersService.getUserByToken();
+    console.log('🚀🚀🚀🚀', result);
+
+    return result;
   }
 
   @Post()

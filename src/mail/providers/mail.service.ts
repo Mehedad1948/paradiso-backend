@@ -26,7 +26,7 @@ export class MailService {
       to: user.email,
       from: `Verify Your Email <no-reply@nestjs-blog.com>`,
       subject: 'Please confirm your email',
-      template: './verify-email', // views/verify-email.hbs
+      template: './verify-email.ejs', // views/verify-email.hbs
       context: {
         name: user.username,
         email: user.email,

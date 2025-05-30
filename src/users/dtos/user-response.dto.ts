@@ -11,7 +11,14 @@ export class UserResponseDto {
   @Expose()
   username: string;
 
+  @Expose()
+  verificationCode: string;
+
   @Expose({ name: 'role' })
-  @Transform(({ obj }): string | undefined => obj.role?.name as string)
+  @Transform(({ obj }): string | undefined => {
+    console.log('👍👍👍', obj);
+
+    return obj.role?.name as string;
+  })
   role: string;
 }

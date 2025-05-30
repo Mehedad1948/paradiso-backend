@@ -31,12 +31,12 @@ export class CreateUserProvider {
   ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<UserResponseDto> {
-    const { email } = createUserDto;
+    const { email, username } = createUserDto;
 
     try {
       // Duplication check
       const existingUser = await this.userRepository.findOne({
-        where: [{ email }],
+        where: [{ email }, { username }],
       });
 
       if (existingUser) {
@@ -69,6 +69,7 @@ export class CreateUserProvider {
       }
 
       const savedUser = await this.userRepository.save(user);
+      console.log('😂😂', savedUser);
 
       return plainToInstance(UserResponseDto, savedUser, {
         excludeExtraneousValues: true,
