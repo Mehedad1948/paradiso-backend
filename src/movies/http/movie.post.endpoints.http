@@ -1,0 +1,10 @@
+POST http://localhost:3000/movies
+  Content-Type:application/json 
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIxLCJlbWFpbCI6ImF3ZWV3YXNkYXNkQGdtYWlsLmNvbSIsImlhdCI6MTc0ODYyNjg5MSwiZXhwIjoxNzQ4NjMwNDkxLCJhdWQiOiJsb2NhbGhvc3Q6MzAwMCIsImlzcyI6ImxvY2FsaG9zdDozMDAwIn0._VNlHBqG8N70MQu4Smz-rLxe-T7oe5NVcxUm1DwQOQQ
+ {
+  "title": "Inception",
+  "releaseDate": "2010-07-16",
+  "imdbRate": 8.8,
+  "imdbLink": "https://www.imdb.com/title/tt1375666/",
+  "image": "https://image.url/inception.jpg"
+}
