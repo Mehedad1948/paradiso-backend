@@ -40,8 +40,6 @@ export class GetUserProvider {
       if (!user) {
         throw new UnauthorizedException('User not found');
       }
-      console.log('❤️❤️', user);
-
       return plainToInstance(UserResponseDto, user, {
         excludeExtraneousValues: true,
       }) as UserResponseDto;
