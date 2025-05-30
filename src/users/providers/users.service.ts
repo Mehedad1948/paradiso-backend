@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { User } from '../user.entity';
 import { CreateUserProvider } from './create-user.provider';
+import { GetUserProvider } from './get-user.provider';
 
 @Injectable()
 export class UsersService {
@@ -16,10 +17,16 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
 
     private readonly createUserProvider: CreateUserProvider,
+
+    private readonly getUserProvider: GetUserProvider,
   ) {}
 
   async createUser(createUserDto: CreateUserDto) {
     return await this.createUserProvider.createUser(createUserDto);
+  }
+
+  async getUserByToken() {
+    await this.getUserProvider.getWithToken();
   }
 
   async findOneByEmail(email: string) {

@@ -29,7 +29,7 @@ const ENV = process.env.NODE_ENV || 'development';
       validationSchema: environmentValidation,
     }),
     ConfigModule.forFeature(jwtConfig),
-    JwtModule.registerAsync(jwtConfig.asProvider()),
+    JwtModule.registerAsync({ ...jwtConfig.asProvider(), global: true }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

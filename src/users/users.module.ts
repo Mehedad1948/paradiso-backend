@@ -6,6 +6,7 @@ import { CreateUserProvider } from './providers/create-user.provider';
 import { UsersService } from './providers/users.service';
 import { User } from './user.entity';
 import { UsersController } from './users.controller';
+import { GetUserProvider } from './providers/get-user.provider';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { UsersController } from './users.controller';
     RolesModule,
   ],
   controllers: [UsersController],
-  providers: [UsersService, CreateUserProvider],
+  providers: [UsersService, CreateUserProvider, GetUserProvider],
   exports: [UsersService],
 })
 export class UsersModule {}
