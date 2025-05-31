@@ -12,7 +12,7 @@ export class UserResponseDto {
   username: string;
 
   @Expose()
-  verificationCode: string;
+  avatar: string;
 
   @Expose({ name: 'role' })
   @Transform(({ obj }): string | undefined => {

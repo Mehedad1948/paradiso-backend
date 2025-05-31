@@ -69,11 +69,10 @@ export class CreateUserProvider {
       }
 
       const savedUser = await this.userRepository.save(user);
-      console.log('😂😂', savedUser);
 
       return plainToInstance(UserResponseDto, savedUser, {
         excludeExtraneousValues: true,
-      }) as UserResponseDto;
+      });
     } catch (error) {
       if (
         error instanceof BadRequestException ||

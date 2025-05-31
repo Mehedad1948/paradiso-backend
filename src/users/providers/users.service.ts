@@ -10,6 +10,7 @@ import { User } from '../user.entity';
 import { CreateUserProvider } from './create-user.provider';
 import { GetUserProvider } from './get-user.provider';
 import { UpdateUserProvider } from './update-usrer.provider';
+import { UpdateUserDto } from '../dtos/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -20,10 +21,15 @@ export class UsersService {
     private readonly createUserProvider: CreateUserProvider,
 
     private readonly getUserProvider: GetUserProvider,
+
     private readonly updateUserProvider: UpdateUserProvider,
   ) {}
 
   async createUser(createUserDto: CreateUserDto) {
+    return await this.createUserProvider.createUser(createUserDto);
+  }
+
+  async updateUser(createUserDto: CreateUserDto) {
     return await this.createUserProvider.createUser(createUserDto);
   }
 
@@ -59,5 +65,9 @@ export class UsersService {
 
   public async updateByEmail(email: string, data: User) {
     return await this.updateUserProvider.update(email, data);
+  }
+
+  public async updateById(id: number, data: UpdateUserDto) {
+    return await this.updateUserProvider.updateById(id, data);
   }
 }
