@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { RatingsService } from './providers/ratings.service';
 import { AddRatingDto } from './dtos/add-rating.dto';
 import { Auth } from 'src/auth/decorator/auth.decorator';
 import { AuthType } from 'src/auth/enums/auth.decorator';
+import { GetRatingDto } from './dtos/get-rating.dto';
 
 @Controller('ratings')
 export class RatingsController {
@@ -19,8 +20,8 @@ export class RatingsController {
 
   @Auth(AuthType.Bearer)
   @Get()
-  public async getRatings() {
-    return await this.ratingsService.getAllRating();
+  public async getRatings(@Query() ratingQuery: GetRatingDto) {
+    return await this.ratingsService.getAllRating(ratingQuery);
   }
 
   @Auth(AuthType.Bearer)

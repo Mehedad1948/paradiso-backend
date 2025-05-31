@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Rating } from '../rating.entity';
 import { MoviesService } from 'src/movies/providers/movies.service';
+import { GetRatingDto } from '../dtos/get-rating.dto';
 
 @Injectable()
 export class GetRatingProvider {
@@ -33,12 +34,10 @@ export class GetRatingProvider {
     }
   }
 
-  async getAllMoviesWithRatings() {
+  async getAllMoviesWithRatings(ratingQuery: GetRatingDto) {
     try {
-      const movies = await this.movieService.getAllMoviesWithRating();
-      if (!movies.length) {
-        throw new NotFoundException('No movies found');
-      }
+      const movies =
+        await this.movieService.getAllMoviesWithRating(ratingQuery);
 
       return movies;
     } catch (error) {

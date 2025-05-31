@@ -9,6 +9,7 @@ import { Movie } from '../movie.entity';
 import { Paginated } from 'src/common/pagination/interfaces/paginated.interface';
 import { PaginationProvider } from 'src/common/pagination/providers/pagination.provider';
 import { GetMovieDto } from '../dtos/get-movie.dto';
+import { GetRatingDto } from 'src/ratings/dtos/get-rating.dto';
 
 @Injectable()
 export class GetMovieProvider {
@@ -63,25 +64,23 @@ export class GetMovieProvider {
     }
   }
 
-  async getAllWithRatings(): Promise<Movie[]> {
+  async getAllWithRatings(
+    ratingQuery: GetRatingDto,
+  ): Promise<Paginated<Movie>> {
     try {
-      return await this.movieRepository
+      const moviesQuery = this.movieRepository
         .createQueryBuilder('movie')
-        .leftJoinAndSelect('movie.addedBy', 'addedByUser')
-        .leftJoinAndSelect('movie.ratings', 'rating')
-        .leftJoinAndSelect('rating.user', 'ratingUser')
-        .select([
-          'movie',
-          'addedByUser.id',
-          'addedByUser.username',
-          'addedByUser.avatar',
-          'rating.id',
-          'rating.rate',
-          'ratingUser.id',
-          'ratingUser.username',
-          'ratingUser.avatar',
-        ])
-        .getMany();
+        .leftJoinAndSelect('movie.addedBy', 'user')
+        .select(['movie', 'user.id', 'user.username', 'user.avatar']);
+
+      const movies = await this.paginationProvider.paginateQuery(
+        {
+          limit: ratingQuery.limit,
+          page: ratingQuery.page,
+        },
+        moviesQuery,
+      );
+      return movies;
     } catch (error) {
       console.error('❌ Failed to get all movies:', error);
       throw new InternalServerErrorException('Failed to get movies');
