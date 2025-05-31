@@ -5,6 +5,8 @@ import { CreateMovieDto } from '../dtos/create-movie.dto';
 import { Movie } from '../movie.entity';
 import { UpdateMovieProvider } from './update-movie.provider';
 import { MovieResponseDto } from '../dtos/movie-response.dto';
+import { GetMovieDto } from '../dtos/get-movie.dto';
+import { Paginated } from 'src/common/pagination/interfaces/paginated.interface';
 
 @Injectable()
 export class MoviesService {
@@ -27,11 +29,21 @@ export class MoviesService {
     return await this.updateMovieProvider.update(id, createMovieDto);
   }
 
-  public async getAllMovies(): Promise<Movie[]> {
-    return await this.getMovieProvider.getAll();
+  public async getAllMovies(
+    movieQuery: GetMovieDto,
+  ): Promise<Paginated<Movie>> {
+    return await this.getMovieProvider.getAll(movieQuery);
+  }
+
+  public async getAllMoviesWithRating(): Promise<Movie[]> {
+    return await this.getMovieProvider.getAllWithRatings();
   }
 
   public async getMovieById(id: string): Promise<Movie> {
     return await this.getMovieProvider.getOne(id);
+  }
+
+  public async getMovieByIdWithRating(id: string): Promise<Movie> {
+    return await this.getMovieProvider.getOneWithRating(id);
   }
 }

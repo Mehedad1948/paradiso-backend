@@ -33,6 +33,9 @@ export class Movie {
   @Column({ default: false })
   isWatchedTogether: boolean;
 
+  @Column({ default: false })
+  isIn: boolean;
+
   @ManyToOne(() => User, { eager: true })
   addedBy: User;
 

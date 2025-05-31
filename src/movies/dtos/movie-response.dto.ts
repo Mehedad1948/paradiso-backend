@@ -1,4 +1,5 @@
 import { Expose, Transform } from 'class-transformer';
+import { Rating } from 'src/ratings/rating.entity';
 
 export class MovieResponseDto {
   @Expose()
@@ -21,6 +22,9 @@ export class MovieResponseDto {
 
   @Expose()
   isWatchedTogether: boolean;
+
+  @Expose()
+  ratings: Rating[];
 
   @Expose()
   @Transform(({ obj }) => ({

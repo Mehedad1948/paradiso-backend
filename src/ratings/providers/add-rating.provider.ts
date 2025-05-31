@@ -22,7 +22,7 @@ export class AddRatingProvider {
     private readonly movieService: MoviesService,
   ) {}
 
-  async addRating(movieId: string, rate: number): Promise<Rating> {
+  async addRating(movieId: string, rate: number) {
     const userPayload = this.request[REQUEST_USER_KEY];
     if (!userPayload?.sub) {
       throw new NotFoundException('User not found in request payload');
@@ -55,6 +55,6 @@ export class AddRatingProvider {
       });
     }
 
-    return this.ratingRepository.save(rating);
+    return { rate, movie };
   }
 }

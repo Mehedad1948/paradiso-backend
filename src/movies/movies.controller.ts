@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Post, Param, Put } from '@nestjs/common';
+import { Body, Controller, Get, Post, Param, Put, Query } from '@nestjs/common';
 import { CreateMovieDto } from './dtos/create-movie.dto';
 import { MoviesService } from './providers/movies.service';
 import { Auth } from 'src/auth/decorator/auth.decorator';
 import { AuthType } from 'src/auth/enums/auth.decorator';
+import { GetMovieDto } from './dtos/get-movie.dto';
 
 @Controller('movies')
 export class MoviesController {
@@ -11,8 +12,8 @@ export class MoviesController {
   // Get all movies, no auth required
   @Get()
   @Auth(AuthType.none)
-  async getMovies() {
-    return await this.movieService.getAllMovies();
+  async getMovies(@Query() movieQuery: GetMovieDto) {
+    return await this.movieService.getAllMovies(movieQuery);
   }
 
   // Get one movie by ID, no auth required (adjust if needed)
