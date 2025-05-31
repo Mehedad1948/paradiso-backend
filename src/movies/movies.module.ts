@@ -16,5 +16,6 @@ import { UpdateMovieProvider } from './providers/update-movie.provider';
     UpdateMovieProvider,
   ],
   imports: [TypeOrmModule.forFeature([Movie])],
+  exports: [MoviesService],
 })
 export class MoviesModule {}

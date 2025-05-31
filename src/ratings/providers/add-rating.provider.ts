@@ -1,13 +1,13 @@
 // add-rating.provider.ts
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User } from 'src/users/user.entity';
-import { Movie } from 'src/movies/movie.entity';
-import { Rating } from '../rating.entity';
 import { REQUEST } from '@nestjs/core';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Request } from 'express';
 import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
+import { MoviesService } from 'src/movies/providers/movies.service';
+import { UsersService } from 'src/users/providers/users.service';
+import { Repository } from 'typeorm';
+import { Rating } from '../rating.entity';
 
 @Injectable()
 export class AddRatingProvider {
@@ -17,11 +17,9 @@ export class AddRatingProvider {
     @InjectRepository(Rating)
     private readonly ratingRepository: Repository<Rating>,
 
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private readonly userService: UsersService,
 
-    @InjectRepository(Movie)
-    private readonly movieRepository: Repository<Movie>,
+    private readonly movieService: MoviesService,
   ) {}
 
   async addRating(movieId: string, rate: number): Promise<Rating> {
@@ -30,16 +28,12 @@ export class AddRatingProvider {
       throw new NotFoundException('User not found in request payload');
     }
 
-    const user = await this.userRepository.findOne({
-      where: { id: userPayload.sub },
-    });
+    const user = await this.userService.findOneById(userPayload.sub);
     if (!user) {
       throw new NotFoundException('User not found in database');
     }
 
-    const movie = await this.movieRepository.findOne({
-      where: { id: movieId },
-    });
+    const movie = await this.movieService.getMovieById(movieId);
     if (!movie) {
       throw new NotFoundException('Movie not found');
     }
