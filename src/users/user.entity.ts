@@ -1,6 +1,13 @@
 import { Role } from 'src/roles/role.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
+import { Rating } from 'src/ratings/rating.entity';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
@@ -35,4 +42,7 @@ export class User {
   @Expose()
   @ManyToOne(() => Role, (role) => role.users)
   role: Role;
+
+  @OneToMany(() => Rating, (rating) => rating.user)
+  ratings: Rating[];
 }

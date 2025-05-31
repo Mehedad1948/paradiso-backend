@@ -1,3 +1,4 @@
+import { Rating } from 'src/ratings/rating.entity';
 import { User } from 'src/users/user.entity';
 import {
   Entity,
@@ -6,6 +7,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  OneToMany,
 } from 'typeorm';
 
 @Entity()
@@ -39,4 +41,7 @@ export class Movie {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => Rating, (rating) => rating.movie)
+  ratings: Rating[];
 }
