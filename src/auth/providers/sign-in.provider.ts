@@ -19,6 +19,8 @@ export class SignInProvider {
   ) {}
   public async signIn(signInDto: SignInDto) {
     const user = await this.usersService.findOneByEmail(signInDto.email);
+    console.log('❌✨✨✨', user);
+
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }

@@ -1,0 +1,6 @@
+PUT  http://localhost:3000/movies/e58bb1c4-7216-4acf-a552-6739727536a2
+  Content-Type:application/json 
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjIxLCJlbWFpbCI6ImF3ZWV3YXNkYXNkQGdtYWlsLmNvbSIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzQ4NjY2OTk5LCJleHAiOjE3NDg2NzA1OTksImF1ZCI6ImxvY2FsaG9zdDozMDAwIiwiaXNzIjoibG9jYWxob3N0OjMwMDAifQ.9uCXjG1wZUg8BWnupnbmHSsGig7s-bth7f_srWk7SaI
+{
+  "title": "Interstellar"
+}

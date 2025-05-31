@@ -16,8 +16,6 @@ export class UserResponseDto {
 
   @Expose({ name: 'role' })
   @Transform(({ obj }): string | undefined => {
-    console.log('👍👍👍', obj);
-
     return obj.role?.name as string;
   })
   role: string;

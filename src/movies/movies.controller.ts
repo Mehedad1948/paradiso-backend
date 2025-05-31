@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Param } from '@nestjs/common';
+import { Body, Controller, Get, Post, Param, Put } from '@nestjs/common';
 import { CreateMovieDto } from './dtos/create-movie.dto';
 import { MoviesService } from './providers/movies.service';
 import { Auth } from 'src/auth/decorator/auth.decorator';
@@ -20,6 +20,15 @@ export class MoviesController {
   @Auth(AuthType.none)
   async getMovieById(@Param('id') id: string) {
     return await this.movieService.getMovieById(id);
+  }
+
+  @Put(':id')
+  @Auth(AuthType.Bearer)
+  async updateMovieById(
+    @Param('id') id: string,
+    @Body() createMovieDto: CreateMovieDto,
+  ) {
+    return await this.movieService.updateMovie(id, createMovieDto);
   }
 
   // Create movie, requires Bearer auth
