@@ -25,8 +25,6 @@ export class ResetPasswordProvider {
   }: ResetPasswordDto): Promise<{ message: string }> {
     const user = await this.UserService.findOneByEmail(email);
 
-    console.log('➡️➡️➡️', user);
-
     if (!user || !user.verificationCode || !user.verificationCodeExpiresAt) {
       throw new NotFoundException('No verification request found');
     }
