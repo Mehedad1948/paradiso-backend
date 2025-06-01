@@ -7,6 +7,7 @@ import { HashingProvider } from './hashing.provider';
 import { RefreshTokensProvider } from './refresh-tokens.provider';
 import { SignInProvider } from './sign-in.provider';
 import { VerifyEmailProvider } from './verify-email.provider';
+import { ResetPasswordDto } from '../dtos/reset-password.dto';
 @Injectable()
 export class AuthService {
   constructor(
@@ -23,6 +24,14 @@ export class AuthService {
     return this.refreshTokensProvider.refreshToken(refreshTokenDto);
   }
   public async verifyEmail({ email, code }: VerifyCodeDto) {
+    return await this.verifyEmailProvider.verifyCode(email, code);
+  }
+
+  public async resetPassword({ email, code }: ResetPasswordDto) {
+    return await this.verifyEmailProvider.verifyCode(email, code);
+  }
+
+  public async forgetPassword({ email }: ResetPasswordDto) {
     return await this.verifyEmailProvider.verifyCode(email, code);
   }
 }

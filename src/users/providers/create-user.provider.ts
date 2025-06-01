@@ -50,7 +50,7 @@ export class CreateUserProvider {
         throw new NotFoundException('Default "user" role not found');
       }
       const code = Math.floor(1000 + Math.random() * 9000).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
       const user = this.userRepository.create({
         ...createUserDto,

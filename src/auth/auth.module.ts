@@ -14,6 +14,8 @@ import { RefreshTokensProvider } from './providers/refresh-tokens.provider';
 import { GoogleAuthenticationController } from './social/google-authentication.controller';
 import { GoogleAuthenticationService } from './social/providers/google-authentication.service';
 import { VerifyEmailProvider } from './providers/verify-email.provider';
+import { MailModule } from 'src/mail/mail.module';
+import { ForgetPasswordProvider } from './providers/forget-password.provider';
 @Module({
   controllers: [AuthController, GoogleAuthenticationController],
   providers: [
@@ -24,10 +26,12 @@ import { VerifyEmailProvider } from './providers/verify-email.provider';
     RefreshTokensProvider,
     GoogleAuthenticationService,
     VerifyEmailProvider,
+    ForgetPasswordProvider,
   ],
   imports: [
     forwardRef(() => UsersModule),
     ConfigModule.forFeature(jwtConfig),
+    MailModule,
     JwtModule.registerAsync(jwtConfig.asProvider()), // Boilerplate code for registering the JWT module
   ],
   exports: [AuthService, HashingProvider],

@@ -37,7 +37,7 @@ export class CreateMovieProvider {
       const savedMovie = await this.movieRepository.save(movie);
       return plainToInstance(MovieResponseDto, savedMovie, {
         excludeExtraneousValues: true,
-      }) as MovieResponseDto;
+      });
     } catch (error) {
       console.error('❌ Failed to create movie:', error);
       throw new InternalServerErrorException('Failed to create movie');

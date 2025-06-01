@@ -30,8 +30,6 @@ export class GenerateTokensProvider {
   }
 
   public async generateTokens(user: User) {
-    console.log('🚀🚀➡️➡️🚀', user);
-
     const [accessToken, refreshToken] = await Promise.all([
       this.signToken<Partial<ActiveUserData>>(
         user.id,
@@ -39,6 +37,7 @@ export class GenerateTokensProvider {
         {
           email: user.email,
           role: user.role?.name,
+          isEmailVerified: user.isEmailVerified,
         },
       ),
       this.signToken(user.id, this.jwtConfiguration.refreshTokenTtl),

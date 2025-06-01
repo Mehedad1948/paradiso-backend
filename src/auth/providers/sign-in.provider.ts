@@ -38,6 +38,9 @@ export class SignInProvider {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException('Email not verified');
+    }
 
     return await this.generateTokensProvider.generateTokens(user);
   }

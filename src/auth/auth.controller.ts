@@ -14,6 +14,7 @@ import { SignInDto } from './dtos/signin.dto';
 import { VerifyCodeDto } from './dtos/verify-code.dto';
 import { AuthType } from './enums/auth.decorator';
 import { AuthService } from './providers/auth.service';
+import { ResetPasswordDto } from './dtos/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -40,5 +41,17 @@ export class AuthController {
   @Post('verify-email')
   async verifyEmail(@Body() verifyCodeDto: VerifyCodeDto) {
     return await this.authService.verifyEmail(verifyCodeDto);
+  }
+
+  @Auth(AuthType.none)
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return await this.authService.resetPassword(resetPasswordDto);
+  }
+
+  @Auth(AuthType.none)
+  @Post('forget-password')
+  async forgetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return await this.authService.forgetPassword(resetPasswordDto);
   }
 }

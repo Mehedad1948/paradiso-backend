@@ -14,6 +14,7 @@ export class MailService {
       context: {
         name: user.username,
         email: user.email,
+        code: user.verificationCode,
         loginUrl: 'http://localhost:3000',
       },
     });
@@ -30,7 +31,24 @@ export class MailService {
       context: {
         name: user.username,
         email: user.email,
+        code: user.verificationCode,
         verificationUrl,
+      },
+    });
+  }
+  public async sendResetPasswordEmail(user: User): Promise<void> {
+    const resetPasswordUrl = `http://localhost:3000/reset-password?code=${user.verificationCode}`;
+
+    await this.mailerService.sendMail({
+      to: user.email,
+      from: `Reset Your Password <no-reply@nestjs-blog.com>`,
+      subject: 'Reset Your Password',
+      template: './reset-password.ejs', // views/reset-password.hbs
+      context: {
+        name: user.username,
+        email: user.email,
+        code: user.verificationCode,
+        resetPasswordUrl,
       },
     });
   }
