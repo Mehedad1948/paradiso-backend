@@ -47,6 +47,8 @@ export class AuthController {
   @Auth(AuthType.none)
   @Post('reset-password')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    console.log('➡️➡️➡️', resetPasswordDto);
+
     return await this.authService.resetPassword(resetPasswordDto);
   }
 

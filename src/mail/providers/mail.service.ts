@@ -21,7 +21,7 @@ export class MailService {
   }
 
   public async sendVerificationEmail(user: User): Promise<void> {
-    const verificationUrl = `http://localhost:3000/verify-email?code=${user.verificationCode}`;
+    const verificationUrl = `http://localhost:3001/auth/verify-email?code=${user.verificationCode}`;
 
     await this.mailerService.sendMail({
       to: user.email,
@@ -37,7 +37,7 @@ export class MailService {
     });
   }
   public async sendResetPasswordEmail(user: User): Promise<void> {
-    const resetPasswordUrl = `http://localhost:3000/reset-password?code=${user.verificationCode}`;
+    const resetPasswordUrl = `http://localhost:3001/auth/reset-password?code=${user.verificationCode}&email=${user.email}`;
 
     await this.mailerService.sendMail({
       to: user.email,

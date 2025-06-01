@@ -26,11 +26,21 @@ export class ForgetPasswordProvider {
       throw new NotFoundException("User's email is not  verified");
     }
     const code = Math.floor(1000 + Math.random() * 9000).toString();
-    user.verificationCode = code;
-    await this.mailService.sendResetPasswordEmail(user);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-    return {
-      message: 'Check your email for the password reset link',
-    };
+    user.verificationCode = code;
+    user.verificationCodeExpiresAt = expiresAt;
+    try {
+      await this.UserService.updateByEmail(email, user);
+      await this.mailService.sendResetPasswordEmail(user);
+
+      return {
+        message: 'Check your email for the password reset link',
+      };
+    } catch (error) {
+      throw new NotFoundException('Failed to process password reset request', {
+        description: error?.message,
+      });
+    }
   }
 }

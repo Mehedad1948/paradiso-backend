@@ -16,6 +16,7 @@ import { GoogleAuthenticationService } from './social/providers/google-authentic
 import { VerifyEmailProvider } from './providers/verify-email.provider';
 import { MailModule } from 'src/mail/mail.module';
 import { ForgetPasswordProvider } from './providers/forget-password.provider';
+import { ResetPasswordProvider } from './providers/reset-password.provider';
 @Module({
   controllers: [AuthController, GoogleAuthenticationController],
   providers: [
@@ -27,6 +28,7 @@ import { ForgetPasswordProvider } from './providers/forget-password.provider';
     GoogleAuthenticationService,
     VerifyEmailProvider,
     ForgetPasswordProvider,
+    ResetPasswordProvider,
   ],
   imports: [
     forwardRef(() => UsersModule),

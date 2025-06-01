@@ -9,7 +9,7 @@ import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { HashingProvider } from './hashing.provider';
 
 @Injectable()
-export class VerifyEmailProvider {
+export class ResetPasswordProvider {
   constructor(
     private readonly UserService: UsersService,
 
@@ -24,6 +24,8 @@ export class VerifyEmailProvider {
     password,
   }: ResetPasswordDto): Promise<{ message: string }> {
     const user = await this.UserService.findOneByEmail(email);
+
+    console.log('➡️➡️➡️', user);
 
     if (!user || !user.verificationCode || !user.verificationCodeExpiresAt) {
       throw new NotFoundException('No verification request found');
