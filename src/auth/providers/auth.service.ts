@@ -8,6 +8,8 @@ import { RefreshTokensProvider } from './refresh-tokens.provider';
 import { SignInProvider } from './sign-in.provider';
 import { VerifyEmailProvider } from './verify-email.provider';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
+import { ForgetPasswordProvider } from './forget-password.provider';
+import { ForgetPasswordDto } from '../dtos/forget-password.dto';
 @Injectable()
 export class AuthService {
   constructor(
@@ -16,6 +18,7 @@ export class AuthService {
     private readonly signInProvider: SignInProvider,
     private readonly refreshTokensProvider: RefreshTokensProvider,
     private readonly verifyEmailProvider: VerifyEmailProvider,
+    private readonly forgetPasswordProvider: ForgetPasswordProvider,
   ) {}
   public async signIn(signInDto: SignInDto) {
     return this.signInProvider.signIn(signInDto);
@@ -31,7 +34,7 @@ export class AuthService {
     return await this.verifyEmailProvider.verifyCode(email, code);
   }
 
-  public async forgetPassword({ email }: ResetPasswordDto) {
-    return await this.verifyEmailProvider.verifyCode(email, code);
+  public async forgetPassword({ email }: ForgetPasswordDto) {
+    return await this.forgetPasswordProvider.forgetPassword({ email });
   }
 }

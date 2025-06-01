@@ -15,6 +15,7 @@ import { VerifyCodeDto } from './dtos/verify-code.dto';
 import { AuthType } from './enums/auth.decorator';
 import { AuthService } from './providers/auth.service';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
+import { ForgetPasswordDto } from './dtos/forget-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -51,7 +52,7 @@ export class AuthController {
 
   @Auth(AuthType.none)
   @Post('forget-password')
-  async forgetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
-    return await this.authService.forgetPassword(resetPasswordDto);
+  async forgetPassword(@Body() forgetPasswordDto: ForgetPasswordDto) {
+    return await this.authService.forgetPassword(forgetPasswordDto);
   }
 }
