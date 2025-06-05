@@ -1,5 +1,6 @@
 import {
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
   RequestTimeoutException,
 } from '@nestjs/common';
@@ -11,6 +12,8 @@ import { CreateUserProvider } from './create-user.provider';
 import { GetUserProvider } from './get-user.provider';
 import { UpdateUserProvider } from './update-usrer.provider';
 import { UpdateUserDto } from '../dtos/update-user.dto';
+import { UserResponseDto } from '../dtos/user-response.dto';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UsersService {
@@ -42,6 +45,24 @@ export class UsersService {
       where: { email },
       relations: ['role'],
     });
+  }
+
+  async getRatingUsers(): Promise<UserResponseDto[]> {
+    try {
+      const users = await this.userRepository
+        .createQueryBuilder('user')
+        .innerJoin('user.ratings', 'rating')
+        .select(['user.id', 'user.username', 'user.avatar'])
+        .distinct(true)
+        .getMany();
+
+      return plainToInstance(UserResponseDto, users, {
+        excludeExtraneousValues: true,
+      });
+    } catch (error) {
+      console.error('❌ Failed to get rating users:', error);
+      throw new InternalServerErrorException('Failed to get rating users');
+    }
   }
 
   public async findOneById(id: number) {

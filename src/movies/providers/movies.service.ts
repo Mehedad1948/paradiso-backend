@@ -8,6 +8,7 @@ import { MovieResponseDto } from '../dtos/movie-response.dto';
 import { GetMovieDto } from '../dtos/get-movie.dto';
 import { Paginated } from 'src/common/pagination/interfaces/paginated.interface';
 import { GetRatingDto } from 'src/ratings/dtos/get-rating.dto';
+import { UserResponseDto } from 'src/users/dtos/user-response.dto';
 
 @Injectable()
 export class MoviesService {
@@ -38,7 +39,7 @@ export class MoviesService {
 
   public async getAllMoviesWithRating(
     ratingQuery: GetRatingDto,
-  ): Promise<Paginated<Movie>> {
+  ): Promise<{ movies: Paginated<Movie>; users: UserResponseDto[] }> {
     return await this.getMovieProvider.getAllWithRatings(ratingQuery);
   }
 

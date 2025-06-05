@@ -42,7 +42,7 @@ export class GetUserProvider {
       }
       return plainToInstance(UserResponseDto, user, {
         excludeExtraneousValues: true,
-      }) as UserResponseDto;
+      });
     } catch (error) {
       console.log(error);
 

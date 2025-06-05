@@ -7,6 +7,7 @@ import { Movie } from './movie.entity';
 import { GetMovieProvider } from './providers/get-movie.provider';
 import { UpdateMovieProvider } from './providers/update-movie.provider';
 import { PaginationModule } from 'src/common/pagination/dtos/pagination.module';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
   controllers: [MoviesController],
@@ -16,7 +17,7 @@ import { PaginationModule } from 'src/common/pagination/dtos/pagination.module';
     GetMovieProvider,
     UpdateMovieProvider,
   ],
-  imports: [TypeOrmModule.forFeature([Movie]), PaginationModule],
+  imports: [TypeOrmModule.forFeature([Movie]), PaginationModule, UsersModule],
   exports: [MoviesService],
 })
 export class MoviesModule {}
