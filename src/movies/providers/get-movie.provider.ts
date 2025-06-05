@@ -70,8 +70,25 @@ export class GetMovieProvider {
     try {
       const moviesQuery = this.movieRepository
         .createQueryBuilder('movie')
-        .leftJoinAndSelect('movie.addedBy', 'user')
-        .select(['movie', 'user.id', 'user.username', 'user.avatar']);
+        .leftJoinAndSelect('movie.addedBy', 'addedBy') // who added the movie
+        .leftJoinAndSelect('movie.ratings', 'rating')
+        .leftJoinAndSelect('rating.user', 'ratingUser') // who rated the movie
+        .select([
+          'movie.id',
+          'movie.title',
+          'movie.releaseDate',
+          'movie.imdbRate',
+          'movie.image',
+          'movie.isWatchedTogether',
+          'movie.isIn',
+          'movie.createdAt',
+          'movie.updatedAt',
+          'addedBy.id',
+          'rating.rate',
+          'ratingUser.id',
+          'ratingUser.username',
+          'ratingUser.avatar',
+        ]);
 
       const movies = await this.paginationProvider.paginateQuery(
         {
@@ -80,10 +97,13 @@ export class GetMovieProvider {
         },
         moviesQuery,
       );
+
       return movies;
     } catch (error) {
-      console.error('❌ Failed to get all movies:', error);
-      throw new InternalServerErrorException('Failed to get movies');
+      console.error('❌ Failed to get all movies with ratings:', error);
+      throw new InternalServerErrorException(
+        'Failed to get movies with ratings',
+      );
     }
   }
 
