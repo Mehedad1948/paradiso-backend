@@ -10,11 +10,15 @@ import { map, Observable } from 'rxjs';
 @Injectable()
 export class DataResponseInterceptor implements NestInterceptor {
   constructor(private readonly configService: ConfigService) {}
-  intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+  intercept<T>(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<T & { apiVersion: string }> {
     return next.handle().pipe(
-      map((data) => ({
-        data: data,
-        apiVersion: this.configService.get('appConfig.apiVersion'),
+      map((data: T) => ({
+        ...data,
+        apiVersion:
+          this.configService.get<string>('appConfig.apiVersion') ?? '',
       })),
     );
   }
