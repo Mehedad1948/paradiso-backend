@@ -18,6 +18,7 @@ import { MoviesModule } from './movies/movies.module';
 import { RatingsModule } from './ratings/ratings.module';
 import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
+import { GenresModule } from './genres/genres.module';
 const ENV = process.env.NODE_ENV || 'development';
 @Module({
   imports: [
@@ -55,6 +56,7 @@ const ENV = process.env.NODE_ENV || 'development';
     RolesModule,
     AuthModule,
     MailModule,
+    GenresModule,
   ],
   controllers: [AppController],
   providers: [

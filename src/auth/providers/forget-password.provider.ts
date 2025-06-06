@@ -26,7 +26,7 @@ export class ForgetPasswordProvider {
       throw new NotFoundException("User's email is not  verified");
     }
     const code = Math.floor(1000 + Math.random() * 9000).toString();
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
 
     user.verificationCode = code;
     user.verificationCodeExpiresAt = expiresAt;

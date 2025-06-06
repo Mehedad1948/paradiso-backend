@@ -1,5 +1,6 @@
 import { Rating } from 'src/ratings/rating.entity';
 import { User } from 'src/users/user.entity';
+import { Genre } from 'src/genres/genre.entity'; // You'll need to create this
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -8,6 +9,8 @@ import {
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 
 @Entity()
@@ -47,4 +50,8 @@ export class Movie {
 
   @OneToMany(() => Rating, (rating) => rating.movie)
   ratings: Rating[];
+
+  @ManyToMany(() => Genre, { eager: true, cascade: true })
+  @JoinTable()
+  genres: Genre[];
 }

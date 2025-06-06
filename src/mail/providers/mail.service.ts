@@ -21,7 +21,7 @@ export class MailService {
   }
 
   public async sendVerificationEmail(user: User): Promise<void> {
-    const verificationUrl = `http://localhost:3001/auth/verify-email?code=${user.verificationCode}`;
+    const verificationUrl = `http://localhost:3001/auth/verify?code=${user.verificationCode}&email=${user.email}`;
 
     await this.mailerService.sendMail({
       to: user.email,
