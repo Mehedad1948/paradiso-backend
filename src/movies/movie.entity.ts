@@ -18,8 +18,11 @@ export class Movie {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ nullable: false })
   title: string;
+
+  @Column({ nullable: true })
+  description: string;
 
   @Column({ type: 'date', nullable: true })
   releaseDate: Date;

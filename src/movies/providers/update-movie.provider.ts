@@ -56,7 +56,7 @@ export class UpdateMovieProvider {
       const savedMovie = await this.movieRepository.save(updatedMovie);
       return plainToInstance(MovieResponseDto, savedMovie, {
         excludeExtraneousValues: true,
-      }) as MovieResponseDto;
+      });
     } catch (error) {
       console.error(`❌ Failed to update movie:`, error);
       throw error instanceof UnauthorizedException ||

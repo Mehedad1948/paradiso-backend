@@ -11,4 +11,6 @@ export default registerAs('appConfig', () => ({
   mailHost: process.env.MAIL_HOST,
   smtpUsername: process.env.SMTP_USERNAME,
   smtpPassword: process.env.SMTP_PASSWORD,
+  tmdbApiKey: process.env.TMDB_API_KEY,
+  baseUrl: process.env.TMDB_BASE_URL,
 }));

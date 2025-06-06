@@ -1,4 +1,5 @@
 import { Expose, Transform } from 'class-transformer';
+import { Genre } from 'src/genres/genre.entity';
 import { Rating } from 'src/ratings/rating.entity';
 
 export class MovieResponseDto {
@@ -25,6 +26,9 @@ export class MovieResponseDto {
 
   @Expose()
   ratings: Rating[];
+
+  @Expose()
+  genres: Genre[];
 
   @Expose()
   @Transform(({ obj }) => ({

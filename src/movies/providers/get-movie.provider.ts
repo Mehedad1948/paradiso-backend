@@ -29,7 +29,15 @@ export class GetMovieProvider {
       const moviesQuery = this.movieRepository
         .createQueryBuilder('movie')
         .leftJoinAndSelect('movie.addedBy', 'user')
-        .select(['movie', 'user.id', 'user.username', 'user.avatar']);
+        .leftJoinAndSelect('movie.genres', 'genre')
+        .select([
+          'movie',
+          'user.id',
+          'user.username',
+          'user.avatar',
+          'genre.id',
+          'genre.name',
+        ]);
 
       const movies = await this.paginationProvider.paginateQuery(
         {
