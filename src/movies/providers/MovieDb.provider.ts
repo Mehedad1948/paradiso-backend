@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Genre } from 'src/genres/genre.entity';
 
 @Injectable()
 export class MovieDbService {
@@ -32,12 +33,12 @@ export class MovieDbService {
     return res.json();
   }
 
-  async getGenres(): Promise<any[]> {
+  async getGenres(): Promise<Exclude<Genre, 'tmdbId'>[]> {
     const url = this.buildUrl('genre/movie/list');
     const res = await fetch(url);
     if (!res.ok) throw new Error(`TMDb genres fetch failed: ${res.statusText}`);
     const data = await res.json();
-    return data.genres;
+    return data.genres as Exclude<Genre, 'tmdbId'>[];
   }
 
   async getMovieDetails(movieId: number): Promise<any> {
