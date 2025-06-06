@@ -1,10 +1,19 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  ConflictException,
+  NotFoundException,
+  UnauthorizedException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 import { UsersService } from 'src/users/providers/users.service';
 import { Repository } from 'typeorm';
 import { Room } from '../room.entity';
+import { plainToInstance } from 'class-transformer';
+import { UserResponseDto } from 'src/users/dtos/user-response.dto';
 
 @Injectable()
 export class RoomsService {
@@ -16,22 +25,53 @@ export class RoomsService {
     private readonly userService: UsersService,
   ) {}
 
-  async createRoom(name: string): Promise<Room> {
-    const userPayload = this.request[REQUEST_USER_KEY];
+  async createRoom(name: string) {
+    try {
+      const userPayload = this.request[REQUEST_USER_KEY];
+      const ownerId = userPayload?.sub;
 
-    const ownerId = userPayload?.sub;
-    if (!ownerId) throw new Error('Invalid user');
+      if (!ownerId) {
+        throw new UnauthorizedException('Invalid user');
+      }
 
-    const owner = await this.userService.findOneById(ownerId);
-    if (!owner) throw new Error('Owner not found');
+      const owner = await this.userService.findOneById(ownerId);
+      if (!owner) {
+        throw new NotFoundException('Owner not found');
+      }
 
-    const room = this.roomRepository.create({
-      name,
-      users: [owner],
-      movies: [],
-      owner,
-    });
+      const existingRoom = await this.roomRepository.findOne({
+        where: { name },
+      });
+      if (existingRoom) {
+        throw new ConflictException(`Room with name "${name}" already exists`);
+      }
 
-    return await this.roomRepository.save(room);
+      const room = this.roomRepository.create({
+        name,
+        users: [owner],
+        movies: [],
+        owner,
+      });
+
+      await this.roomRepository.save(room);
+
+      return {
+        message: 'Room created successfully',
+        name: room.name,
+        owner: plainToInstance(UserResponseDto, room.owner, {
+          excludeExtraneousValues: true,
+        }),
+      };
+    } catch (error) {
+      if (
+        error instanceof UnauthorizedException ||
+        error instanceof NotFoundException ||
+        error instanceof ConflictException
+      ) {
+        throw error; // rethrow known exceptions
+      }
+      // fallback for unexpected errors
+      throw new InternalServerErrorException('Failed to create room');
+    }
   }
 }

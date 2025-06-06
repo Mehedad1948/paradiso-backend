@@ -4,6 +4,7 @@ import { User } from 'src/users/user.entity';
 import {
   Column,
   Entity,
+  JoinTable,
   ManyToMany,
   ManyToOne,
   OneToMany,
@@ -15,13 +16,15 @@ export class Room {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ unique: true })
   name: string;
 
   @ManyToMany(() => User, (user) => user.rooms)
+  @JoinTable()
   users: User[];
 
   @ManyToMany(() => Movie, (movie) => movie.rooms)
+  @JoinTable()
   movies: Movie[];
 
   @OneToMany(() => Rating, (rating) => rating.room)

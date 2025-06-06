@@ -50,6 +50,5 @@ export class User {
   ratings: Rating[];
 
   @ManyToMany(() => Room, (room) => room.users)
-  @JoinTable()
   rooms: Room[];
 }

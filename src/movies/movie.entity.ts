@@ -60,6 +60,5 @@ export class Movie {
   genres: Genre[];
 
   @ManyToMany(() => Room, (room) => room.movies)
-  @JoinTable()
   rooms: Room[];
 }
