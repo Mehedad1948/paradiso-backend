@@ -19,6 +19,7 @@ import { RatingsModule } from './ratings/ratings.module';
 import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
 import { GenresModule } from './genres/genres.module';
+import { RoomsModule } from './rooms/rooms.module';
 const ENV = process.env.NODE_ENV || 'development';
 @Module({
   imports: [
@@ -57,6 +58,7 @@ const ENV = process.env.NODE_ENV || 'development';
     AuthModule,
     MailModule,
     GenresModule,
+    RoomsModule,
   ],
   controllers: [AppController],
   providers: [

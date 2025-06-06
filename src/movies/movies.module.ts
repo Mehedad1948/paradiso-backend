@@ -8,7 +8,7 @@ import { GetMovieProvider } from './providers/get-movie.provider';
 import { UpdateMovieProvider } from './providers/update-movie.provider';
 import { PaginationModule } from 'src/common/pagination/dtos/pagination.module';
 import { UsersModule } from 'src/users/users.module';
-import { MovieDbService } from './providers/MovieDb.provider';
+import { MovieDbService } from './providers/MovieDb.serviec';
 
 @Module({
   controllers: [MoviesController],

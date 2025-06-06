@@ -7,9 +7,10 @@ import {
 } from 'typeorm';
 import { User } from 'src/users/user.entity';
 import { Movie } from 'src/movies/movie.entity';
+import { Room } from 'src/rooms/room.entity';
 
 @Entity()
-@Unique(['user', 'movie'])
+@Unique(['user', 'movie', 'room'])
 export class Rating {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -22,4 +23,7 @@ export class Rating {
 
   @ManyToOne(() => Movie, (movie) => movie.ratings, { onDelete: 'CASCADE' })
   movie: Movie;
+
+  @ManyToOne(() => Room, (room) => room.ratings)
+  room: Room;
 }

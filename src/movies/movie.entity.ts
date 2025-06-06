@@ -12,6 +12,7 @@ import {
   ManyToMany,
   JoinTable,
 } from 'typeorm';
+import { Room } from 'src/rooms/room.entity';
 
 @Entity()
 export class Movie {
@@ -57,4 +58,8 @@ export class Movie {
   @ManyToMany(() => Genre, { eager: true, cascade: true })
   @JoinTable()
   genres: Genre[];
+
+  @ManyToMany(() => Room, (room) => room.movies)
+  @JoinTable()
+  rooms: Room[];
 }

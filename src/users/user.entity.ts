@@ -5,9 +5,12 @@ import {
   Column,
   ManyToOne,
   OneToMany,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
 import { Rating } from 'src/ratings/rating.entity';
+import { Room } from 'src/rooms/room.entity';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
@@ -45,4 +48,8 @@ export class User {
 
   @OneToMany(() => Rating, (rating) => rating.user)
   ratings: Rating[];
+
+  @ManyToMany(() => Room, (room) => room.users)
+  @JoinTable()
+  rooms: Room[];
 }
