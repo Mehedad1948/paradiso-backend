@@ -26,7 +26,7 @@ export class MovieDbService {
     return url.toString();
   }
 
-  async searchMovies(query: string, page = 1): Promise<any> {
+  async searchMovies(query: string, page = 1) {
     const url = this.buildUrl('search/movie', { query, page });
     const res = await fetch(url);
     if (!res.ok) throw new Error(`TMDb search failed: ${res.statusText}`);

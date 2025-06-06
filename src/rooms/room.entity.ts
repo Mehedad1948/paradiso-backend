@@ -19,6 +19,12 @@ export class Room {
   @Column({ unique: true })
   name: string;
 
+  @Column({ nullable: true })
+  image?: string;
+
+  @Column({ default: true })
+  isPublic?: string;
+
   @ManyToMany(() => User, (user) => user.rooms)
   @JoinTable()
   users: User[];

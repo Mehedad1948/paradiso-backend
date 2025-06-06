@@ -1,16 +1,15 @@
-import { Role } from 'src/roles/role.entity';
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  OneToMany,
-  ManyToMany,
-  JoinTable,
-} from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
 import { Rating } from 'src/ratings/rating.entity';
+import { Role } from 'src/roles/role.entity';
 import { Room } from 'src/rooms/room.entity';
+import {
+  Column,
+  Entity,
+  ManyToMany,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
