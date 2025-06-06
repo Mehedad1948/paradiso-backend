@@ -58,6 +58,8 @@ export class RoomsService {
       return {
         message: 'Room created successfully',
         name: room.name,
+        image: room.image,
+        isPublic: room.isPublic,
         owner: plainToInstance(UserResponseDto, room.owner, {
           excludeExtraneousValues: true,
         }),
