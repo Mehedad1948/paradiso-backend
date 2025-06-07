@@ -21,6 +21,7 @@ import { UsersModule } from './users/users.module';
 import { GenresModule } from './genres/genres.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { RoomInvitationsModule } from './room-invitations/room-invitations.module';
 const ENV = process.env.NODE_ENV || 'development';
 @Module({
   imports: [
@@ -59,6 +60,7 @@ const ENV = process.env.NODE_ENV || 'development';
     GenresModule,
     RoomsModule,
     UploadsModule,
+    RoomInvitationsModule,
   ],
   controllers: [AppController],
   providers: [

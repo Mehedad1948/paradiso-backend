@@ -77,4 +77,12 @@ export class GetRoomProvider {
       throw new InternalServerErrorException('Failed to get rooms');
     }
   }
+
+  async findRoomById(roomId: number) {
+    try {
+      return await this.roomRepository.findOne({ where: { id: roomId } });
+    } catch {
+      throw new InternalServerErrorException('Failed to find room');
+    }
+  }
 }

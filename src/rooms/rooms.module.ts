@@ -9,15 +9,10 @@ import { CreateRoomProvider } from './providers/create-room.provider';
 import { PaginationModule } from 'src/common/pagination/dtos/pagination.module';
 import { MailModule } from 'src/mail/mail.module';
 import { AuthModule } from 'src/auth/auth.module';
-import { AddUserToRoomProvider } from './providers/add-user-to-room.provider';
 
 @Module({
-  providers: [
-    RoomsService,
-    GetRoomProvider,
-    CreateRoomProvider,
-    AddUserToRoomProvider,
-  ],
+  providers: [RoomsService, GetRoomProvider, CreateRoomProvider],
+  exports: [RoomsService],
   imports: [
     TypeOrmModule.forFeature([Room]),
     UsersModule,

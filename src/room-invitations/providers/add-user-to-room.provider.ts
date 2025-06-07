@@ -7,22 +7,19 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
-import { InjectRepository } from '@nestjs/typeorm';
 import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 import { AuthService } from 'src/auth/providers/auth.service';
 import { MailService } from 'src/mail/providers/mail.service';
+import { RoomsService } from 'src/rooms/providers/rooms.service';
 import { UsersService } from 'src/users/providers/users.service';
-import { Repository } from 'typeorm';
-import { InviteUserToRoomDto } from '../dtos/invite-user-to-room.dto';
-import { Room } from '../room.entity';
+import { InviteUserToRoomDto } from '../dto/invite-user-to-room.dto';
 
 @Injectable()
 export class AddUserToRoomProvider {
   constructor(
     @Inject(REQUEST) private readonly request: Request,
-    @InjectRepository(Room)
-    private readonly roomRepository: Repository<Room>,
 
+    private readonly roomService: RoomsService,
     private readonly authService: AuthService,
     private readonly userService: UsersService,
     private readonly mailService: MailService,
@@ -37,7 +34,7 @@ export class AddUserToRoomProvider {
         throw new UnauthorizedException('Invalid user');
       }
 
-      const room = await this.roomRepository.findOne({ where: { id: roomId } });
+      const room = await this.roomService.findRoomById(roomId);
       if (!room) {
         throw new NotFoundException('Room not found');
       }

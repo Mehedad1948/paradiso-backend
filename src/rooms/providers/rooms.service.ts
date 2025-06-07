@@ -1,8 +1,6 @@
 import { Injectable, Query } from '@nestjs/common';
 import { CreateRoomDto } from '../dtos/create-room.dto';
 import { GetRoomDto } from '../dtos/get-room.dto';
-import { InviteUserToRoomDto } from '../dtos/invite-user-to-room.dto';
-import { AddUserToRoomProvider } from './add-user-to-room.provider';
 import { CreateRoomProvider } from './create-room.provider';
 import { GetRoomProvider } from './get-room.provider';
 
@@ -11,7 +9,6 @@ export class RoomsService {
   constructor(
     private readonly createRoomProvider: CreateRoomProvider,
     private readonly getRoomProvider: GetRoomProvider,
-    private readonly addUserToRoomProvider: AddUserToRoomProvider,
   ) {}
 
   async createRoom(createRoomDto: CreateRoomDto) {
@@ -22,10 +19,7 @@ export class RoomsService {
     return await this.getRoomProvider.getRooms(getRoomDto);
   }
 
-  async inviteToRoom(roomId: string, inviteUserToRoomDto: InviteUserToRoomDto) {
-    return await this.addUserToRoomProvider.inviteUserToRoom(
-      inviteUserToRoomDto,
-      roomId,
-    );
+  async findRoomById(roomId: number) {
+    return await this.getRoomProvider.findRoomById(roomId);
   }
 }
