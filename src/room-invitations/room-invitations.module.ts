@@ -6,10 +6,23 @@ import { UsersModule } from 'src/users/users.module';
 import { AddUserToRoomProvider } from './providers/add-user-to-room.provider';
 import { RoomInvitationService } from './providers/invitations.service';
 import { RoomInvitationsController } from './room-invitations.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RoomInvitation } from './room-invitation.entity';
+import { GetRoomInvitationProvider } from './providers/get-room-invitation.provider';
 
 @Module({
-  imports: [RoomsModule, AuthModule, UsersModule, MailModule],
-  providers: [RoomInvitationService, AddUserToRoomProvider],
+  imports: [
+    RoomsModule,
+    AuthModule,
+    UsersModule,
+    MailModule,
+    TypeOrmModule.forFeature([RoomInvitation]),
+  ],
+  providers: [
+    RoomInvitationService,
+    AddUserToRoomProvider,
+    GetRoomInvitationProvider,
+  ],
   controllers: [RoomInvitationsController],
 })
 export class RoomInvitationsModule {}
