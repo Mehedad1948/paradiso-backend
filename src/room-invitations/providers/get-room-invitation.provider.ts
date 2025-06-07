@@ -53,7 +53,7 @@ export class GetRoomInvitationProvider {
           'invitation.id',
           'invitation.email',
           'invitation.status',
-          'invitation.userStatus',
+          // 'invitation.userStatus',
           'user.id',
           'user.username',
           'user.avatar',
