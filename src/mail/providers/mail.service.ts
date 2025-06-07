@@ -1,5 +1,5 @@
 import { MailerService } from '@nestjs-modules/mailer';
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { User } from 'src/users/user.entity';
 
 @Injectable()
@@ -51,5 +51,33 @@ export class MailService {
         resetPasswordUrl,
       },
     });
+  }
+
+  public async sendInvitationEmail(user: {
+    inviterUsername: string;
+    email: string;
+    invitationToken: string;
+  }): Promise<{ ok: boolean; message?: string }> {
+    const invitationUrl = `http://localhost:3001/auth/invite?invitationToken=${user.invitationToken}&email=${user.email}`;
+
+    try {
+      await this.mailerService.sendMail({
+        to: user.email,
+        from: `Room Invitation <no-reply@nestjs-blog.com>`,
+        subject: 'You are invited to join a room',
+        template: './invite-room-email.ejs',
+        context: {
+          inviterUsername: user.inviterUsername,
+          email: user.email,
+          invitationUrl,
+        },
+      });
+
+      return {
+        ok: true,
+      };
+    } catch {
+      throw new InternalServerErrorException('Failed to send invitation email');
+    }
   }
 }

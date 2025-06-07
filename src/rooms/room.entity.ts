@@ -20,10 +20,13 @@ export class Room {
   name: string;
 
   @Column({ nullable: true })
+  description?: string;
+
+  @Column({ nullable: true })
   image?: string;
 
   @Column({ default: true })
-  isPublic?: string;
+  isPublic?: boolean;
 
   @ManyToMany(() => User, (user) => user.rooms)
   @JoinTable()

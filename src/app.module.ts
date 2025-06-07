@@ -20,6 +20,7 @@ import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
 import { GenresModule } from './genres/genres.module';
 import { RoomsModule } from './rooms/rooms.module';
+import { UploadsModule } from './uploads/uploads.module';
 const ENV = process.env.NODE_ENV || 'development';
 @Module({
   imports: [
@@ -36,8 +37,6 @@ const ENV = process.env.NODE_ENV || 'development';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        console.log('✨✨✨', configService.get('database.autoLoadEntities'));
-
         return {
           port: +configService.get('database.port'),
           username: configService.get('database.username'),
@@ -59,6 +58,7 @@ const ENV = process.env.NODE_ENV || 'development';
     MailModule,
     GenresModule,
     RoomsModule,
+    UploadsModule,
   ],
   controllers: [AppController],
   providers: [

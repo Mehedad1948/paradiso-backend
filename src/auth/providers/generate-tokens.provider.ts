@@ -14,10 +14,9 @@ export class GenerateTokensProvider {
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
   ) {}
 
-  public async signToken<T>(userId: number, expiresIn: number, payload?: T) {
+  public async signToken<T>(expiresIn: number, payload?: T) {
     return await this.jwtService.signAsync(
       {
-        sub: userId,
         ...payload,
       },
       {
@@ -32,20 +31,49 @@ export class GenerateTokensProvider {
   public async generateTokens(user: User) {
     const [accessToken, refreshToken] = await Promise.all([
       this.signToken<Partial<ActiveUserData>>(
-        user.id,
         this.jwtConfiguration.accessTokenTtl,
         {
+          sub: user.id,
           email: user.email,
           role: user.role?.name,
           isEmailVerified: user.isEmailVerified,
         },
       ),
-      this.signToken(user.id, this.jwtConfiguration.refreshTokenTtl),
+      this.signToken(this.jwtConfiguration.refreshTokenTtl, {
+        sub: user.id,
+      }),
     ]);
 
     return {
       accessToken,
       refreshToken,
+    };
+  }
+
+  public async generateInviteToken({
+    inviterUsername,
+    email,
+    roomId,
+  }: {
+    inviterUsername: string;
+    email: string;
+    roomId: number;
+  }) {
+    const inviteToken = await this.signToken(
+      this.jwtConfiguration.invitationTokenTtl,
+      {
+        email: email,
+        roomId,
+        inviterUsername: inviterUsername,
+        expiresAt: new Date(
+          new Date().getTime() +
+            this.jwtConfiguration.invitationTokenTtl * 1000,
+        ).toLocaleDateString(),
+      },
+    );
+
+    return {
+      inviteToken,
     };
   }
 }

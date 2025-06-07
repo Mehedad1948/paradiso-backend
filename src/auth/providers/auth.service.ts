@@ -10,6 +10,7 @@ import { RefreshTokensProvider } from './refresh-tokens.provider';
 import { ResetPasswordProvider } from './reset-password.provider';
 import { SignInProvider } from './sign-in.provider';
 import { VerifyEmailProvider } from './verify-email.provider';
+import { GenerateTokensProvider } from './generate-tokens.provider';
 @Injectable()
 export class AuthService {
   constructor(
@@ -19,6 +20,7 @@ export class AuthService {
     private readonly refreshTokensProvider: RefreshTokensProvider,
     private readonly verifyEmailProvider: VerifyEmailProvider,
     private readonly forgetPasswordProvider: ForgetPasswordProvider,
+    private readonly generateTokenProvider: GenerateTokensProvider,
   ) {}
   public async signIn(signInDto: SignInDto) {
     return this.signInProvider.signIn(signInDto);
@@ -36,5 +38,13 @@ export class AuthService {
 
   public async forgetPassword({ email }: ForgetPasswordDto) {
     return await this.forgetPasswordProvider.forgetPassword({ email });
+  }
+
+  public async generateInvitationToken(data: {
+    inviterUsername: string;
+    email: string;
+    roomId: number;
+  }) {
+    return await this.generateTokenProvider.generateInviteToken(data);
   }
 }
