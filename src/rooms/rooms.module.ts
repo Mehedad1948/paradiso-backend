@@ -9,9 +9,16 @@ import { CreateRoomProvider } from './providers/create-room.provider';
 import { PaginationModule } from 'src/common/pagination/dtos/pagination.module';
 import { MailModule } from 'src/mail/mail.module';
 import { AuthModule } from 'src/auth/auth.module';
+import { JoinRoomProvider } from './providers/join-room-provider';
+import { RoomInvitationsModule } from 'src/room-invitations/room-invitations.module';
 
 @Module({
-  providers: [RoomsService, GetRoomProvider, CreateRoomProvider],
+  providers: [
+    RoomsService,
+    GetRoomProvider,
+    CreateRoomProvider,
+    JoinRoomProvider,
+  ],
   exports: [RoomsService],
   imports: [
     TypeOrmModule.forFeature([Room]),
@@ -19,6 +26,7 @@ import { AuthModule } from 'src/auth/auth.module';
     PaginationModule,
     MailModule,
     AuthModule,
+    RoomInvitationsModule,
   ],
   controllers: [RoomsController],
 })

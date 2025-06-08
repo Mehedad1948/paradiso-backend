@@ -24,5 +24,6 @@ import { GetRoomInvitationProvider } from './providers/get-room-invitation.provi
     GetRoomInvitationProvider,
   ],
   controllers: [RoomInvitationsController],
+  exports: [RoomInvitationService],
 })
 export class RoomInvitationsModule {}
