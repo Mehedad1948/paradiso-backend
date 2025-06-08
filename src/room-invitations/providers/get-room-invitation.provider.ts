@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  forwardRef,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -9,10 +10,7 @@ import {
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
-import { AuthService } from 'src/auth/providers/auth.service';
-import { MailService } from 'src/mail/providers/mail.service';
 import { RoomsService } from 'src/rooms/providers/rooms.service';
-import { UsersService } from 'src/users/providers/users.service';
 import { Repository } from 'typeorm';
 import { RoomInvitation } from '../room-invitation.entity';
 
@@ -20,10 +18,9 @@ import { RoomInvitation } from '../room-invitation.entity';
 export class GetRoomInvitationProvider {
   constructor(
     @Inject(REQUEST) private readonly request: Request,
+
+    @Inject(forwardRef(() => RoomsService))
     private readonly roomService: RoomsService,
-    private readonly authService: AuthService,
-    private readonly userService: UsersService,
-    private readonly mailService: MailService,
 
     @InjectRepository(RoomInvitation)
     private readonly roomInvitationRepository: Repository<RoomInvitation>,

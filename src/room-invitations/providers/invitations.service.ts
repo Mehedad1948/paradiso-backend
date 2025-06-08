@@ -11,7 +11,7 @@ export class RoomInvitationService {
   ) {}
 
   async inviteUser(inviteUserToRoomDto: InviteUserToRoomDto, roomId: number) {
-    console.log('❌❌❌❌', this.addUserToRoomProvider);
+    console.log('✨✨✨', this.addUserToRoomProvider);
 
     return await this.addUserToRoomProvider.inviteUserToRoom(
       inviteUserToRoomDto,

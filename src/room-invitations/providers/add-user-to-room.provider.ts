@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  forwardRef,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -7,24 +8,29 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
+import { InjectRepository } from '@nestjs/typeorm';
 import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 import { AuthService } from 'src/auth/providers/auth.service';
 import { MailService } from 'src/mail/providers/mail.service';
 import { RoomsService } from 'src/rooms/providers/rooms.service';
+import { Room } from 'src/rooms/room.entity';
 import { UsersService } from 'src/users/providers/users.service';
-import { InviteUserToRoomDto } from '../dto/invite-user-to-room.dto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { RoomInvitation } from '../room-invitation.entity';
 import { Repository } from 'typeorm';
+import { InviteUserToRoomDto } from '../dto/invite-user-to-room.dto';
+import { RoomInvitation } from '../room-invitation.entity';
 
 @Injectable()
 export class AddUserToRoomProvider {
   constructor(
     @Inject(REQUEST) private readonly request: Request,
 
+    @Inject(forwardRef(() => RoomsService))
     private readonly roomService: RoomsService,
+
     private readonly authService: AuthService,
+
     private readonly userService: UsersService,
+
     private readonly mailService: MailService,
 
     @InjectRepository(RoomInvitation)
@@ -62,12 +68,15 @@ export class AddUserToRoomProvider {
       );
 
       // Check for existing invitation for this email & room
+      console.log('✨✨✨✨');
+
       const existingInvitation = await this.roomInvitationRepository.findOne({
         where: {
           email: inviteUserToRoomDto.email,
-          room,
+          room: { id: room.id } as Room,
         },
       });
+      console.log('❤️❤️❤️');
 
       if (
         existingInvitation &&
@@ -87,7 +96,7 @@ export class AddUserToRoomProvider {
 
       const createdInvitation = this.roomInvitationRepository.create({
         email: inviteUserToRoomDto.email,
-        room,
+        room: { id: room.id } as Room,
         invitedBy: invitingUser,
         status: 'pending',
         userStatus: invitedUser

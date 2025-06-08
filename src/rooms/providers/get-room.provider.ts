@@ -13,6 +13,8 @@ import { PaginationProvider } from 'src/common/pagination/providers/pagination.p
 import { Repository } from 'typeorm';
 import { GetRoomDto } from '../dtos/get-room.dto';
 import { Room } from '../room.entity';
+import { User } from 'src/users/user.entity';
+import { Movie } from 'src/movies/movie.entity';
 
 @Injectable()
 export class GetRoomProvider {
@@ -80,7 +82,34 @@ export class GetRoomProvider {
 
   async findRoomById(roomId: number) {
     try {
-      return await this.roomRepository.findOne({ where: { id: roomId } });
+      const room = await this.roomRepository
+        .createQueryBuilder('room')
+        .leftJoin('room.users', 'user')
+        .leftJoin('room.movies', 'movie')
+        .leftJoin('room.owner', 'owner')
+        .where('room.id = :roomId', { roomId })
+        .select([
+          'room.id',
+          'room.name',
+          'room.description',
+          'room.image',
+          'room.isPublic',
+          'owner.id',
+          'user.id',
+          'movie.id',
+        ])
+        .getOne();
+
+      if (!room) return null;
+
+      const userIds = room.users?.map((u: User) => u.id) || [];
+      const movieIds = room.movies?.map((m: Movie) => m.id) || [];
+
+      return {
+        ...room,
+        users: userIds,
+        movies: movieIds,
+      };
     } catch {
       throw new InternalServerErrorException('Failed to find room');
     }

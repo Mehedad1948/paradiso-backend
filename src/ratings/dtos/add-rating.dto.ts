@@ -6,4 +6,7 @@ export class AddRatingDto {
   @Min(1)
   @Max(10)
   rate: number;
+
+  @IsInt()
+  roomId: number;
 }

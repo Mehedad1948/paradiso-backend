@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RoomsService } from './providers/rooms.service';
 import { Room } from './room.entity';
@@ -26,7 +26,7 @@ import { RoomInvitationsModule } from 'src/room-invitations/room-invitations.mod
     PaginationModule,
     MailModule,
     AuthModule,
-    RoomInvitationsModule,
+    forwardRef(() => RoomInvitationsModule),
   ],
   controllers: [RoomsController],
 })
