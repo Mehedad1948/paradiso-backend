@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  forwardRef,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -19,7 +18,6 @@ export class GetRoomInvitationProvider {
   constructor(
     @Inject(REQUEST) private readonly request: Request,
 
-    @Inject(forwardRef(() => RoomsService))
     private readonly roomService: RoomsService,
 
     @InjectRepository(RoomInvitation)

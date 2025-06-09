@@ -1,6 +1,5 @@
 import {
   ConflictException,
-  forwardRef,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -24,7 +23,6 @@ export class AddUserToRoomProvider {
   constructor(
     @Inject(REQUEST) private readonly request: Request,
 
-    @Inject(forwardRef(() => RoomsService))
     private readonly roomService: RoomsService,
 
     private readonly authService: AuthService,
@@ -67,8 +65,6 @@ export class AddUserToRoomProvider {
         inviteUserToRoomDto.email,
       );
 
-      // Check for existing invitation for this email & room
-      console.log('✨✨✨✨');
 
       const existingInvitation = await this.roomInvitationRepository.findOne({
         where: {
@@ -76,7 +72,6 @@ export class AddUserToRoomProvider {
           room: { id: room.id } as Room,
         },
       });
-      console.log('❤️❤️❤️');
 
       if (
         existingInvitation &&

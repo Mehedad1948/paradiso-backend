@@ -1,20 +1,14 @@
-import {
-  Inject,
-  Injectable,
-  Scope,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { User } from '../user.entity';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { Inject, UnauthorizedException } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
+import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { plainToInstance } from 'class-transformer';
 import { Request } from 'express';
 import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
+import { Repository } from 'typeorm';
 import { UserResponseDto } from '../dtos/user-response.dto';
-import { plainToInstance } from 'class-transformer';
+import { User } from '../user.entity';
 
-@Injectable({ scope: Scope.REQUEST })
 export class GetUserProvider {
   constructor(
     @InjectRepository(User)

@@ -32,18 +32,6 @@ export class JoinRoomProvider {
       throw new ConflictException('User already joined the room.');
     }
 
-    // const invitation =
-    //   await this.roomInvitationService.getInvitationByRoomIdAndEmail(
-    //     roomId,
-    //     user.email,
-    //   );
-
-    // const hasInvitation = !!invitation && invitation.status === 'pending';
-
-    // if (!room.isPublic && !hasInvitation) {
-    //   throw new ForbiddenException('This room is private');
-    // }
-
     await this.roomRepository
       .createQueryBuilder()
       .relation(Room, 'users')
