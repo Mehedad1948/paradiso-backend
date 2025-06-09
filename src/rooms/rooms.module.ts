@@ -10,6 +10,9 @@ import { JoinRoomProvider } from './providers/join-room-provider';
 import { RoomsService } from './providers/rooms.service';
 import { Room } from './room.entity';
 import { RoomsController } from './rooms.controller';
+import { MoviesModule } from 'src/movies/movies.module';
+import { RoomAccessService } from './providers/room-access.service';
+import { RoomMemberGuard } from './guards/RoomMember/roomMember.guard';
 
 @Module({
   providers: [
@@ -17,11 +20,14 @@ import { RoomsController } from './rooms.controller';
     GetRoomProvider,
     CreateRoomProvider,
     JoinRoomProvider,
+    RoomAccessService,
+    RoomMemberGuard,
   ],
   exports: [RoomsService],
   imports: [
     TypeOrmModule.forFeature([Room]),
     UsersModule,
+    MoviesModule,
     PaginationModule,
     MailModule,
     AuthModule,

@@ -20,6 +20,6 @@ import { MovieDbService } from './providers/MovieDb.serviec';
     MovieDbService,
   ],
   imports: [TypeOrmModule.forFeature([Movie]), PaginationModule, UsersModule],
-  exports: [MoviesService],
+  exports: [MoviesService, MovieDbService],
 })
 export class MoviesModule {}

@@ -76,6 +76,28 @@ export class GetMovieProvider {
     }
   }
 
+  async getMovieWithMovieDbId(dbId: number): Promise<Movie> {
+    try {
+      const movie = await this.movieRepository
+        .createQueryBuilder('movie')
+        .leftJoinAndSelect('movie.addedBy', 'user')
+        .select(['movie', 'user.id', 'user.username', 'user.avatar'])
+        .where('movie.dbId = :dbId', { dbId })
+        .getOne();
+
+      if (!movie) {
+        throw new NotFoundException(`Movie with dbId ${dbId} not found`);
+      }
+
+      return movie;
+    } catch (error) {
+      console.error(`❌ Failed to get movie with dbId ${dbId}:`, error);
+      throw error instanceof NotFoundException
+        ? error
+        : new InternalServerErrorException('Failed to get movie');
+    }
+  }
+
   async getAllWithRatings(
     ratingQuery: GetRatingDto,
   ): Promise<{ movies: Paginated<Movie>; users: UserResponseDto[] }> {

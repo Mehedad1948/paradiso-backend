@@ -10,8 +10,6 @@ import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 import { Repository } from 'typeorm';
 import { CreateMovieDto } from '../dtos/create-movie.dto';
 import { Movie } from '../movie.entity';
-import { plainToInstance } from 'class-transformer';
-import { MovieResponseDto } from '../dtos/movie-response.dto';
 
 @Injectable()
 export class CreateMovieProvider {
@@ -21,7 +19,7 @@ export class CreateMovieProvider {
     private readonly movieRepository: Repository<Movie>,
   ) {}
 
-  async createMovie(createMovieDto: CreateMovieDto): Promise<MovieResponseDto> {
+  async createMovie(createMovieDto: CreateMovieDto): Promise<Movie> {
     try {
       const userPayload = this.request[REQUEST_USER_KEY];
 
@@ -35,9 +33,7 @@ export class CreateMovieProvider {
       });
 
       const savedMovie = await this.movieRepository.save(movie);
-      return plainToInstance(MovieResponseDto, savedMovie, {
-        excludeExtraneousValues: true,
-      });
+      return savedMovie;
     } catch (error) {
       console.error('❌ Failed to create movie:', error);
       throw new InternalServerErrorException('Failed to create movie');

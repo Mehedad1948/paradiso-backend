@@ -18,9 +18,7 @@ export class MoviesService {
     private readonly updateMovieProvider: UpdateMovieProvider,
   ) {}
 
-  public async createMovie(
-    createMovieDto: CreateMovieDto,
-  ): Promise<MovieResponseDto> {
+  public async createMovie(createMovieDto: CreateMovieDto): Promise<Movie> {
     return await this.createMovieProvider.createMovie(createMovieDto);
   }
 
@@ -45,6 +43,10 @@ export class MoviesService {
 
   public async getMovieById(id: string): Promise<Movie> {
     return await this.getMovieProvider.getOne(id);
+  }
+
+  public async getMovieWithMovieDbId(dbId: number): Promise<Movie> {
+    return await this.getMovieProvider.getMovieWithMovieDbId(dbId);
   }
 
   public async getMovieByIdWithRating(id: string): Promise<Movie> {

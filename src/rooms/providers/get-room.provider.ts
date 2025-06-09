@@ -95,22 +95,27 @@ export class GetRoomProvider {
           'room.image',
           'room.isPublic',
           'owner.id',
+          // Include user details here
           'user.id',
+          'user.username',
+          'user.avatar',
           'movie.id',
+          'movie.title',
+          'movie.poster_path',
+          'movie.vote_average',
         ])
         .getOne();
 
-      if (!room) return null;
+      console.log('🚀🚀', room);
 
-      const userIds = room.users?.map((u: User) => u.id) || [];
-      const movieIds = room.movies?.map((m: Movie) => m.id) || [];
+      if (!room) return null;
 
       return {
         ...room,
-        users: userIds,
-        movies: movieIds,
       };
-    } catch {
+    } catch (error) {
+      console.log('❤️❤️❤️', error);
+
       throw new InternalServerErrorException('Failed to find room');
     }
   }

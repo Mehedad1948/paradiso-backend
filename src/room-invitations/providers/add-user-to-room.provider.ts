@@ -65,7 +65,6 @@ export class AddUserToRoomProvider {
         inviteUserToRoomDto.email,
       );
 
-
       const existingInvitation = await this.roomInvitationRepository.findOne({
         where: {
           email: inviteUserToRoomDto.email,

@@ -1,22 +1,21 @@
-import { Module } from '@nestjs/common';
-import { AuthController } from './auth.controller';
-import { AuthService } from './providers/auth.service';
-import { forwardRef } from '@nestjs/common';
-import { UsersModule } from 'src/users/users.module';
-import { HashingProvider } from './providers/hashing.provider';
-import { BcryptProvider } from './providers/bcrypt.provider';
-import { SignInProvider } from './providers/sign-in.provider';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import jwtConfig from './config/jwt.config';
 import { JwtModule } from '@nestjs/jwt';
+import { MailModule } from 'src/mail/mail.module';
+import { UsersModule } from 'src/users/users.module';
+import { AuthController } from './auth.controller';
+import jwtConfig from './config/jwt.config';
+import { AuthService } from './providers/auth.service';
+import { BcryptProvider } from './providers/bcrypt.provider';
+import { ForgetPasswordProvider } from './providers/forget-password.provider';
 import { GenerateTokensProvider } from './providers/generate-tokens.provider';
+import { HashingProvider } from './providers/hashing.provider';
 import { RefreshTokensProvider } from './providers/refresh-tokens.provider';
+import { ResetPasswordProvider } from './providers/reset-password.provider';
+import { SignInProvider } from './providers/sign-in.provider';
+import { VerifyEmailProvider } from './providers/verify-email.provider';
 import { GoogleAuthenticationController } from './social/google-authentication.controller';
 import { GoogleAuthenticationService } from './social/providers/google-authentication.service';
-import { VerifyEmailProvider } from './providers/verify-email.provider';
-import { MailModule } from 'src/mail/mail.module';
-import { ForgetPasswordProvider } from './providers/forget-password.provider';
-import { ResetPasswordProvider } from './providers/reset-password.provider';
 @Module({
   controllers: [AuthController, GoogleAuthenticationController],
   providers: [
@@ -34,7 +33,7 @@ import { ResetPasswordProvider } from './providers/reset-password.provider';
     forwardRef(() => UsersModule),
     ConfigModule.forFeature(jwtConfig),
     MailModule,
-    JwtModule.registerAsync(jwtConfig.asProvider()), // Boilerplate code for registering the JWT module
+    JwtModule.registerAsync(jwtConfig.asProvider()),
   ],
   exports: [AuthService, HashingProvider],
 })

@@ -20,10 +20,19 @@ export class Movie {
   id: string;
 
   @Column({ nullable: false })
+  dbId: number;
+
+  @Column({ nullable: false })
   title: string;
 
   @Column({ nullable: true })
-  description: string;
+  poster_path: string;
+
+  @Column({ type: 'float', nullable: true })
+  vote_average: number;
+
+  @Column({ nullable: true })
+  overview: string;
 
   @Column({ type: 'date', nullable: true })
   releaseDate: Date;
@@ -34,14 +43,8 @@ export class Movie {
   @Column({ nullable: true })
   imdbLink: string;
 
-  @Column({ nullable: true })
-  image: string;
-
   @Column({ default: false })
   isWatchedTogether: boolean;
-
-  @Column({ default: false })
-  isIn: boolean;
 
   @ManyToOne(() => User, { eager: true })
   addedBy: User;

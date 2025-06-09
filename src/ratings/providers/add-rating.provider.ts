@@ -39,8 +39,6 @@ export class AddRatingProvider {
       throw new NotFoundException('User not found in request payload');
     }
 
-    console.log('🚀🚀🚀', addRatingDto.roomId);
-
     const room = await this.roomService.findRoomById(addRatingDto.roomId);
     if (!room) {
       throw new NotFoundException('Room not found');
@@ -60,7 +58,7 @@ export class AddRatingProvider {
       throw new NotFoundException('Movie not found');
     }
 
-    if (!room.movies.includes(movie.id)) {
+    if (!room.movies.map((m) => m.id).includes(movie.id)) {
       throw new ConflictException('Movie is not in the room');
     }
 
