@@ -21,6 +21,8 @@ export class AddMovieToRoomProvider {
   ) {}
 
   async addMovieToRoom(roomId: number, dbId: number) {
+    console.log(`Adding movie with DB ID ${dbId} to room with ID ${roomId}`);
+
     const room = await this.roomRepository.findOne({
       where: { id: roomId },
       relations: ['movies'],
@@ -30,9 +32,11 @@ export class AddMovieToRoomProvider {
       throw new NotFoundException('Room was not found.');
     }
 
-    let movie = await this.movieService.getMovieWithMovieDbId(dbId);
+    let movie;
 
-    if (!movie) {
+    try {
+      movie = await this.movieService.getMovieWithMovieDbId(dbId);
+    } catch {
       const dbMovie = await this.movieDbService.getMovieDetails(dbId);
       if (!dbMovie) {
         throw new NotFoundException(
