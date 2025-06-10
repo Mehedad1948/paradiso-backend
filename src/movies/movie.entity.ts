@@ -11,10 +11,12 @@ import {
   OneToMany,
   ManyToMany,
   JoinTable,
+  Unique,
 } from 'typeorm';
 import { Room } from 'src/rooms/room.entity';
 
 @Entity()
+@Unique(['dbId'])
 export class Movie {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -36,6 +38,15 @@ export class Movie {
 
   @Column({ type: 'date', nullable: true })
   releaseDate: Date;
+
+  @Column({ nullable: true })
+  original_title: string;
+
+  @Column({ nullable: true })
+  video: string;
+
+  @Column({ nullable: true })
+  release_date: string;
 
   @Column({ type: 'float', nullable: true })
   imdbRate: number;

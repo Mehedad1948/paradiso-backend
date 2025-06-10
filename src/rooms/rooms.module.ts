@@ -13,6 +13,7 @@ import { RoomsController } from './rooms.controller';
 import { MoviesModule } from 'src/movies/movies.module';
 import { RoomAccessService } from './providers/room-access.service';
 import { RoomMemberGuard } from './guards/RoomMember/roomMember.guard';
+import { AddMovieToRoomProvider } from './providers/add-movie-to-room.provider';
 
 @Module({
   providers: [
@@ -22,8 +23,9 @@ import { RoomMemberGuard } from './guards/RoomMember/roomMember.guard';
     JoinRoomProvider,
     RoomAccessService,
     RoomMemberGuard,
+    AddMovieToRoomProvider,
   ],
-  exports: [RoomsService],
+  exports: [RoomsService, RoomMemberGuard, RoomAccessService],
   imports: [
     TypeOrmModule.forFeature([Room]),
     UsersModule,

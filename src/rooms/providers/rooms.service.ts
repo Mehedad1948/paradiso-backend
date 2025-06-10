@@ -4,6 +4,7 @@ import { GetRoomDto } from '../dtos/get-room.dto';
 import { CreateRoomProvider } from './create-room.provider';
 import { GetRoomProvider } from './get-room.provider';
 import { JoinRoomProvider } from './join-room-provider';
+import { AddMovieToRoomProvider } from './add-movie-to-room.provider';
 
 @Injectable()
 export class RoomsService {
@@ -11,6 +12,7 @@ export class RoomsService {
     private readonly createRoomProvider: CreateRoomProvider,
     private readonly getRoomProvider: GetRoomProvider,
     private readonly joinRoomProvider: JoinRoomProvider,
+    private readonly addMovieToRoomProvider: AddMovieToRoomProvider,
   ) {}
 
   async createRoom(createRoomDto: CreateRoomDto) {
@@ -27,5 +29,9 @@ export class RoomsService {
 
   async joinRoom(userId: number, roomId: number) {
     return await this.joinRoomProvider.joinToRoom(userId, roomId);
+  }
+
+  async addMovieToRoom(roomId: number, movieId: number) {
+    return await this.addMovieToRoomProvider.addMovieToRoom(roomId, movieId);
   }
 }

@@ -1,18 +1,12 @@
-import {
-  Inject,
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Request } from 'express';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
+import { CreateMovieDto } from 'src/movies/dtos/create-movie.dto';
 import { MovieDbService } from 'src/movies/providers/MovieDb.serviec';
 import { MoviesService } from 'src/movies/providers/movies.service';
 import { Repository } from 'typeorm';
 import { Room } from '../room.entity';
-import { CreateMovieDto } from 'src/movies/dtos/create-movie.dto';
 
 @Injectable()
 export class AddMovieToRoomProvider {
@@ -27,25 +21,13 @@ export class AddMovieToRoomProvider {
   ) {}
 
   async addMovieToRoom(roomId: number, dbId: number) {
-    const userPayload = this.request[REQUEST_USER_KEY];
-    const userId = userPayload?.sub;
-
-    if (!userId) {
-      throw new UnauthorizedException('User not authenticated.');
-    }
-
     const room = await this.roomRepository.findOne({
       where: { id: roomId },
-      relations: ['users', 'movies'],
+      relations: ['movies'],
     });
 
     if (!room) {
       throw new NotFoundException('Room was not found.');
-    }
-
-    const isMemberOfRoom = room.users.some((user) => user.id === userId);
-    if (!isMemberOfRoom) {
-      throw new UnauthorizedException('User is not a member of the room.');
     }
 
     let movie = await this.movieService.getMovieWithMovieDbId(dbId);

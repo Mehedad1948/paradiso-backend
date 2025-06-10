@@ -43,4 +43,11 @@ export class RoomsController {
   async getRoomById(@Param('id') id: number) {
     return await this.roomsService.findRoomById(id);
   }
+
+  @Auth(AuthType.Bearer)
+  @UseGuards(RoomMemberGuard)
+  @Post(':id')
+  async addMovieToRoom(@Param('id') id: number, @Body('dbId') dbId: number) {
+    return await this.roomsService.addMovieToRoom(id, dbId);
+  }
 }

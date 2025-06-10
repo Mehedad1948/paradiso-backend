@@ -11,8 +11,8 @@ export class RatingsService {
 
     private readonly getRatingProvider: GetRatingProvider,
   ) {}
-  async addRating(movieId: string, addRateDto: AddRatingDto) {
-    return await this.addRatingProvider.addRating(movieId, addRateDto);
+  async addRating(roomId: number, addRateDto: AddRatingDto) {
+    return await this.addRatingProvider.addRating(roomId, addRateDto);
   }
 
   async getAllRating(ratingQuery: GetRatingDto) {

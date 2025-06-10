@@ -13,8 +13,6 @@ import { PaginationProvider } from 'src/common/pagination/providers/pagination.p
 import { Repository } from 'typeorm';
 import { GetRoomDto } from '../dtos/get-room.dto';
 import { Room } from '../room.entity';
-import { User } from 'src/users/user.entity';
-import { Movie } from 'src/movies/movie.entity';
 
 @Injectable()
 export class GetRoomProvider {
@@ -84,38 +82,73 @@ export class GetRoomProvider {
     try {
       const room = await this.roomRepository
         .createQueryBuilder('room')
-        .leftJoin('room.users', 'user')
-        .leftJoin('room.movies', 'movie')
-        .leftJoin('room.owner', 'owner')
-        .where('room.id = :roomId', { roomId })
+
         .select([
           'room.id',
           'room.name',
           'room.description',
           'room.image',
           'room.isPublic',
-          'owner.id',
-          // Include user details here
-          'user.id',
-          'user.username',
-          'user.avatar',
-          'movie.id',
-          'movie.title',
-          'movie.poster_path',
-          'movie.vote_average',
         ])
+        .leftJoinAndSelect('room.movies', 'movie')
+
+        .leftJoin('room.users', 'user')
+        .addSelect(['user.id', 'user.username', 'user.avatar'])
+
+        .leftJoin('room.owner', 'owner')
+        .addSelect(['owner.id', 'owner.username', 'owner.avatar'])
+
+        .leftJoin('room.ratings', 'rating')
+        .addSelect(['rating.id', 'rating.rate'])
+
+        .leftJoin('rating.user', 'ratingUser')
+        .addSelect([
+          'ratingUser.id',
+          'ratingUser.username',
+          'ratingUser.avatar',
+        ])
+
+        .leftJoin('rating.movie', 'ratingMovie')
+        .addSelect(['ratingMovie.id'])
+
+        .where('room.id = :roomId', { roomId })
         .getOne();
 
-      console.log('🚀🚀', room);
+      if (!room) {
+        return null;
+      }
 
-      if (!room) return null;
+      const transformedMovies = room.movies.map((movie) => {
+        const movieRatings = room.ratings
+          .filter((rating) => rating.movie?.id === movie.id)
+          .map((rating) => ({
+            rate: rating.rate,
+            user: {
+              id: rating.user.id,
+              username: rating.user.username,
+            },
+          }));
 
-      return {
-        ...room,
+        return {
+          ...movie,
+          ratings: movieRatings,
+        };
+      });
+
+      const resultRoom = {
+        id: room.id,
+        name: room.name,
+        description: room.description,
+        image: room.image,
+        isPublic: room.isPublic,
+        owner: room.owner,
+        users: room.users,
+        movies: transformedMovies,
       };
-    } catch (error) {
-      console.log('❤️❤️❤️', error);
 
+      return resultRoom;
+    } catch (error) {
+      console.error('Error in findRoomById:', error);
       throw new InternalServerErrorException('Failed to find room');
     }
   }

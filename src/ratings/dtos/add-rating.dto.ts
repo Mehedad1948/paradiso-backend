@@ -1,5 +1,5 @@
 // add-rating.dto.ts
-import { IsInt, Max, Min } from 'class-validator';
+import { IsInt, IsString, Max, Min } from 'class-validator';
 
 export class AddRatingDto {
   @IsInt()
@@ -7,6 +7,6 @@ export class AddRatingDto {
   @Max(10)
   rate: number;
 
-  @IsInt()
-  roomId: number;
+  @IsString()
+  movieId: string;
 }

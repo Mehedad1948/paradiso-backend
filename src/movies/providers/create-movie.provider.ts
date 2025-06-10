@@ -1,8 +1,8 @@
 import {
+  ConflictException,
   Inject,
   Injectable,
   InternalServerErrorException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,8 +23,14 @@ export class CreateMovieProvider {
     try {
       const userPayload = this.request[REQUEST_USER_KEY];
 
-      if (!userPayload || !userPayload.sub) {
-        throw new UnauthorizedException('User payload missing');
+      const existingMovie = await this.movieRepository.findOne({
+        where: {
+          dbId: createMovieDto.dbId,
+        },
+      });
+
+      if (existingMovie) {
+        throw new ConflictException('Movie already exists');
       }
 
       const movie = this.movieRepository.create({
@@ -35,7 +41,10 @@ export class CreateMovieProvider {
       const savedMovie = await this.movieRepository.save(movie);
       return savedMovie;
     } catch (error) {
-      console.error('❌ Failed to create movie:', error);
+      if (error instanceof ConflictException) {
+        throw error;
+      }
+
       throw new InternalServerErrorException('Failed to create movie');
     }
   }

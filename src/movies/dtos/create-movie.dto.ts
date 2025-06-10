@@ -18,6 +18,18 @@ export class CreateMovieDto {
 
   @IsString()
   @IsOptional()
+  original_title?: string;
+
+  @IsString()
+  @IsOptional()
+  release_date?: string;
+
+  @IsString()
+  @IsOptional()
+  video?: string;
+
+  @IsString()
+  @IsOptional()
   overview: string;
 
   @IsOptional()
