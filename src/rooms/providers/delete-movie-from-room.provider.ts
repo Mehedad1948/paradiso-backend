@@ -46,7 +46,11 @@ export class DeleteMovieFromRoomProvider {
       throw new ConflictException('Movie is not in the room.');
     }
 
-    if (role !== 'admin' && movie.addedBy.id !== userId) {
+    if (
+      role !== 'admin' &&
+      movie.addedBy.id !== userId &&
+      room.owner.id !== userId
+    ) {
       throw new ConflictException(
         'You do not have permission to remove this movie.',
       );
