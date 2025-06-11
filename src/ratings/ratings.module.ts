@@ -9,6 +9,7 @@ import { MoviesModule } from 'src/movies/movies.module';
 import { GetRatingProvider } from './providers/get-rating.provider';
 import { RoomsModule } from 'src/rooms/rooms.module';
 import { DeleteRatingProvider } from './providers/delete-rating.provider';
+import { PaginationModule } from 'src/common/pagination/dtos/pagination.module';
 
 @Module({
   controllers: [RatingsController],
@@ -22,6 +23,7 @@ import { DeleteRatingProvider } from './providers/delete-rating.provider';
   imports: [
     MoviesModule,
     UsersModule,
+    PaginationModule,
     forwardRef(() => RoomsModule),
     TypeOrmModule.forFeature([Rating]),
   ],

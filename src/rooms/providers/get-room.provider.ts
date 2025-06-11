@@ -90,8 +90,8 @@ export class GetRoomProvider {
           'room.isPublic',
         ])
 
-        .leftJoinAndSelect('room.movies', 'movie')
-        .leftJoinAndSelect('movie.genres', 'genre')
+        .leftJoin('room.movies', 'movie')
+        .addSelect(['movie.id', 'movie.title', 'movie.poster_path'])
 
         .leftJoin('room.users', 'user')
         .addSelect(['user.id', 'user.username', 'user.avatar'])
@@ -99,42 +99,11 @@ export class GetRoomProvider {
         .leftJoin('room.owner', 'owner')
         .addSelect(['owner.id', 'owner.username', 'owner.avatar'])
 
-        .leftJoin('room.ratings', 'rating')
-        .addSelect(['rating.id', 'rating.rate'])
-
-        .leftJoin('rating.user', 'ratingUser')
-        .addSelect([
-          'ratingUser.id',
-          'ratingUser.username',
-          'ratingUser.avatar',
-        ])
-
-        .leftJoin('rating.movie', 'ratingMovie')
-        .addSelect(['ratingMovie.id'])
-
         .where('room.id = :roomId', { roomId })
         .getOne();
-
       if (!room) {
         return null;
       }
-
-      const transformedMovies = room.movies.map((movie) => {
-        const movieRatings = room.ratings
-          .filter((rating) => rating.movie?.id === movie.id)
-          .map((rating) => ({
-            rate: rating.rate,
-            user: {
-              id: rating.user.id,
-              username: rating.user.username,
-            },
-          }));
-
-        return {
-          ...movie,
-          ratings: movieRatings,
-        };
-      });
 
       const resultRoom = {
         id: room.id,
@@ -144,7 +113,7 @@ export class GetRoomProvider {
         isPublic: room.isPublic,
         owner: room.owner,
         users: room.users,
-        movies: transformedMovies,
+        movies: room.movies,
       };
 
       return resultRoom;

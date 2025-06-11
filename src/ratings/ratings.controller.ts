@@ -13,6 +13,7 @@ import { Auth } from 'src/auth/decorator/auth.decorator';
 import { AuthType } from 'src/auth/enums/auth.decorator';
 import { GetRatingDto } from './dtos/get-rating.dto';
 import { RoomMemberGuard } from 'src/rooms/guards/RoomMember/roomMember.guard';
+import { GetRoomRatingDto } from './dtos/get-room-ratings';
 
 @Controller('ratings')
 export class RatingsController {
@@ -35,8 +36,22 @@ export class RatingsController {
   }
 
   @Auth(AuthType.Bearer)
-  @Get(':id')
+  @Get('movie/:id')
   public async getOneRating(@Param('id') id: string) {
     return await this.ratingsService.getOneRating(id);
+  }
+
+  @Auth(AuthType.Bearer)
+  // @UseGuards(RoomMemberGuard)
+  @Get('room/:roomId')
+  public getRoomRatings(
+    @Param('roomId') roomId: number,
+    @Query() query: GetRoomRatingDto,
+  ) {
+    console.log('❌❌❌');
+    console.log('Room ID:', roomId);
+    console.log('Query:', query);
+
+    return this.ratingsService.getRoomRating(query, roomId);
   }
 }
