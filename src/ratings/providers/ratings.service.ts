@@ -3,6 +3,7 @@ import { AddRatingProvider } from './add-rating.provider';
 import { AddRatingDto } from '../dtos/add-rating.dto';
 import { GetRatingProvider } from './get-rating.provider';
 import { GetRatingDto } from '../dtos/get-rating.dto';
+import { DeleteRatingProvider } from './delete-rating.provider';
 
 @Injectable()
 export class RatingsService {
@@ -10,6 +11,8 @@ export class RatingsService {
     private readonly addRatingProvider: AddRatingProvider,
 
     private readonly getRatingProvider: GetRatingProvider,
+
+    private readonly deleteRatingProvider: DeleteRatingProvider,
   ) {}
   async addRating(roomId: number, addRateDto: AddRatingDto) {
     return await this.addRatingProvider.addRating(roomId, addRateDto);
@@ -18,7 +21,12 @@ export class RatingsService {
   async getAllRating(ratingQuery: GetRatingDto) {
     return await this.getRatingProvider.getAllMoviesWithRatings(ratingQuery);
   }
+
   async getOneRating(movieId: string) {
     return await this.getRatingProvider.getOne(movieId);
+  }
+
+  async deleteRatingWithMovieAndRoom(roomId: number, movieId: string) {
+    return await this.deleteRatingProvider.delete(roomId, movieId);
   }
 }

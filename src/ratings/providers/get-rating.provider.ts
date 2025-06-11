@@ -4,17 +4,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Rating } from '../rating.entity';
 import { MoviesService } from 'src/movies/providers/movies.service';
 import { GetRatingDto } from '../dtos/get-rating.dto';
+import { Rating } from '../rating.entity';
 
 @Injectable()
 export class GetRatingProvider {
   constructor(
     @InjectRepository(Rating)
-    private readonly ratingRepository: Repository<Rating>,
-
     private readonly movieService: MoviesService,
   ) {}
 

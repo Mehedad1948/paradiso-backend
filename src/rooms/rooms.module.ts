@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from 'src/auth/auth.module';
 import { PaginationModule } from 'src/common/pagination/dtos/pagination.module';
@@ -14,6 +14,8 @@ import { MoviesModule } from 'src/movies/movies.module';
 import { RoomAccessService } from './providers/room-access.service';
 import { RoomMemberGuard } from './guards/RoomMember/roomMember.guard';
 import { AddMovieToRoomProvider } from './providers/add-movie-to-room.provider';
+import { RatingsModule } from 'src/ratings/ratings.module';
+import { DeleteMovieFromRoomProvider } from './providers/delete-movie-from-room.provider';
 
 @Module({
   providers: [
@@ -24,6 +26,7 @@ import { AddMovieToRoomProvider } from './providers/add-movie-to-room.provider';
     RoomAccessService,
     RoomMemberGuard,
     AddMovieToRoomProvider,
+    DeleteMovieFromRoomProvider,
   ],
   exports: [RoomsService, RoomMemberGuard, RoomAccessService],
   imports: [
@@ -33,6 +36,7 @@ import { AddMovieToRoomProvider } from './providers/add-movie-to-room.provider';
     PaginationModule,
     MailModule,
     AuthModule,
+    forwardRef(() => RatingsModule),
   ],
   controllers: [RoomsController],
 })

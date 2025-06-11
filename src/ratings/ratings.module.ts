@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { RatingsController } from './ratings.controller';
 import { RatingsService } from './providers/ratings.service';
 import { AddRatingProvider } from './providers/add-rating.provider';
@@ -8,14 +8,21 @@ import { UsersModule } from 'src/users/users.module';
 import { MoviesModule } from 'src/movies/movies.module';
 import { GetRatingProvider } from './providers/get-rating.provider';
 import { RoomsModule } from 'src/rooms/rooms.module';
+import { DeleteRatingProvider } from './providers/delete-rating.provider';
 
 @Module({
   controllers: [RatingsController],
-  providers: [RatingsService, AddRatingProvider, GetRatingProvider],
+  providers: [
+    RatingsService,
+    AddRatingProvider,
+    GetRatingProvider,
+    DeleteRatingProvider,
+  ],
+  exports: [RatingsService],
   imports: [
     MoviesModule,
     UsersModule,
-    RoomsModule,
+    forwardRef(() => RoomsModule),
     TypeOrmModule.forFeature([Rating]),
   ],
 })

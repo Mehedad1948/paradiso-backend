@@ -1,6 +1,7 @@
 // add-rating.provider.ts
 import {
   ConflictException,
+  forwardRef,
   Inject,
   Injectable,
   NotFoundException,
@@ -26,6 +27,7 @@ export class AddRatingProvider {
 
     private readonly movieService: MoviesService,
 
+    @Inject(forwardRef(() => RoomsService))
     private readonly roomService: RoomsService,
   ) {}
 

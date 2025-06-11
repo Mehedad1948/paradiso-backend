@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -50,5 +51,15 @@ export class RoomsController {
   async addMovieToRoom(@Param('id') id: number, @Body('dbId') dbId: number) {
     console.log('🚀🚀🚀 Adding movie to room', id, dbId);
     return await this.roomsService.addMovieToRoom(id, dbId);
+  }
+
+  @Auth(AuthType.Bearer)
+  @UseGuards(RoomMemberGuard)
+  @Delete('/delete-movie/:id')
+  async removeMovieFromRoom(
+    @Param('id') id: number,
+    @Body('movieId') movieId: string,
+  ) {
+    return await this.roomsService.deleteMovieFromRoom(id, movieId);
   }
 }

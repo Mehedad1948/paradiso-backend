@@ -24,6 +24,6 @@ export class Rating {
   @ManyToOne(() => Movie, (movie) => movie.ratings, { onDelete: 'CASCADE' })
   movie: Movie;
 
-  @ManyToOne(() => Room, (room) => room.ratings)
+  @ManyToOne(() => Room, (room) => room.ratings, { onDelete: 'CASCADE' })
   room: Room;
 }
