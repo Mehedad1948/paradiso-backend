@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Genre } from '../genre.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -10,13 +10,34 @@ export class GenresService {
     private readonly genresRepository: Repository<Genre>,
   ) {}
 
-  async create(genre: Partial<Genre>): Promise<Genre> {
-    const newGenre = this.genresRepository.create(genre);
-    return await this.genresRepository.save(newGenre);
+  async create() {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/genre/movie/list?api_key=ac8fc21d9289e79bd52cf5261b9b4931&language=en-US`,
+    );
+    const data = await res.json();
+    const newGenres = data.genres;
+    const formattedGenres = newGenres.map((item) => ({
+      tmdbId: item.id,
+      name: item.name,
+    }));
+    console.log(formattedGenres);
+
+    const genreEntities = this.genresRepository.create(formattedGenres);
+
+    // Save them to the database
+    return await this.genresRepository.save(genreEntities);
   }
 
   async findAll(): Promise<Genre[]> {
     return await this.genresRepository.find();
+  }
+
+  async findGenresWithTmdbIds(tmdbIds: number[]): Promise<Genre[]> {
+    return await this.genresRepository.find({
+      where: {
+        tmdbId: In(tmdbIds),
+      },
+    });
   }
 
   async findOne(id: string): Promise<Genre> {

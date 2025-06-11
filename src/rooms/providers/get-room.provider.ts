@@ -82,7 +82,6 @@ export class GetRoomProvider {
     try {
       const room = await this.roomRepository
         .createQueryBuilder('room')
-
         .select([
           'room.id',
           'room.name',
@@ -90,7 +89,9 @@ export class GetRoomProvider {
           'room.image',
           'room.isPublic',
         ])
+
         .leftJoinAndSelect('room.movies', 'movie')
+        .leftJoinAndSelect('movie.genres', 'genre')
 
         .leftJoin('room.users', 'user')
         .addSelect(['user.id', 'user.username', 'user.avatar'])

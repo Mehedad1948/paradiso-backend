@@ -71,7 +71,7 @@ export class CreateMovieDto {
   @IsArray()
   @IsNumber({}, { each: true })
   @Min(0, { each: true })
-  genre_ids?: number[];
+  genres?: { id: number }[];
 
   @IsOptional()
   @IsNumber()

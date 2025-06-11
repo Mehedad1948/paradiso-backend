@@ -76,7 +76,7 @@ export class GetMovieProvider {
     }
   }
 
-  async getMovieWithMovieDbId(dbId: number): Promise<Movie> {
+  async getMovieWithMovieDbId(dbId: number): Promise<Movie | null> {
     try {
       const movie = await this.movieRepository
         .createQueryBuilder('movie')
@@ -84,10 +84,6 @@ export class GetMovieProvider {
         .select(['movie', 'user.id', 'user.username', 'user.avatar'])
         .where('movie.dbId = :dbId', { dbId })
         .getOne();
-
-      if (!movie) {
-        throw new NotFoundException(`Movie with dbId ${dbId} not found`);
-      }
 
       return movie;
     } catch (error) {

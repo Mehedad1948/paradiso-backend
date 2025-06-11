@@ -34,9 +34,9 @@ export class AddMovieToRoomProvider {
 
     let movie;
 
-    try {
-      movie = await this.movieService.getMovieWithMovieDbId(dbId);
-    } catch {
+    movie = await this.movieService.getMovieWithMovieDbId(dbId);
+
+    if (!movie) {
       const dbMovie = await this.movieDbService.getMovieDetails(dbId);
       if (!dbMovie) {
         throw new NotFoundException(
@@ -55,7 +55,7 @@ export class AddMovieToRoomProvider {
         popularity: dbMovie.popularity,
         vote_average: dbMovie.vote_average,
         vote_count: dbMovie.vote_count,
-        genre_ids: dbMovie.genre_ids,
+        genres: dbMovie.genres,
         imdbRate: undefined,
         imdbLink: undefined,
         isWatchedTogether: false,
@@ -63,7 +63,6 @@ export class AddMovieToRoomProvider {
 
       movie = await this.movieService.createMovie(createMovieDto);
     }
-
     const isMovieAlreadyInRoom = room.movies.some(
       (roomMovie) => roomMovie.dbId === movie.dbId,
     );

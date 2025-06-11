@@ -9,6 +9,7 @@ import { UpdateMovieProvider } from './providers/update-movie.provider';
 import { PaginationModule } from 'src/common/pagination/dtos/pagination.module';
 import { UsersModule } from 'src/users/users.module';
 import { MovieDbService } from './providers/MovieDb.serviec';
+import { GenresModule } from 'src/genres/genres.module';
 
 @Module({
   controllers: [MoviesController],
@@ -19,7 +20,12 @@ import { MovieDbService } from './providers/MovieDb.serviec';
     UpdateMovieProvider,
     MovieDbService,
   ],
-  imports: [TypeOrmModule.forFeature([Movie]), PaginationModule, UsersModule],
+  imports: [
+    TypeOrmModule.forFeature([Movie]),
+    PaginationModule,
+    UsersModule,
+    GenresModule,
+  ],
   exports: [MoviesService, MovieDbService],
 })
 export class MoviesModule {}

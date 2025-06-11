@@ -45,7 +45,7 @@ export class MoviesService {
     return await this.getMovieProvider.getOne(id);
   }
 
-  public async getMovieWithMovieDbId(dbId: number): Promise<Movie> {
+  public async getMovieWithMovieDbId(dbId: number): Promise<Movie | null> {
     return await this.getMovieProvider.getMovieWithMovieDbId(dbId);
   }
 

@@ -10,6 +10,8 @@ import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 import { Repository } from 'typeorm';
 import { CreateMovieDto } from '../dtos/create-movie.dto';
 import { Movie } from '../movie.entity';
+import { GenresService } from 'src/genres/providers/genres.service';
+import { Genre } from 'src/genres/genre.entity';
 
 @Injectable()
 export class CreateMovieProvider {
@@ -17,6 +19,7 @@ export class CreateMovieProvider {
     @Inject(REQUEST) private readonly request: Request,
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
+    private readonly genresService: GenresService,
   ) {}
 
   async createMovie(createMovieDto: CreateMovieDto): Promise<Movie> {
@@ -33,14 +36,25 @@ export class CreateMovieProvider {
         throw new ConflictException('Movie already exists');
       }
 
+      let genres: Genre[] = [];
+      const genreIds = createMovieDto.genres?.map((genre) => genre.id);
+      if (genreIds) {
+        genres = await this.genresService.findGenresWithTmdbIds(genreIds);
+      }
+
       const movie = this.movieRepository.create({
         ...createMovieDto,
         addedBy: { id: userPayload.sub },
+        genres,
       });
+
+      console.log('saving movie', movie);
 
       const savedMovie = await this.movieRepository.save(movie);
       return savedMovie;
     } catch (error) {
+      console.log('❌❌❌➡️', error);
+
       if (error instanceof ConflictException) {
         throw error;
       }
