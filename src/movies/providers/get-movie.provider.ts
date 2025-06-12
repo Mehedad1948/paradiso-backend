@@ -146,6 +146,49 @@ export class GetMovieProvider {
     }
   }
 
+  async getMoviesRatingORoom(ratingQuery: GetRatingDto, roomId: number) {
+    try {
+      const moviesQuery = this.movieRepository
+        .createQueryBuilder('movie')
+        .leftJoin('movie.ratings', 'rating', 'rating.room.id = :roomId', {
+          roomId,
+        }) // ✅ leftJoin to include movies without ratings
+        .leftJoin('rating.user', 'rater')
+        .leftJoin('movie.addedBy', 'user')
+        .select([
+          'movie.id',
+          'movie.title',
+          'movie.poster_path',
+          'movie.release_date',
+          'movie.isWatchedTogether',
+          'movie.createdAt',
+          'user.id',
+          'user.username',
+          'user.avatar',
+          'rating.rate',
+          'rater.id',
+          'rater.username',
+          'rater.avatar',
+        ])
+        .orderBy('movie.createdAt', 'DESC');
+
+      const movies = await this.paginationProvider.paginateQuery(
+        {
+          limit: ratingQuery.limit,
+          page: ratingQuery.page,
+        },
+        moviesQuery,
+      );
+
+      return movies;
+    } catch (error) {
+      console.error('❌ Failed to get all movies with ratings ', error);
+      throw new InternalServerErrorException(
+        'Failed to get movies with ratings ',
+      );
+    }
+  }
+
   async getOneWithRating(id: string): Promise<Movie> {
     try {
       const movie = await this.movieRepository

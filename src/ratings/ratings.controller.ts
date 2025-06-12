@@ -48,10 +48,6 @@ export class RatingsController {
     @Param('roomId') roomId: number,
     @Query() query: GetRoomRatingDto,
   ) {
-    console.log('❌❌❌');
-    console.log('Room ID:', roomId);
-    console.log('Query:', query);
-
     return this.ratingsService.getRoomRating(query, roomId);
   }
 }

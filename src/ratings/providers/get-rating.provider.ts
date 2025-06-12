@@ -52,37 +52,10 @@ export class GetRatingProvider {
   }
 
   async getRatingsOfRoom(ratingQuery: GetRoomRatingDto, roomId: number) {
-    console.log('➡️➡️➡️➡️');
-
     try {
-      const moviesQuery = this.ratingRepository
-        .createQueryBuilder('rating')
-        .innerJoin('rating.room', 'room', 'room.id = :roomId', { roomId }) // 💥 filter by room
-        .innerJoin('rating.user', 'rater') // who rated the movie
-        .leftJoinAndSelect('rating.movie', 'movie')
-        .leftJoinAndSelect('movie.addedBy', 'user')
-        .leftJoinAndSelect('movie.genres', 'genre')
-        .select([
-          'movie',
-          'user.id',
-          'user.username',
-          'user.avatar',
-          'genre.id',
-          'genre.name',
-          'rater.id',
-          'rater.username',
-          'rater.avatar',
-          'rating.rate',
-          'rating.id',
-        ])
-        .orderBy('movie.createdAt', 'DESC');
-
-      const paginatedRatings = await this.paginationProvider.paginateQuery(
-        {
-          limit: ratingQuery.limit,
-          page: ratingQuery.page,
-        },
-        moviesQuery,
+      const paginatedRatings = this.movieService.getMoviesRatingORoom(
+        ratingQuery,
+        roomId,
       );
 
       return paginatedRatings;

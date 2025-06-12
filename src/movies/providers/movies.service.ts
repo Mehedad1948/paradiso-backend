@@ -52,4 +52,14 @@ export class MoviesService {
   public async getMovieByIdWithRating(id: string): Promise<Movie> {
     return await this.getMovieProvider.getOneWithRating(id);
   }
+
+  public async getMoviesRatingORoom(
+    getRatingDto: GetRatingDto,
+    roomId: number,
+  ) {
+    return await this.getMovieProvider.getMoviesRatingORoom(
+      getRatingDto,
+      roomId,
+    );
+  }
 }
