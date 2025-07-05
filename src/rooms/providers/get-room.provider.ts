@@ -13,6 +13,8 @@ import { PaginationProvider } from 'src/common/pagination/providers/pagination.p
 import { Repository } from 'typeorm';
 import { GetRoomDto } from '../dtos/get-room.dto';
 import { Room } from '../room.entity';
+import { GetRoomRatingDto } from '../dtos/get-room-ratings';
+import { MoviesService } from 'src/movies/providers/movies.service';
 
 @Injectable()
 export class GetRoomProvider {
@@ -20,6 +22,8 @@ export class GetRoomProvider {
     @Inject(REQUEST) private readonly request: Request,
     @InjectRepository(Room)
     private readonly roomRepository: Repository<Room>,
+
+    private readonly movieService: MoviesService,
 
     private readonly paginationProvider: PaginationProvider,
   ) {}
@@ -120,6 +124,22 @@ export class GetRoomProvider {
     } catch (error) {
       console.error('Error in findRoomById:', error);
       throw new InternalServerErrorException('Failed to find room');
+    }
+  }
+
+  async getRatingsOfRoom(ratingQuery: GetRoomRatingDto, roomId: number) {
+    try {
+      const paginatedRatings = await this.movieService.getMoviesRatingORoom(
+        ratingQuery,
+        roomId,
+      );
+
+      return paginatedRatings;
+    } catch (error) {
+      console.error('❌ Failed to get movies with ratings:', error);
+      throw new InternalServerErrorException(
+        'Failed to fetch movie list with ratings',
+      );
     }
   }
 }

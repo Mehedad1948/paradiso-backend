@@ -4,12 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { PaginationProvider } from 'src/common/pagination/providers/pagination.provider';
 import { MoviesService } from 'src/movies/providers/movies.service';
+import { Repository } from 'typeorm';
 import { GetRatingDto } from '../dtos/get-rating.dto';
 import { Rating } from '../rating.entity';
-import { GetRoomRatingDto } from '../dtos/get-room-ratings';
-import { Repository } from 'typeorm';
-import { PaginationProvider } from 'src/common/pagination/providers/pagination.provider';
 
 @Injectable()
 export class GetRatingProvider {
@@ -43,22 +42,6 @@ export class GetRatingProvider {
         await this.movieService.getAllMoviesWithRating(ratingQuery);
 
       return movies;
-    } catch (error) {
-      console.error('❌ Failed to get movies with ratings:', error);
-      throw new InternalServerErrorException(
-        'Failed to fetch movie list with ratings',
-      );
-    }
-  }
-
-  async getRatingsOfRoom(ratingQuery: GetRoomRatingDto, roomId: number) {
-    try {
-      const paginatedRatings = this.movieService.getMoviesRatingORoom(
-        ratingQuery,
-        roomId,
-      );
-
-      return paginatedRatings;
     } catch (error) {
       console.error('❌ Failed to get movies with ratings:', error);
       throw new InternalServerErrorException(

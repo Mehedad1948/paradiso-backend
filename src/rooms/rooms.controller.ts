@@ -15,6 +15,7 @@ import { GetRoomDto } from './dtos/get-room.dto';
 import { RoomsService } from './providers/rooms.service';
 import { JoinRoomDto } from './dtos/join-room.dto';
 import { RoomMemberGuard } from 'src/rooms/guards/RoomMember/roomMember.guard';
+import { GetRoomRatingDto } from './dtos/get-room-ratings';
 
 @Controller('rooms')
 export class RoomsController {
@@ -61,5 +62,14 @@ export class RoomsController {
     @Body('movieId') movieId: string,
   ) {
     return await this.roomsService.deleteMovieFromRoom(id, movieId);
+  }
+
+  @Auth(AuthType.Bearer)
+  @Get(':roomId/rating')
+  public getRoomRatings(
+    @Param('roomId') roomId: number,
+    @Query() query: GetRoomRatingDto,
+  ) {
+    return this.roomsService.getRoomRating(query, roomId);
   }
 }

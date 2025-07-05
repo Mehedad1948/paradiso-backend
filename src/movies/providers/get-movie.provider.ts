@@ -1,4 +1,5 @@
 import {
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -12,12 +13,16 @@ import { UsersService } from 'src/users/providers/users.service';
 import { Repository } from 'typeorm';
 import { GetMovieDto } from '../dtos/get-movie.dto';
 import { Movie } from '../movie.entity';
+import { REQUEST } from '@nestjs/core';
+import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 
 @Injectable()
 export class GetMovieProvider {
   constructor(
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
+
+    @Inject(REQUEST) private readonly request: Request,
 
     private readonly userService: UsersService,
 
@@ -128,7 +133,6 @@ export class GetMovieProvider {
         moviesQuery,
       );
 
-      // Get distinct users who have rated any movie
       const users = await this.userService.getRatingUsers();
 
       return {
@@ -147,14 +151,18 @@ export class GetMovieProvider {
   }
 
   async getMoviesRatingORoom(ratingQuery: GetRatingDto, roomId: number) {
+    const userPayload = this.request[REQUEST_USER_KEY];
+    const userId = userPayload?.sub;
     try {
       const moviesQuery = this.movieRepository
         .createQueryBuilder('movie')
+        .innerJoin('movie.rooms', 'room') // joins only movies that belong to this room
         .leftJoin('movie.ratings', 'rating', 'rating.room.id = :roomId', {
           roomId,
-        }) // ✅ leftJoin to include movies without ratings
+        }) // get ratings only for this room
         .leftJoin('rating.user', 'rater')
         .leftJoin('movie.addedBy', 'user')
+        .where('room.id = :roomId', { roomId }) // ✅ FIXED: use "room.id", not "movie.room.id"
         .select([
           'movie.id',
           'movie.title',
@@ -180,11 +188,17 @@ export class GetMovieProvider {
         moviesQuery,
       );
 
-      return movies;
+      return {
+        ...movies,
+        data: movies.data.map((movie) => ({
+          ...movie,
+          hasVoted: !!movie.ratings.find((rate) => rate.id === userId),
+        })),
+      };
     } catch (error) {
       console.error('❌ Failed to get all movies with ratings ', error);
       throw new InternalServerErrorException(
-        'Failed to get movies with ratings ',
+        'Failed to get movies with ratings ❌',
       );
     }
   }

@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Post, Param, Put, Query } from '@nestjs/common';
-import { CreateMovieDto } from './dtos/create-movie.dto';
-import { MoviesService } from './providers/movies.service';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { Auth } from 'src/auth/decorator/auth.decorator';
 import { AuthType } from 'src/auth/enums/auth.decorator';
+import { CreateMovieDto } from './dtos/create-movie.dto';
 import { GetMovieDto } from './dtos/get-movie.dto';
 import { MovieDbService } from './providers/MovieDb.serviec';
+import { MoviesService } from './providers/movies.service';
 
 @Controller('movies')
 export class MoviesController {
