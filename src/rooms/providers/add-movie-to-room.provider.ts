@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Request } from 'express';
@@ -66,8 +71,9 @@ export class AddMovieToRoomProvider {
     const isMovieAlreadyInRoom = room.movies.some(
       (roomMovie) => roomMovie.dbId === movie.dbId,
     );
+
     if (isMovieAlreadyInRoom) {
-      return { message: `Movie "${movie.title}" is already in the room.` };
+      throw new ConflictException(`Movie "${movie.title}" is already existed`);
     }
 
     room.movies.push(movie);
