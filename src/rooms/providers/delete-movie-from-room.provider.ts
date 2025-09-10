@@ -5,20 +5,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoviesService } from 'src/movies/providers/movies.service';
+import { Request } from 'express';
+import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 import { RatingsService } from 'src/ratings/providers/ratings.service';
 import { Repository } from 'typeorm';
 import { Room } from '../room.entity';
-import { REQUEST } from '@nestjs/core';
-import { Request } from 'express';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 
 @Injectable()
 export class DeleteMovieFromRoomProvider {
   constructor(
     @Inject(REQUEST) private readonly request: Request,
-    private readonly movieService: MoviesService,
 
     @Inject(forwardRef(() => RatingsService))
     private readonly ratingsService: RatingsService,
@@ -29,7 +27,8 @@ export class DeleteMovieFromRoomProvider {
 
   async delete(roomId: number, movieId: string) {
     const userPayload = this.request[REQUEST_USER_KEY];
-    const userId = userPayload.id;
+
+    const userId = userPayload.sub;
     const role = userPayload.role;
 
     const room = await this.roomRepository.findOne({

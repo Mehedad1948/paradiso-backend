@@ -32,7 +32,7 @@ import { DeleteMovieFromRoomProvider } from './providers/delete-movie-from-room.
   imports: [
     TypeOrmModule.forFeature([Room]),
     UsersModule,
-    MoviesModule,
+    forwardRef(() => MoviesModule),
     PaginationModule,
     MailModule,
     AuthModule,

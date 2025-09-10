@@ -21,7 +21,7 @@ import { PaginationModule } from 'src/common/pagination/dtos/pagination.module';
   ],
   exports: [RatingsService],
   imports: [
-    MoviesModule,
+    forwardRef(() => MoviesModule),
     UsersModule,
     PaginationModule,
     forwardRef(() => RoomsModule),

@@ -2,20 +2,20 @@ import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { RoomInvitationService } from './providers/invitations.service';
 import { InviteUserToRoomDto } from './dto/invite-user-to-room.dto';
 
-@Controller('room-invitations')
+@Controller('rooms/:roomId/invitations')
 export class RoomInvitationsController {
   constructor(private readonly invitationService: RoomInvitationService) {}
 
-  @Post(':roomId')
+  @Post()
   async inviteUser(
     @Param('roomId') roomId: number,
     @Body() inviteUserToRoomDto: InviteUserToRoomDto,
   ) {
-    return await this.invitationService.inviteUser(inviteUserToRoomDto, roomId);
+    return this.invitationService.inviteUser(inviteUserToRoomDto, roomId);
   }
 
-  @Get(':roomId')
+  @Get()
   async getRoomInvitations(@Param('roomId') roomId: number) {
-    return await this.invitationService.getRoomInvitations(roomId);
+    return this.invitationService.getRoomInvitations(roomId);
   }
 }
