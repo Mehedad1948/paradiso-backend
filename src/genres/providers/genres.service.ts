@@ -20,7 +20,6 @@ export class GenresService {
       tmdbId: item.id,
       name: item.name,
     }));
-    console.log(formattedGenres);
 
     const genreEntities = this.genresRepository.create(formattedGenres);
 

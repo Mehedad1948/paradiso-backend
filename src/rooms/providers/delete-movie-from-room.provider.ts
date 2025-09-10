@@ -27,7 +27,8 @@ export class DeleteMovieFromRoomProvider {
 
   async delete(roomId: number, movieId: string) {
     const userPayload = this.request[REQUEST_USER_KEY];
-    const userId = userPayload.id;
+
+    const userId = userPayload.sub;
     const role = userPayload.role;
 
     const room = await this.roomRepository.findOne({

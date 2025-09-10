@@ -60,7 +60,6 @@ export class GetMovieProvider {
         },
         moviesQuery,
       );
-      console.log('➡️➡️➡️➡️', movies);
       return movies;
     } catch (error) {
       console.error('❌ Failed to get all movies:', error);
