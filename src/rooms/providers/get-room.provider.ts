@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  forwardRef,
   Inject,
   Injectable,
   InternalServerErrorException,
@@ -23,6 +24,7 @@ export class GetRoomProvider {
     @InjectRepository(Room)
     private readonly roomRepository: Repository<Room>,
 
+    @Inject(forwardRef(() => MoviesService))
     private readonly movieService: MoviesService,
 
     private readonly paginationProvider: PaginationProvider,
@@ -83,6 +85,8 @@ export class GetRoomProvider {
   }
 
   async findRoomById(roomId: number) {
+    const userPayload = this.request[REQUEST_USER_KEY];
+    const userId = userPayload?.sub;
     try {
       const room = await this.roomRepository
         .createQueryBuilder('room')
@@ -107,6 +111,12 @@ export class GetRoomProvider {
         .getOne();
       if (!room) {
         return null;
+      }
+
+      if (room?.users?.length) {
+        room.users.sort((a, b) =>
+          a.id === userId ? -1 : b.id === userId ? 1 : 0,
+        );
       }
 
       const resultRoom = {
@@ -141,5 +151,26 @@ export class GetRoomProvider {
         'Failed to fetch movie list with ratings',
       );
     }
+  }
+
+  async getRoomUsers(roomId: number) {
+    const userPayload = this.request[REQUEST_USER_KEY];
+    const userId = userPayload?.sub;
+
+    const roomUsers = await this.roomRepository
+      .createQueryBuilder('room')
+      .leftJoinAndSelect('room.users', 'user')
+      .where('room.id = :roomId', { roomId })
+      .select(['room.id', 'user.id', 'user.username', 'user.avatar'])
+      .getOne();
+
+    const usersInRoom = roomUsers?.users || [];
+
+    // ✅ Move requesting user to the top
+    usersInRoom.sort((a, b) =>
+      a.id === userId ? -1 : b.id === userId ? 1 : 0,
+    );
+
+    return usersInRoom;
   }
 }

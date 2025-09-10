@@ -17,6 +17,7 @@ export class DeleteRatingProvider {
     @InjectRepository(Rating)
     private readonly ratingRepository: Repository<Rating>,
 
+    @Inject(forwardRef(() => MoviesService))
     private readonly movieService: MoviesService,
 
     @Inject(forwardRef(() => RoomsService))

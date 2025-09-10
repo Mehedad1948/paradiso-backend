@@ -1,4 +1,6 @@
 import {
+  forwardRef,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -6,15 +8,18 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { PaginationProvider } from 'src/common/pagination/providers/pagination.provider';
 import { MoviesService } from 'src/movies/providers/movies.service';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { GetRatingDto } from '../dtos/get-rating.dto';
 import { Rating } from '../rating.entity';
+import { Room } from 'src/rooms/room.entity';
 
 @Injectable()
 export class GetRatingProvider {
   constructor(
     @InjectRepository(Rating)
     private readonly ratingRepository: Repository<Rating>,
+
+    @Inject(forwardRef(() => MoviesService))
     private readonly movieService: MoviesService,
 
     private readonly paginationProvider: PaginationProvider,
@@ -48,5 +53,16 @@ export class GetRatingProvider {
         'Failed to fetch movie list with ratings',
       );
     }
+  }
+
+  async getRatingsOfRoomWithMovies(roomId: number, movieIds: string[]) {
+    const ratings = await this.ratingRepository.find({
+      where: {
+        room: { id: roomId } as Room,
+        movie: { id: In(movieIds) },
+      },
+      relations: ['user', 'movie'],
+    });
+    return ratings;
   }
 }

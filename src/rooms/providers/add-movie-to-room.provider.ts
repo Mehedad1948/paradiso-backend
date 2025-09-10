@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  forwardRef,
   Inject,
   Injectable,
   NotFoundException,
@@ -18,6 +19,7 @@ export class AddMovieToRoomProvider {
   constructor(
     @Inject(REQUEST) private readonly request: Request,
 
+    @Inject(forwardRef(() => MoviesService))
     private readonly movieService: MoviesService,
     private readonly movieDbService: MovieDbService,
 

@@ -22,6 +22,13 @@ export class RatingsService {
     return await this.getRatingProvider.getAllMoviesWithRatings(ratingQuery);
   }
 
+  async getRatingsOfRoomWithMovies(roomId: number, movieIds: string[]) {
+    return await this.getRatingProvider.getRatingsOfRoomWithMovies(
+      roomId,
+      movieIds,
+    );
+  }
+
   async getOneRating(movieId: string) {
     return await this.getRatingProvider.getOne(movieId);
   }

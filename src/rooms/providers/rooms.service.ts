@@ -48,4 +48,8 @@ export class RoomsService {
       roomId,
     );
   }
+
+  async getRoomUsers(roomId: number) {
+    return await this.getRoomProvider.getRoomUsers(roomId);
+  }
 }
