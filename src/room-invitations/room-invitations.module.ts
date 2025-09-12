@@ -9,6 +9,7 @@ import { GetRoomInvitationProvider } from './providers/get-room-invitation.provi
 import { RoomInvitationService } from './providers/invitations.service';
 import { RoomInvitation } from './room-invitation.entity';
 import { RoomInvitationsController } from './room-invitations.controller';
+import { PaginationProvider } from 'src/common/pagination/providers/pagination.provider';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { RoomInvitationsController } from './room-invitations.controller';
     RoomInvitationService,
     AddUserToRoomProvider,
     GetRoomInvitationProvider,
+    PaginationProvider,
   ],
   controllers: [RoomInvitationsController],
   exports: [RoomInvitationService],

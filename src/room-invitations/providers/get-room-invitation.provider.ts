@@ -12,6 +12,8 @@ import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 import { RoomsService } from 'src/rooms/providers/rooms.service';
 import { Repository } from 'typeorm';
 import { RoomInvitation } from '../room-invitation.entity';
+import { PaginationProvider } from 'src/common/pagination/providers/pagination.provider';
+import { GetRoomInvitationsDto } from '../dto/get-room-inviations.dto';
 
 @Injectable()
 export class GetRoomInvitationProvider {
@@ -20,11 +22,13 @@ export class GetRoomInvitationProvider {
 
     private readonly roomService: RoomsService,
 
+    private readonly paginationProvider: PaginationProvider,
+
     @InjectRepository(RoomInvitation)
     private readonly roomInvitationRepository: Repository<RoomInvitation>,
   ) {}
 
-  async getRoomInvitation(roomId: number) {
+  async getRoomInvitation({ roomId, page, limit }: GetRoomInvitationsDto) {
     try {
       const userPayload = this.request[REQUEST_USER_KEY];
       const userId = userPayload?.sub;
@@ -39,7 +43,7 @@ export class GetRoomInvitationProvider {
           'Only the room owner can see invitations',
         );
 
-      const invitations = await this.roomInvitationRepository
+      const invitationsQuery = this.roomInvitationRepository
         .createQueryBuilder('invitation')
         .leftJoin('invitation.invitedBy', 'user')
         .leftJoin('invitation.room', 'room')
@@ -52,10 +56,14 @@ export class GetRoomInvitationProvider {
           'user.id',
           'user.username',
           'user.avatar',
-        ])
-        .getMany();
+        ]);
 
-      return { invitations };
+      const invitations = await this.paginationProvider.paginateQuery(
+        { page, limit },
+        invitationsQuery,
+      );
+
+      return invitations;
     } catch (error) {
       if (
         error instanceof UnauthorizedException ||

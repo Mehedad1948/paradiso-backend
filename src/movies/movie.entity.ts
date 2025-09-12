@@ -36,9 +36,6 @@ export class Movie {
   @Column({ nullable: true })
   overview: string;
 
-  @Column({ type: 'date', nullable: true })
-  releaseDate: Date;
-
   @Column({ nullable: true })
   original_title: string;
 

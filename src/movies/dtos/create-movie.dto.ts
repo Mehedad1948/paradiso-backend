@@ -1,7 +1,6 @@
 import {
   IsArray,
   IsBoolean,
-  IsDateString,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -39,10 +38,6 @@ export class CreateMovieDto {
   @IsString()
   @IsOptional()
   original_language?: string;
-
-  @IsOptional()
-  @IsDateString()
-  releaseDate?: string;
 
   @IsOptional()
   @IsString()

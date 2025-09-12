@@ -50,7 +50,6 @@ export class RoomsController {
   @UseGuards(RoomMemberGuard)
   @Post('/add-movie/:id')
   async addMovieToRoom(@Param('id') id: number, @Body('dbId') dbId: number) {
-    console.log('🚀🚀🚀 Adding movie to room', id, dbId);
     return await this.roomsService.addMovieToRoom(id, dbId);
   }
 

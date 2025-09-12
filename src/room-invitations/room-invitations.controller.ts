@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { RoomInvitationService } from './providers/invitations.service';
 import { InviteUserToRoomDto } from './dto/invite-user-to-room.dto';
 
@@ -15,7 +15,11 @@ export class RoomInvitationsController {
   }
 
   @Get()
-  async getRoomInvitations(@Param('roomId') roomId: number) {
-    return this.invitationService.getRoomInvitations(roomId);
+  async getRoomInvitations(
+    @Param('roomId') roomId: number,
+    @Query('limit') limit: number,
+    @Query('page') page = 1,
+  ) {
+    return this.invitationService.getRoomInvitations({ roomId, page, limit });
   }
 }

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InviteUserToRoomDto } from '../dto/invite-user-to-room.dto';
 import { AddUserToRoomProvider } from './add-user-to-room.provider';
 import { GetRoomInvitationProvider } from './get-room-invitation.provider';
+import { GetRoomInvitationsDto } from '../dto/get-room-inviations.dto';
 
 @Injectable()
 export class RoomInvitationService {
@@ -19,8 +20,10 @@ export class RoomInvitationService {
     );
   }
 
-  async getRoomInvitations(roomId: number) {
-    return await this.getRoomInvitationProvider.getRoomInvitation(roomId);
+  async getRoomInvitations(getRoomInvitationsDto: GetRoomInvitationsDto) {
+    return await this.getRoomInvitationProvider.getRoomInvitation(
+      getRoomInvitationsDto,
+    );
   }
 
   async getInvitationByRoomIdAndEmail(roomId: number, email: string) {
