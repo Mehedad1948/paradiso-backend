@@ -63,7 +63,7 @@ export class GetRoomInvitationProvider {
         invitationsQuery,
       );
 
-      return { invitations };
+      return invitations;
     } catch (error) {
       if (
         error instanceof UnauthorizedException ||
