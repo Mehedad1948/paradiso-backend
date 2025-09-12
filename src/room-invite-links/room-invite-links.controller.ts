@@ -21,7 +21,7 @@ export class RoomInviteLinksController {
 
   @Post()
   create(
-    @Param('roomId') roomId: string,
+    @Param('roomId') roomId: number,
     @Body() createRoomInviteLinkDto: CreateRoomInviteLinkDto,
   ) {
     return this.roomInviteLinksService.create({
@@ -32,8 +32,8 @@ export class RoomInviteLinksController {
 
   @Get()
   findAll(
-    @Param('roomId') roomId: string,
-    @Query() query: GetRoomInviteLinkDto,
+    @Param('roomId') roomId: number,
+    @Query() query: { page: number; limit: number },
   ) {
     return this.roomInviteLinksService.findAll({
       ...query,
@@ -43,7 +43,7 @@ export class RoomInviteLinksController {
 
   @Patch(':id')
   update(
-    @Param('roomId') roomId: string,
+    @Param('roomId') roomId: number,
     @Param('id') id: string,
     @Body() updateRoomInviteLinkDto: UpdateRoomInviteLinkDto,
   ) {
@@ -51,7 +51,7 @@ export class RoomInviteLinksController {
   }
 
   @Delete(':id')
-  remove(@Param('roomId') roomId: string, @Param('id') id: string) {
+  remove(@Param('roomId') roomId: number, @Param('id') id: string) {
     return this.roomInviteLinksService.remove(Number(id));
   }
 
