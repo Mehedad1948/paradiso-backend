@@ -10,7 +10,7 @@ export class MovieResponseDto {
   title: string;
 
   @Expose()
-  releaseDate: Date;
+  release_date: Date;
 
   @Expose()
   imdbRate: number;

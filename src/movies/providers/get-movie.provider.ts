@@ -119,7 +119,7 @@ export class GetMovieProvider {
         .select([
           'movie.id',
           'movie.title',
-          'movie.releaseDate',
+          'movie.release_date',
           'movie.imdbRate',
           'movie.image',
           'movie.isWatchedTogether',

@@ -26,6 +26,8 @@ export class CreateMovieProvider {
     try {
       const userPayload = this.request[REQUEST_USER_KEY];
 
+      console.log('🚀🚀🚀', createMovieDto);
+
       const existingMovie = await this.movieRepository.findOne({
         where: {
           dbId: createMovieDto.dbId,

@@ -50,12 +50,11 @@ export class AddMovieToRoomProvider {
           'Movie with the provided TMDb ID was not found.',
         );
       }
-
       const createMovieDto: CreateMovieDto = {
         dbId: dbMovie.id,
         title: dbMovie.title,
         overview: dbMovie.overview,
-        releaseDate: dbMovie.release_date,
+        release_date: dbMovie.release_date,
         poster_path: dbMovie.poster_path,
         backdrop_path: dbMovie.backdrop_path,
         adult: dbMovie.adult,
