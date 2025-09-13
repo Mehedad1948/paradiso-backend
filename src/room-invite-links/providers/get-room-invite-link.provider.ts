@@ -18,11 +18,11 @@ export class GetRoomInviteLinkProvider {
       .createQueryBuilder('invite')
       .leftJoin('invite.createdBy', 'user')
       .where('invite.room = :roomId', { roomId })
-      .andWhere('invite.isActive = true')
       .select([
         'invite.id',
         'invite.token',
         'invite.expiresAt',
+        'invite.isActive',
         'invite.maxUsage',
         'invite.uses',
         'invite.createdAt',
