@@ -23,7 +23,7 @@ export class CreateRoomInviteLinkProvider {
       room: { id: dto.roomId },
       createdBy: { id: userId },
       token: uuid(),
-      maxUses: 0,
+      maxUsage: 0,
     });
 
     return this.repo.save(invite);

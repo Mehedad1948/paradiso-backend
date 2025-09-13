@@ -23,7 +23,7 @@ export class GetRoomInviteLinkProvider {
         'invite.id',
         'invite.token',
         'invite.expiresAt',
-        'invite.maxUses',
+        'invite.maxUsage',
         'invite.uses',
         'invite.createdAt',
         'user.id',
@@ -37,10 +37,9 @@ export class GetRoomInviteLinkProvider {
       query,
     );
 
-    // map invites into response format (adding full URL)
     return {
       ...paginatedInvites,
-      items: paginatedInvites.data.map((invite) => ({
+      data: paginatedInvites.data.map((invite) => ({
         ...invite,
         inviteUrl: `${process.env.APP_URL}/invitation/${invite.token}`,
       })),

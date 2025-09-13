@@ -24,7 +24,7 @@ export class VerifyRoomInviteLinkProvider {
       throw new Error('Invite link expired');
     }
 
-    if (invite.maxUses > 0 && invite.uses >= invite.maxUses) {
+    if (invite.maxUsage > 0 && invite.uses >= invite.maxUsage) {
       throw new Error('Invite link already used up');
     }
 
