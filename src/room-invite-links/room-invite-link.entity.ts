@@ -26,7 +26,7 @@ export class RoomInviteLink {
   expiresAt?: Date;
 
   @Column({ default: 0 })
-  maxUses: number;
+  maxUsage: number;
 
   @Column({ default: 0 })
   uses: number;

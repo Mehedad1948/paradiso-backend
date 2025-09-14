@@ -32,7 +32,7 @@ export class UpdateRoomInviteLinkProvider {
     }
 
     if (typeof updateDto.maxUsage === 'number') {
-      invite.maxUses = updateDto.maxUsage;
+      invite.maxUsage = updateDto.maxUsage;
     }
 
     if (updateDto.expiresAt) {
