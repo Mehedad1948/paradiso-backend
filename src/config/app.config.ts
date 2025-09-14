@@ -13,4 +13,5 @@ export default registerAs('appConfig', () => ({
   smtpPassword: process.env.SMTP_PASSWORD,
   tmdbApiKey: process.env.TMDB_API_KEY,
   baseUrl: process.env.TMDB_BASE_URL,
+  productBaseUrl: process.env.PRODUCT_BASE_URL,
 }));

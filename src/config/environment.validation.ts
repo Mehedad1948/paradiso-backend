@@ -21,4 +21,5 @@ export default Joi.object({
   JWT_REFRESH_TOKEN_TTL: Joi.number().required(),
   JWT_INVITATION_TOKEN_TTL: Joi.number().required(),
   API_VERSION: Joi.string().required(),
+  PRODUCT_BASE_URL: Joi.string().required(),
 });
