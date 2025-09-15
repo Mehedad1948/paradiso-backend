@@ -1,17 +1,18 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
   Query,
 } from '@nestjs/common';
 import { CreateRoomInviteLinkDto } from './dto/create-room-invite-link.dto';
 import { UpdateRoomInviteLinkDto } from './dto/update-room-invite-link.dto';
-import { GetRoomInviteLinkDto } from './dto/get-room-invite-link.dto';
 import { RoomInviteLinksService } from './providers/room-invite-links.service';
+import { Auth } from 'src/auth/decorator/auth.decorator';
+import { AuthType } from 'src/auth/enums/auth.decorator';
 
 @Controller('rooms/:roomId/invite-links')
 export class RoomInviteLinksController {
@@ -19,6 +20,7 @@ export class RoomInviteLinksController {
     private readonly roomInviteLinksService: RoomInviteLinksService,
   ) {}
 
+  @Auth(AuthType.Bearer)
   @Post()
   create(
     @Param('roomId') roomId: number,
@@ -30,6 +32,7 @@ export class RoomInviteLinksController {
     });
   }
 
+  @Auth(AuthType.Bearer)
   @Get()
   findAll(
     @Param('roomId') roomId: number,
@@ -41,6 +44,12 @@ export class RoomInviteLinksController {
     });
   }
 
+  @Get(':token')
+  getOneByToken(@Param('token') token: string) {
+    return this.roomInviteLinksService.getOne(token);
+  }
+
+  @Auth(AuthType.Bearer)
   @Patch(':id')
   update(
     @Param('roomId') roomId: number,
@@ -50,11 +59,13 @@ export class RoomInviteLinksController {
     return this.roomInviteLinksService.update(id, updateRoomInviteLinkDto);
   }
 
+  @Auth(AuthType.Bearer)
   @Delete(':id')
   remove(@Param('roomId') roomId: number, @Param('id') id: string) {
     return this.roomInviteLinksService.remove(Number(id));
   }
 
+  @Auth(AuthType.Bearer)
   @Get('/verify/:token')
   verify(@Param('token') token: string) {
     return this.roomInviteLinksService.verify(token);
