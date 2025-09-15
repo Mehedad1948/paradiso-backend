@@ -10,9 +10,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RoomInviteLink } from './room-invite-link.entity';
 import { PaginationProvider } from 'src/common/pagination/providers/pagination.provider';
 import { GetOneRoomInviteLinkProvider } from './providers/get-one-room-invite-token';
+import { PublicInviteLinksController } from './public-invite-links.controller';
 
 @Module({
-  controllers: [RoomInviteLinksController],
+  controllers: [RoomInviteLinksController, PublicInviteLinksController],
   providers: [
     RoomInviteLinksService,
     UpdateRoomInviteLinkProvider,
