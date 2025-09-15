@@ -48,6 +48,7 @@ export class GetOneRoomInviteLinkProvider {
         id: invite.room.id,
         name: invite.room.name,
         description: invite.room.description,
+        image: invite.room.image,
       },
       inviter: invite.createdBy
         ? {

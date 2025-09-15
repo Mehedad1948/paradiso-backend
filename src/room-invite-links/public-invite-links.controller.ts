@@ -13,7 +13,7 @@ export class PublicInviteLinksController {
     return this.roomInviteLinksService.getOne(token);
   }
 
-  @Get(':token/verify')
+  @Get('verify/:token')
   verify(@Param('token') token: string) {
     return this.roomInviteLinksService.verify(token);
   }
