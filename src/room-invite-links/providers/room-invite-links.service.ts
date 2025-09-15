@@ -7,6 +7,7 @@ import { GetRoomInviteLinkProvider } from './get-room-invite-link.provider';
 import { VerifyRoomInviteLinkProvider } from './verify-room-invite-link.provider';
 import { UpdateRoomInviteLinkProvider } from './update-room-invite-link.provider';
 import { DeleteRoomInviteLinkProvider } from './delete-room-invite-link.provider';
+import { GetOneRoomInviteLinkProvider } from './get-one-room-invite-token';
 
 @Injectable()
 export class RoomInviteLinksService {
@@ -16,6 +17,7 @@ export class RoomInviteLinksService {
     private readonly verifyProvider: VerifyRoomInviteLinkProvider,
     private readonly updateProvider: UpdateRoomInviteLinkProvider,
     private readonly deleteProvider: DeleteRoomInviteLinkProvider,
+    private readonly getOneRoomInviteLinkProvider: GetOneRoomInviteLinkProvider,
   ) {}
   create(createRoomInviteLinkDto: CreateRoomInviteLinkDto) {
     return this.createProvider.create(createRoomInviteLinkDto);
@@ -23,6 +25,10 @@ export class RoomInviteLinksService {
 
   findAll(getRoomInviteLinkDto: GetRoomInviteLinkDto) {
     return this.getProvider.getAll(getRoomInviteLinkDto);
+  }
+
+  getOne(token: string) {
+    return this.getOneRoomInviteLinkProvider.getByToken(token);
   }
 
   verify(token: string) {
