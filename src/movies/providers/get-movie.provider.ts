@@ -150,7 +150,7 @@ export class GetMovieProvider {
       };
     } catch (error) {
       console.error(
-        '❌ Failed to get all movies with ratings and users:',
+        '❌ Failed to get all movies with ratings and users:🐞',
         error,
       );
       throw new InternalServerErrorException(
@@ -162,6 +162,8 @@ export class GetMovieProvider {
   async getMoviesRatingORoom(ratingQuery: GetRatingDto, roomId: number) {
     const userPayload = this.request[REQUEST_USER_KEY];
     const userId = userPayload?.sub;
+
+    console.log('✅✅✅', ratingQuery, roomId);
 
     const users = await this.roomService.getRoomUsers(roomId);
 
@@ -204,21 +206,21 @@ export class GetMovieProvider {
 
       const sortOrder =
         ratingQuery.sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
+      const averageRateSelect = 'AVG(rating.rate)';
+      const userSpecificRateSelect =
+        'MAX(CASE WHEN rater.id = :sortByUserId THEN rating.rate ELSE NULL END)';
 
       if (ratingQuery.sortBy === MovieSortOption.RATE) {
         moviesQuery
-          .orderBy('averageRate', sortOrder, 'NULLS LAST')
+          .orderBy('"averageRate"', sortOrder, 'NULLS LAST')
           .addOrderBy('movie.createdAt', 'DESC');
       } else if (
         ratingQuery.sortBy === MovieSortOption.USER_RATE &&
         ratingQuery.sortByUserId
       ) {
         moviesQuery
-          .addSelect(
-            `MAX(CASE WHEN rater.id = :sortByUserId THEN rating.rate ELSE NULL END)`,
-            'userSpecificRate',
-          )
-          .orderBy('userSpecificRate', sortOrder, 'NULLS LAST')
+          .addSelect(userSpecificRateSelect, 'userSpecificRate')
+          .orderBy('"userSpecificRate"', sortOrder, 'NULLS LAST')
           .addOrderBy('movie.createdAt', 'DESC')
           .setParameter('sortByUserId', ratingQuery.sortByUserId);
       } else {
@@ -246,13 +248,36 @@ export class GetMovieProvider {
         });
       }
 
-      const [totalItems, { entities, raw }] = await Promise.all([
+      const [totalItems, rawMovies] = await Promise.all([
         totalItemsQuery.getCount(),
-        moviesQuery.take(limit).skip(offset).getRawAndEntities(),
+        moviesQuery.limit(limit).offset(offset).getRawMany(),
       ]);
 
-      const rawByMovieId = new Map(raw.map((row) => [row.movie_id, row]));
       const totalPages = Math.ceil(totalItems / limit);
+      const movieRows = rawMovies.map((rawMovie) => ({
+        id: rawMovie.movie_id,
+        title: rawMovie.movie_title,
+        poster_path: rawMovie.movie_poster_path,
+        release_date: rawMovie.movie_release_date,
+        isWatchedTogether: rawMovie.movie_isWatchedTogether,
+        createdAt: rawMovie.movie_createdAt,
+        addedBy: rawMovie.user_id
+          ? {
+              id: rawMovie.user_id,
+              username: rawMovie.user_username,
+              avatar: rawMovie.user_avatar,
+            }
+          : null,
+        averageRate:
+          rawMovie.averageRate !== null && rawMovie.averageRate !== undefined
+            ? parseFloat(rawMovie.averageRate)
+            : null,
+        userSpecificRate:
+          rawMovie.userSpecificRate !== null &&
+          rawMovie.userSpecificRate !== undefined
+            ? parseFloat(rawMovie.userSpecificRate)
+            : null,
+      }));
 
       const baseURL = this.request.protocol + '://' + this.request.get('host');
       const newUrl = new URL(this.request.url, baseURL);
@@ -260,7 +285,7 @@ export class GetMovieProvider {
       const previousPage = page - 1 > 0 ? page - 1 : page;
 
       const movies = {
-        data: entities,
+        data: movieRows,
         meta: {
           totalItems,
           itemsPerPage: limit,
@@ -284,7 +309,6 @@ export class GetMovieProvider {
       );
 
       const fullMovies = movies.data.map((movie: any) => {
-        const rawMovie = rawByMovieId.get(movie.id);
         const existingRatings = ratings.filter((r) => r.movie.id === movie.id);
 
         const allRatings = users.map((user) => {
@@ -299,16 +323,6 @@ export class GetMovieProvider {
 
         return {
           ...movie,
-          averageRate:
-            rawMovie?.averageRate !== null &&
-            rawMovie?.averageRate !== undefined
-              ? parseFloat(rawMovie.averageRate)
-              : null,
-          userSpecificRate:
-            rawMovie?.userSpecificRate !== null &&
-            rawMovie?.userSpecificRate !== undefined
-              ? parseFloat(rawMovie.userSpecificRate)
-              : null,
           ratings: allRatings,
           hasVoted: existingRatings.some((r) => r.user?.id === userId),
         };
@@ -319,7 +333,7 @@ export class GetMovieProvider {
         data: fullMovies,
       };
     } catch (error) {
-      console.error('❌ Failed to get all movies with ratings', error);
+      console.error('❌ Failed to get all movies with ratings 🐞', error);
       throw new InternalServerErrorException(
         'Failed to get movies with ratings ❌',
       );
