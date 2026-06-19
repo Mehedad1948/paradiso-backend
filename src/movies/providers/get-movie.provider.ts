@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Request } from 'express';
 import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
 import { Paginated } from 'src/common/pagination/interfaces/paginated.interface';
 import { PaginationProvider } from 'src/common/pagination/providers/pagination.provider';
@@ -205,7 +206,9 @@ export class GetMovieProvider {
         ratingQuery.sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
       if (ratingQuery.sortBy === MovieSortOption.RATE) {
-        moviesQuery.orderBy('averageRate', sortOrder);
+        moviesQuery
+          .orderBy('averageRate', sortOrder, 'NULLS LAST')
+          .addOrderBy('movie.createdAt', 'DESC');
       } else if (
         ratingQuery.sortBy === MovieSortOption.USER_RATE &&
         ratingQuery.sortByUserId
@@ -215,19 +218,63 @@ export class GetMovieProvider {
             `MAX(CASE WHEN rater.id = :sortByUserId THEN rating.rate ELSE NULL END)`,
             'userSpecificRate',
           )
-          .orderBy('userSpecificRate', sortOrder)
+          .orderBy('userSpecificRate', sortOrder, 'NULLS LAST')
+          .addOrderBy('movie.createdAt', 'DESC')
           .setParameter('sortByUserId', ratingQuery.sortByUserId);
       } else {
         moviesQuery.orderBy('movie.createdAt', 'DESC');
       }
 
-      const movies = await this.paginationProvider.paginateQuery(
-        {
-          limit: ratingQuery.limit,
-          page: ratingQuery.page,
+      const limit = ratingQuery.limit ?? 10;
+      const page = ratingQuery.page ?? 1;
+      const offset = (page - 1) * limit;
+
+      const totalItemsQuery = this.movieRepository
+        .createQueryBuilder('movie')
+        .innerJoin('movie.rooms', 'room')
+        .where('room.id = :roomId', { roomId });
+
+      if (ratingQuery.search) {
+        totalItemsQuery.andWhere('LOWER(movie.title) LIKE :search', {
+          search: `%${ratingQuery.search.toLowerCase()}%`,
+        });
+      }
+
+      if (ratingQuery.isWatchTogether !== undefined) {
+        totalItemsQuery.andWhere('movie.isWatchedTogether = :isWatchTogether', {
+          isWatchTogether: ratingQuery.isWatchTogether,
+        });
+      }
+
+      const [totalItems, { entities, raw }] = await Promise.all([
+        totalItemsQuery.getCount(),
+        moviesQuery.take(limit).skip(offset).getRawAndEntities(),
+      ]);
+
+      const rawByMovieId = new Map(raw.map((row) => [row.movie_id, row]));
+      const totalPages = Math.ceil(totalItems / limit);
+
+      const baseURL = this.request.protocol + '://' + this.request.get('host');
+      const newUrl = new URL(this.request.url, baseURL);
+      const nextPage = page + 1 <= totalPages ? page + 1 : page;
+      const previousPage = page - 1 > 0 ? page - 1 : page;
+
+      const movies = {
+        data: entities,
+        meta: {
+          totalItems,
+          itemsPerPage: limit,
+          totalPages,
+          currentPage: page,
         },
-        moviesQuery,
-      );
+        links: {
+          first: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=1`,
+          current: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=${page}`,
+          next: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=${nextPage}`,
+          previous: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=${previousPage}`,
+          last: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=${totalPages}`,
+        },
+      };
 
       const movieIds = movies.data.map((m: any) => m.id);
 
@@ -237,6 +284,7 @@ export class GetMovieProvider {
       );
 
       const fullMovies = movies.data.map((movie: any) => {
+        const rawMovie = rawByMovieId.get(movie.id);
         const existingRatings = ratings.filter((r) => r.movie.id === movie.id);
 
         const allRatings = users.map((user) => {
@@ -251,7 +299,16 @@ export class GetMovieProvider {
 
         return {
           ...movie,
-          averageRate: parseFloat(movie.averageRate) || null,
+          averageRate:
+            rawMovie?.averageRate !== null &&
+            rawMovie?.averageRate !== undefined
+              ? parseFloat(rawMovie.averageRate)
+              : null,
+          userSpecificRate:
+            rawMovie?.userSpecificRate !== null &&
+            rawMovie?.userSpecificRate !== undefined
+              ? parseFloat(rawMovie.userSpecificRate)
+              : null,
           ratings: allRatings,
           hasVoted: existingRatings.some((r) => r.user?.id === userId),
         };
