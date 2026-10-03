@@ -100,7 +100,10 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
           path.startsWith('/genres/{id}')
         ) {
           parameter.schema = { type: 'string', format: 'uuid' };
-        } else if (parameter.name !== 'userId') {
+        } else if (
+          parameter.name !== 'userId' ||
+          path.startsWith('/community/')
+        ) {
           parameter.schema = { type: 'integer', minimum: 1 };
         }
       }

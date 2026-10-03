@@ -120,6 +120,62 @@ const ratedMovie = object({
 });
 
 export const responseSchemas: Record<string, SchemaObject> = {
+  CommunityPost: object({
+    id: integer,
+    text: string,
+    rating: number,
+    imageUrl: nullable(string),
+    createdAt: date,
+    updatedAt: date,
+    author: ref('PublicUser'),
+    movie: object({
+      id: uuid,
+      dbId: integer,
+      title: string,
+      poster_path: nullable(string),
+    }),
+    room: nullable(object({ id: integer, name: string })),
+    promotion: nullable(
+      object({
+        room: object({ id: integer, name: string, image: nullable(string) }),
+        canJoin: boolean,
+        token: nullable(uuid),
+      }),
+    ),
+    commentCount: integer,
+  }),
+  CommunityComment: object({
+    id: integer,
+    postId: integer,
+    text: string,
+    author: ref('PublicUser'),
+    createdAt: date,
+    updatedAt: date,
+  }),
+  CommunityPostResponse: {},
+  CommunityPostPageResponse: envelope(
+    object({
+      data: array(ref('CommunityPost')),
+      nextCursor: nullable(integer),
+    }),
+  ),
+  CommunityCommentResponse: {},
+  CommunityCommentPageResponse: envelope(
+    object({
+      data: array(ref('CommunityComment')),
+      nextCursor: nullable(integer),
+    }),
+  ),
+  CommunityProfileResponse: envelope(
+    object({
+      ...publicUser.properties,
+      followersCount: integer,
+      followingCount: integer,
+    }),
+  ),
+  CommunityUserPageResponse: envelope(
+    object({ data: array(ref('PublicUser')), nextCursor: nullable(integer) }),
+  ),
   PublicUser: publicUser,
   UserResponse: envelope(user),
   Genre: genre,
@@ -346,9 +402,29 @@ export const responseSchemas: Record<string, SchemaObject> = {
   ),
 };
 
+responseSchemas.CommunityPostResponse = envelope(responseSchemas.CommunityPost);
+responseSchemas.CommunityCommentResponse = envelope(
+  responseSchemas.CommunityComment,
+);
+
 // Stable operation IDs are also the keys in generated frontend contracts.
 // Adding a route without a response contract causes export/build checks to fail.
 export const operationResponses: Record<string, string> = {
+  Community_feed: 'CommunityPostPageResponse',
+  Community_followingFeed: 'CommunityPostPageResponse',
+  Community_roomFeed: 'CommunityPostPageResponse',
+  Community_getPost: 'CommunityPostResponse',
+  Community_createPost: 'CommunityPostResponse',
+  Community_updatePost: 'CommunityPostResponse',
+  Community_deletePost: 'MessageResponse',
+  Community_listComments: 'CommunityCommentPageResponse',
+  Community_createComment: 'CommunityCommentResponse',
+  Community_deleteComment: 'MessageResponse',
+  Community_profile: 'CommunityProfileResponse',
+  Community_follow: 'MessageResponse',
+  Community_unfollow: 'MessageResponse',
+  Community_followers: 'CommunityUserPageResponse',
+  Community_following: 'CommunityUserPageResponse',
   App_getHello: 'StringResponse',
   Auth_isAuthenticated: 'StringResponse',
   Auth_signIn: 'TokensResponse',

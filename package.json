@@ -6,6 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "community:migrate": "npm run build && node scripts/migrate-community.cjs",
     "build": "nest build",
     "openapi:export": "npm run build && node dist/openapi/export.js",
     "api:types": "npm run openapi:export && openapi-typescript openapi.json -o generated/api.d.ts",

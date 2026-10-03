@@ -24,6 +24,7 @@ import { RoomsModule } from './rooms/rooms.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { RoomInvitationsModule } from './room-invitations/room-invitations.module';
 import { RoomInviteLinksModule } from './room-invite-links/room-invite-links.module';
+import { CommunityModule } from './community/community.module';
 const ENV = process.env.NODE_ENV || 'development';
 @Module({
   imports: [
@@ -60,6 +61,7 @@ const ENV = process.env.NODE_ENV || 'development';
     UploadsModule,
     RoomInvitationsModule,
     RoomInviteLinksModule,
+    CommunityModule,
   ],
   controllers: [AppController],
   providers: [

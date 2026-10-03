@@ -23,6 +23,11 @@
 
 ## Description
 
+The movie community API supports public recommendations with images and ratings,
+comments, follows, a following feed, room discussions and room promotions.
+See [the community API guide](docs/community.md) for endpoints, permissions,
+frontend integration and the database migration.
+
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
 ## Project setup

@@ -17,6 +17,10 @@ import { Rating } from './ratings/rating.entity';
 import { Upload } from './uploads/upload.entity';
 import { RoomInviteLink } from './room-invite-links/room-invite-link.entity';
 import { RoomInvitation } from './room-invitations/room-invitation.entity';
+import { CommunityPost } from './community/community-post.entity';
+import { CommunityComment } from './community/community-comment.entity';
+import { UserFollow } from './community/user-follow.entity';
+import { Community1790985600000 } from './community/migrations/1790985600000-community';
 import { GenerateTokensProvider } from './auth/providers/generate-tokens.provider';
 import { MailService } from './mail/providers/mail.service';
 import { createOpenApiDocument, setupOpenApi } from './openapi/document';
@@ -65,6 +69,9 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         Upload,
         RoomInviteLink,
         RoomInvitation,
+        CommunityPost,
+        CommunityComment,
+        UserFollow,
       ],
     }).initialize();
     const { AppModule } = await import('./app.module');
@@ -135,6 +142,163 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       .send({ dbId: 123 })
       .expect(201);
   }, 60000);
+
+  it('supports public community reading, authenticated participation, follows and room privacy', async () => {
+    const server = app.getHttpServer();
+    await request(server)
+      .post('/community/posts')
+      .send({ movieId, text: 'A great film', rating: 8.5 })
+      .expect(401);
+    const created = await request(server)
+      .post('/community/posts')
+      .auth(access[0], { type: 'bearer' })
+      .send({ movieId, text: 'A great film', rating: 8.5 })
+      .expect(201);
+    const postId = created.body.id as number;
+    assertOpenApiResponse(
+      createOpenApiDocument(app),
+      'Community_createPost',
+      created.body,
+    );
+    const feed = await request(server).get('/community/posts').expect(200);
+    expect(
+      feed.body.data.some((post: { id: number }) => post.id === postId),
+    ).toBe(true);
+    expect(JSON.stringify(feed.body)).not.toMatch(
+      /private-password-hash|private-code|@example.test/,
+    );
+    await request(server)
+      .patch('/community/posts/' + postId)
+      .auth(access[1], { type: 'bearer' })
+      .send({ text: 'Hijacked' })
+      .expect(403);
+    await request(server)
+      .patch('/community/posts/' + postId)
+      .auth(access[0], { type: 'bearer' })
+      .send({ text: 'Updated recommendation' })
+      .expect(200);
+    await request(server)
+      .post('/community/posts/' + postId + '/comments')
+      .send({ text: 'Nice' })
+      .expect(401);
+    const comment = await request(server)
+      .post('/community/posts/' + postId + '/comments')
+      .auth(access[1], { type: 'bearer' })
+      .send({ text: 'Nice' })
+      .expect(201);
+    const detail = await request(server)
+      .get('/community/posts/' + postId)
+      .expect(200);
+    expect(detail.body.commentCount).toBe(1);
+    await request(server)
+      .delete('/community/posts/' + postId + '/comments/' + comment.body.id)
+      .auth(access[2], { type: 'bearer' })
+      .expect(403);
+    await request(server)
+      .put('/community/users/' + users[0].id + '/follow')
+      .auth(access[1], { type: 'bearer' })
+      .expect(200);
+    await request(server)
+      .put('/community/users/' + users[0].id + '/follow')
+      .auth(access[1], { type: 'bearer' })
+      .expect(200);
+    const profile = await request(server)
+      .get('/community/users/' + users[0].id)
+      .expect(200);
+    expect(profile.body.followersCount).toBe(1);
+    const followers = await request(server)
+      .get('/community/users/' + users[0].id + '/followers')
+      .expect(200);
+    expect(followers.body.data).toEqual([
+      { id: users[1].id, username: users[1].username, avatar: null },
+    ]);
+    const followedUsers = await request(server)
+      .get('/community/users/' + users[1].id + '/following')
+      .expect(200);
+    expect(followedUsers.body.data[0].id).toBe(users[0].id);
+    const following = await request(server)
+      .get('/community/following')
+      .auth(access[1], { type: 'bearer' })
+      .expect(200);
+    expect(
+      following.body.data.some((post: { id: number }) => post.id === postId),
+    ).toBe(true);
+    const privatePost = await request(server)
+      .post('/community/posts')
+      .auth(access[0], { type: 'bearer' })
+      .send({ movieId, text: 'Members only', rating: 9, roomId: privateRoom })
+      .expect(201);
+    await request(server)
+      .get('/community/posts/' + privatePost.body.id)
+      .expect(404);
+    await request(server)
+      .get('/community/rooms/' + privateRoom + '/posts')
+      .expect(403);
+    const roomFeed = await request(server)
+      .get('/community/rooms/' + privateRoom + '/posts')
+      .auth(access[0], { type: 'bearer' })
+      .expect(200);
+    expect(roomFeed.body.data).toHaveLength(1);
+    const publicFeed = await request(server)
+      .get('/community/posts')
+      .expect(200);
+    expect(
+      publicFeed.body.data.some(
+        (post: { id: number }) => post.id === privatePost.body.id,
+      ),
+    ).toBe(false);
+    await request(server)
+      .post('/community/posts')
+      .auth(access[1], { type: 'bearer' })
+      .send({ movieId, text: 'Unauthorized', rating: 7, roomId: publicRoom })
+      .expect(403);
+    await request(server)
+      .delete('/community/posts/' + postId)
+      .auth(access[0], { type: 'bearer' })
+      .expect(200);
+    expect(
+      await database.getRepository(CommunityComment).countBy({ postId }),
+    ).toBe(0);
+  });
+
+  it('applies and reverses the community migration in an isolated transactional schema', async () => {
+    const runner = database.createQueryRunner();
+    const migrationSchema = schema + '_migration';
+    await runner.connect();
+    await runner.startTransaction();
+    try {
+      await runner.query('CREATE SCHEMA "' + migrationSchema + '"');
+      await runner.query(
+        'SET LOCAL search_path TO "' + migrationSchema + '", "' + schema + '"',
+      );
+      const migration = new Community1790985600000();
+      await migration.up(runner);
+      const rows = (await runner.query(
+        'INSERT INTO community_post ("authorId", "movieId", text, rating) VALUES ($1, $2, $3, $4) RETURNING id',
+        [users[0].id, movieId, 'Migration test', 8.5],
+      )) as { id: number }[];
+      await runner.query(
+        'INSERT INTO community_comment ("authorId", "postId", text) VALUES ($1, $2, $3)',
+        [users[1].id, rows[0].id, 'Reply'],
+      );
+      await runner.query('DELETE FROM community_post WHERE id = $1', [
+        rows[0].id,
+      ]);
+      const counts = (await runner.query(
+        'SELECT count(*)::integer AS count FROM community_comment',
+      )) as { count: number }[];
+      expect(counts[0].count).toBe(0);
+      await migration.down(runner);
+      const tables = (await runner.query(
+        'SELECT tablename FROM pg_tables WHERE schemaname = $1',
+        [migrationSchema],
+      )) as unknown[];
+      expect(tables).toHaveLength(0);
+    } finally {
+      await runner.rollbackTransaction();
+      await runner.release();
+    }
+  });
 
   afterAll(async () => {
     if (app) await app.close();
