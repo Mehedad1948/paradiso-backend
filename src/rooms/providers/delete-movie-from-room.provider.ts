@@ -1,67 +1,57 @@
+import { AuthenticatedRequest } from '../../auth/interfaces/authenticated-request.interface';
 import {
   ConflictException,
-  forwardRef,
+  ForbiddenException,
   Inject,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Request } from 'express';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
-import { RatingsService } from 'src/ratings/providers/ratings.service';
+import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
+import { Movie } from '../../movies/movie.entity';
+import { Rating } from '../../ratings/rating.entity';
 import { Repository } from 'typeorm';
 import { Room } from '../room.entity';
+import { lockRoom } from './room-transaction';
 
 @Injectable()
 export class DeleteMovieFromRoomProvider {
   constructor(
-    @Inject(REQUEST) private readonly request: Request,
-
-    @Inject(forwardRef(() => RatingsService))
-    private readonly ratingsService: RatingsService,
-
-    @InjectRepository(Room)
-    private readonly roomRepository: Repository<Room>,
+    @Inject(REQUEST) private readonly request: AuthenticatedRequest,
+    @InjectRepository(Room) private readonly roomRepository: Repository<Room>,
   ) {}
-
   async delete(roomId: number, movieId: string) {
-    const userPayload = this.request[REQUEST_USER_KEY];
-
-    const userId = userPayload.sub;
-    const role = userPayload.role;
-
-    const room = await this.roomRepository.findOne({
-      where: { id: roomId },
-      relations: ['movies', 'movies.addedBy'],
+    const user = this.request[REQUEST_USER_KEY];
+    return this.roomRepository.manager.transaction(async (manager) => {
+      await lockRoom(manager, roomId);
+      const room = await manager
+        .getRepository(Room)
+        .findOne({ where: { id: roomId }, relations: ['owner'] });
+      const inRoom = await manager
+        .getRepository(Room)
+        .exists({ where: { id: roomId, movies: { id: movieId } } });
+      if (!inRoom) throw new ConflictException('Movie is not in the room');
+      const movie = await manager
+        .getRepository(Movie)
+        .findOne({ where: { id: movieId }, relations: ['addedBy'] });
+      if (
+        user.role !== 'admin' &&
+        movie?.addedBy?.id !== user.sub &&
+        room?.owner?.id !== user.sub
+      ) {
+        throw new ForbiddenException(
+          'You do not have permission to remove this movie',
+        );
+      }
+      await manager
+        .getRepository(Rating)
+        .delete({ movie: { id: movieId }, room: { id: roomId } });
+      await manager
+        .createQueryBuilder()
+        .relation(Room, 'movies')
+        .of(roomId)
+        .remove(movieId);
+      return { message: 'Movie removed from room successfully.' };
     });
-
-    if (!room) {
-      throw new NotFoundException('Room was not found.');
-    }
-
-    const movie = room.movies.find((m) => m.id === movieId);
-    if (!movie) {
-      throw new ConflictException('Movie is not in the room.');
-    }
-
-    if (
-      role !== 'admin' &&
-      movie.addedBy.id !== userId &&
-      room.owner.id !== userId
-    ) {
-      throw new ConflictException(
-        'You do not have permission to remove this movie.',
-      );
-    }
-
-    await this.ratingsService.deleteRatingWithMovieAndRoom(roomId, movieId);
-
-    room.movies = room.movies.filter((roomMovie) => roomMovie.id !== movieId);
-    await this.roomRepository.save(room);
-
-    return {
-      message: `Movie "${movie.title}" removed from room successfully.`,
-    };
   }
 }

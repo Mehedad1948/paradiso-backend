@@ -8,9 +8,10 @@ import { GetRoomInviteLinkProvider } from './providers/get-room-invite-link.prov
 import { RoomInviteLinksService } from './providers/room-invite-links.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RoomInviteLink } from './room-invite-link.entity';
-import { PaginationProvider } from 'src/common/pagination/providers/pagination.provider';
+import { PaginationProvider } from '../common/pagination/providers/pagination.provider';
 import { GetOneRoomInviteLinkProvider } from './providers/get-one-room-invite-token';
 import { PublicInviteLinksController } from './public-invite-links.controller';
+import { RoomsModule } from '../rooms/rooms.module';
 
 @Module({
   controllers: [RoomInviteLinksController, PublicInviteLinksController],
@@ -24,6 +25,6 @@ import { PublicInviteLinksController } from './public-invite-links.controller';
     GetOneRoomInviteLinkProvider,
     PaginationProvider,
   ],
-  imports: [TypeOrmModule.forFeature([RoomInviteLink])],
+  imports: [RoomsModule, TypeOrmModule.forFeature([RoomInviteLink])],
 })
 export class RoomInviteLinksModule {}

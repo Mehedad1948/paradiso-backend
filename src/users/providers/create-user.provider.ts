@@ -8,9 +8,9 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
-import { HashingProvider } from 'src/auth/providers/hashing.provider';
-import { MailService } from 'src/mail/providers/mail.service';
-import { RoleService } from 'src/roles/providers/role.service';
+import { HashingProvider } from '../../auth/providers/hashing.provider';
+import { MailService } from '../../mail/providers/mail.service';
+import { RoleService } from '../../roles/providers/role.service';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from '../dtos/create-user.dto';
 import { UserResponseDto } from '../dtos/user-response.dto';

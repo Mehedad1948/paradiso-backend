@@ -1,3 +1,4 @@
+import { AuthenticatedRequest } from '../../auth/interfaces/authenticated-request.interface';
 import {
   ConflictException,
   Inject,
@@ -9,17 +10,17 @@ import {
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
-import { UserResponseDto } from 'src/users/dtos/user-response.dto';
-import { UsersService } from 'src/users/providers/users.service';
-import { Repository } from 'typeorm';
+import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
+import { UserResponseDto } from '../../users/dtos/user-response.dto';
+import { UsersService } from '../../users/providers/users.service';
+import { Repository, QueryFailedError } from 'typeorm';
 import { Room } from '../room.entity';
 import { CreateRoomDto } from '../dtos/create-room.dto';
 
 @Injectable()
 export class CreateRoomProvider {
   constructor(
-    @Inject(REQUEST) private readonly request: Request,
+    @Inject(REQUEST) private readonly request: AuthenticatedRequest,
     @InjectRepository(Room)
     private readonly roomRepository: Repository<Room>,
 
@@ -60,6 +61,7 @@ export class CreateRoomProvider {
 
       return {
         message: 'Room created successfully',
+        id: room.id,
         name: room.name,
         image: room.image,
         isPublic: room.isPublic,
@@ -68,6 +70,11 @@ export class CreateRoomProvider {
         }),
       };
     } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        error.driverError.code === '23505'
+      )
+        throw new ConflictException('Room name already exists');
       if (
         error instanceof UnauthorizedException ||
         error instanceof NotFoundException ||

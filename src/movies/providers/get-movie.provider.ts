@@ -1,376 +1,302 @@
+import { AuthenticatedRequest } from '../../auth/interfaces/authenticated-request.interface';
 import {
+  BadRequestException,
   forwardRef,
   Inject,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Request } from 'express';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
-import { Paginated } from 'src/common/pagination/interfaces/paginated.interface';
-import { PaginationProvider } from 'src/common/pagination/providers/pagination.provider';
-import { GetRatingDto, MovieSortOption } from 'src/ratings/dtos/get-rating.dto';
-import { RatingsService } from 'src/ratings/providers/ratings.service';
-import { RoomsService } from 'src/rooms/providers/rooms.service';
-import { UserResponseDto } from 'src/users/dtos/user-response.dto';
-import { UsersService } from 'src/users/providers/users.service';
-import { Repository } from 'typeorm';
+import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
+import { PaginationProvider } from '../../common/pagination/providers/pagination.provider';
+import { paginationLinks } from '../../common/pagination/pagination-links';
+import {
+  GetRatingDto,
+  MovieSortOption,
+  SortOrder,
+} from '../../ratings/dtos/get-rating.dto';
+import { RatingsService } from '../../ratings/providers/ratings.service';
+import { RoomsService } from '../../rooms/providers/rooms.service';
+import { Room } from '../../rooms/room.entity';
+import { Rating } from '../../ratings/rating.entity';
+import { Repository, SelectQueryBuilder } from 'typeorm';
 import { GetMovieDto } from '../dtos/get-movie.dto';
 import { Movie } from '../movie.entity';
+
+interface RoomMovieRow {
+  id: string;
+  title: string;
+  poster_path: string;
+  release_date: string;
+  isWatchedTogether: boolean;
+  createdAt: Date;
+  addedById: number | null;
+  addedByUsername: string | null;
+  addedByAvatar: string | null;
+  averageRate: string | null;
+  userSpecificRate?: string | null;
+}
 
 @Injectable()
 export class GetMovieProvider {
   constructor(
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
-
-    @Inject(REQUEST) private readonly request: Request,
-
-    private readonly userService: UsersService,
-
+    @Inject(REQUEST) private readonly request: AuthenticatedRequest,
     @Inject(forwardRef(() => RoomsService))
     private readonly roomService: RoomsService,
-
     @Inject(forwardRef(() => RatingsService))
     private readonly ratingsService: RatingsService,
-
     private readonly paginationProvider: PaginationProvider,
   ) {}
 
-  async getAll(movieQuery: GetMovieDto): Promise<Paginated<Movie>> {
-    try {
-      const moviesQuery = this.movieRepository
-        .createQueryBuilder('movie')
-        .leftJoinAndSelect('movie.addedBy', 'user')
-        .leftJoinAndSelect('movie.genres', 'genre')
-        .select([
-          'movie',
-          'user.id',
-          'user.username',
-          'user.avatar',
-          'genre.id',
-          'genre.name',
-        ]);
+  private catalogueQuery() {
+    return this.movieRepository
+      .createQueryBuilder('movie')
+      .leftJoin('movie.addedBy', 'addedBy')
+      .leftJoin('movie.genres', 'genre')
+      .select([
+        'movie',
+        'addedBy.id',
+        'addedBy.username',
+        'addedBy.avatar',
+        'genre.id',
+        'genre.tmdbId',
+        'genre.name',
+      ]);
+  }
 
-      const movies = await this.paginationProvider.paginateQuery(
-        {
-          limit: movieQuery.limit,
-          page: movieQuery.page,
-        },
-        moviesQuery,
-      );
-      return movies;
-    } catch (error) {
-      console.error('❌ Failed to get all movies:', error);
-      throw new InternalServerErrorException('Failed to get movies');
+  private dates(query: SelectQueryBuilder<Movie>, filters: GetMovieDto) {
+    if (
+      filters.startDate &&
+      filters.endDate &&
+      filters.startDate > filters.endDate
+    ) {
+      throw new BadRequestException('startDate must precede endDate');
     }
+    if (filters.startDate)
+      query.andWhere('movie.createdAt >= :startDate', {
+        startDate: filters.startDate,
+      });
+    if (filters.endDate)
+      query.andWhere('movie.createdAt <= :endDate', {
+        endDate: filters.endDate,
+      });
+  }
+
+  private filters(query: SelectQueryBuilder<Movie>, filters: GetRatingDto) {
+    this.dates(query, filters);
+    if (filters.search)
+      query.andWhere('movie.title ILIKE :search', {
+        search: '%' + filters.search + '%',
+      });
+    if (filters.isWatchTogether !== undefined) {
+      query.andWhere('movie.isWatchedTogether = :watched', {
+        watched: filters.isWatchTogether,
+      });
+    }
+    if (filters.sortBy === MovieSortOption.USER_RATE && !filters.sortByUserId) {
+      throw new BadRequestException(
+        'sortByUserId is required for userRate sorting',
+      );
+    }
+  }
+
+  // Apply the same room visibility rules to ratings as to room detail reads.
+  private visibleRooms() {
+    return this.movieRepository.manager
+      .getRepository(Room)
+      .createQueryBuilder('visibleRoom')
+      .select('visibleRoom.id')
+      .leftJoin(
+        'visibleRoom.users',
+        'visibleMember',
+        'visibleMember.id = :viewerId',
+      )
+      .where(
+        '(visibleRoom.isPublic = true OR visibleRoom.owner = :viewerId OR visibleMember.id = :viewerId)',
+      )
+      .getQuery();
+  }
+
+  private withVisibleRatings(query: SelectQueryBuilder<Movie>) {
+    const visibleRooms = this.visibleRooms();
+    return query
+      .leftJoin(
+        'movie.ratings',
+        'rating',
+        'rating.room IN (' + visibleRooms + ')',
+      )
+      .leftJoin('rating.user', 'ratingUser')
+      .addSelect([
+        'rating.id',
+        'rating.rate',
+        'ratingUser.id',
+        'ratingUser.username',
+        'ratingUser.avatar',
+      ])
+      .setParameter('viewerId', this.request[REQUEST_USER_KEY].sub);
+  }
+
+  async getAll(filters: GetMovieDto) {
+    const query = this.catalogueQuery()
+      .orderBy('movie.createdAt', 'DESC')
+      .addOrderBy('movie.id', 'DESC');
+    this.dates(query, filters);
+    return this.paginationProvider.paginateQuery(filters, query);
   }
 
   async getOne(id: string): Promise<Movie> {
-    try {
-      const movie = await this.movieRepository
-        .createQueryBuilder('movie')
-        .leftJoinAndSelect('movie.addedBy', 'user')
-        .select(['movie', 'user.id', 'user.username', 'user.avatar'])
-        .where('movie.id = :id', { id })
-        .getOne();
-
-      if (!movie) {
-        throw new NotFoundException(`Movie with id ${id} not found`);
-      }
-
-      return movie;
-    } catch (error) {
-      console.error(`❌ Failed to get movie with id ${id}:`, error);
-      throw error instanceof NotFoundException
-        ? error
-        : new InternalServerErrorException('Failed to get movie');
-    }
+    const movie = await this.catalogueQuery()
+      .where('movie.id = :id', { id })
+      .getOne();
+    if (!movie) throw new NotFoundException('Movie not found');
+    return movie;
   }
 
-  async getMovieWithMovieDbId(dbId: number): Promise<Movie | null> {
-    try {
-      const movie = await this.movieRepository
-        .createQueryBuilder('movie')
-        .leftJoinAndSelect('movie.addedBy', 'user')
-        .select(['movie', 'user.id', 'user.username', 'user.avatar'])
-        .where('movie.dbId = :dbId', { dbId })
-        .getOne();
-
-      return movie;
-    } catch (error) {
-      console.error(`❌ Failed to get movie with dbId ${dbId}:`, error);
-      throw error instanceof NotFoundException
-        ? error
-        : new InternalServerErrorException('Failed to get movie');
-    }
+  getMovieWithMovieDbId(dbId: number): Promise<Movie | null> {
+    return this.catalogueQuery().where('movie.dbId = :dbId', { dbId }).getOne();
   }
 
-  async getAllWithRatings(
-    ratingQuery: GetRatingDto,
-  ): Promise<{ movies: Paginated<Movie>; users: UserResponseDto[] }> {
-    try {
-      const moviesQuery = this.movieRepository
-        .createQueryBuilder('movie')
-        .leftJoinAndSelect('movie.addedBy', 'addedBy')
-        .leftJoinAndSelect('movie.ratings', 'rating')
-        .leftJoinAndSelect('rating.user', 'ratingUser')
-        .select([
-          'movie.id',
-          'movie.title',
-          'movie.release_date',
-          'movie.imdbRate',
-          'movie.image',
-          'movie.isWatchedTogether',
-          'movie.isIn',
-          'movie.createdAt',
-          'movie.updatedAt',
-          'addedBy.id',
-          'rating.rate',
-          'ratingUser.id',
-          'ratingUser.username',
-          'ratingUser.avatar',
-        ]);
-
-      const movies = await this.paginationProvider.paginateQuery(
-        {
-          limit: ratingQuery.limit,
-          page: ratingQuery.page,
-        },
-        moviesQuery,
-      );
-
-      const users = await this.userService.getRatingUsers();
-
-      return {
-        movies,
-        users,
-      };
-    } catch (error) {
-      console.error(
-        '❌ Failed to get all movies with ratings and users:🐞',
-        error,
-      );
-      throw new InternalServerErrorException(
-        'Failed to get movies with ratings and users',
-      );
+  async getAllWithRatings(filters: GetRatingDto) {
+    const query = this.withVisibleRatings(this.catalogueQuery());
+    this.filters(query, filters);
+    const order = filters.sortOrder === SortOrder.ASC ? 'ASC' : 'DESC';
+    if (filters.sortBy) {
+      const aggregate = query
+        .subQuery()
+        .select(
+          filters.sortBy === MovieSortOption.USER_RATE
+            ? 'MAX(sortRating.rate)'
+            : 'AVG(sortRating.rate)',
+        )
+        .from(Rating, 'sortRating')
+        .where('sortRating.movie = movie.id')
+        .andWhere('sortRating.room IN (' + this.visibleRooms() + ')');
+      if (filters.sortBy === MovieSortOption.USER_RATE) {
+        aggregate.andWhere('sortRating.user = :sortByUserId', {
+          sortByUserId: filters.sortByUserId,
+        });
+      }
+      query
+        .addSelect(aggregate.getQuery(), 'sort_rate')
+        .orderBy('sort_rate', order, 'NULLS LAST');
     }
-  }
-
-  async getMoviesRatingORoom(ratingQuery: GetRatingDto, roomId: number) {
-    const userPayload = this.request[REQUEST_USER_KEY];
-    const userId = userPayload?.sub;
-
-    console.log('✅✅✅', ratingQuery, roomId);
-
-    const users = await this.roomService.getRoomUsers(roomId);
-
-    try {
-      const moviesQuery = this.movieRepository
-        .createQueryBuilder('movie')
-        .innerJoin('movie.rooms', 'room')
-        .leftJoin('movie.ratings', 'rating', 'rating.room.id = :roomId', {
-          roomId,
-        })
-        .leftJoin('rating.user', 'rater')
-        .leftJoin('movie.addedBy', 'user')
-        .where('room.id = :roomId', { roomId })
-        .select([
-          'movie.id',
-          'movie.title',
-          'movie.poster_path',
-          'movie.release_date',
-          'movie.isWatchedTogether',
-          'movie.createdAt',
-          'user.id',
-          'user.username',
-          'user.avatar',
-        ])
-        .addSelect('AVG(rating.rate)', 'averageRate') // Always select avg
-        .groupBy('movie.id')
-        .addGroupBy('user.id');
-
-      if (ratingQuery.search) {
-        moviesQuery.andWhere('LOWER(movie.title) LIKE :search', {
-          search: `%${ratingQuery.search.toLowerCase()}%`,
-        });
+    query.addOrderBy('movie.createdAt', 'DESC').addOrderBy('movie.id', 'DESC');
+    const movies = await this.paginationProvider.paginateQuery(filters, query);
+    const users = new Map<
+      number,
+      { id: number; username: string; avatar?: string }
+    >();
+    for (const movie of movies.data) {
+      for (const rating of movie.ratings ?? []) {
+        if (rating.user)
+          users.set(rating.user.id, {
+            id: rating.user.id,
+            username: rating.user.username,
+            avatar: rating.user.avatar,
+          });
       }
-
-      if (ratingQuery.isWatchTogether !== undefined) {
-        moviesQuery.andWhere('movie.isWatchedTogether = :isWatchTogether', {
-          isWatchTogether: ratingQuery.isWatchTogether,
-        });
-      }
-
-      const sortOrder =
-        ratingQuery.sortOrder?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
-      const averageRateSelect = 'AVG(rating.rate)';
-      const userSpecificRateSelect =
-        'MAX(CASE WHEN rater.id = :sortByUserId THEN rating.rate ELSE NULL END)';
-
-      if (ratingQuery.sortBy === MovieSortOption.RATE) {
-        moviesQuery
-          .orderBy('"averageRate"', sortOrder, 'NULLS LAST')
-          .addOrderBy('movie.createdAt', 'DESC');
-      } else if (
-        ratingQuery.sortBy === MovieSortOption.USER_RATE &&
-        ratingQuery.sortByUserId
-      ) {
-        moviesQuery
-          .addSelect(userSpecificRateSelect, 'userSpecificRate')
-          .orderBy('"userSpecificRate"', sortOrder, 'NULLS LAST')
-          .addOrderBy('movie.createdAt', 'DESC')
-          .setParameter('sortByUserId', ratingQuery.sortByUserId);
-      } else {
-        moviesQuery.orderBy('movie.createdAt', 'DESC');
-      }
-
-      const limit = ratingQuery.limit ?? 10;
-      const page = ratingQuery.page ?? 1;
-      const offset = (page - 1) * limit;
-
-      const totalItemsQuery = this.movieRepository
-        .createQueryBuilder('movie')
-        .innerJoin('movie.rooms', 'room')
-        .where('room.id = :roomId', { roomId });
-
-      if (ratingQuery.search) {
-        totalItemsQuery.andWhere('LOWER(movie.title) LIKE :search', {
-          search: `%${ratingQuery.search.toLowerCase()}%`,
-        });
-      }
-
-      if (ratingQuery.isWatchTogether !== undefined) {
-        totalItemsQuery.andWhere('movie.isWatchedTogether = :isWatchTogether', {
-          isWatchTogether: ratingQuery.isWatchTogether,
-        });
-      }
-
-      const [totalItems, rawMovies] = await Promise.all([
-        totalItemsQuery.getCount(),
-        moviesQuery.limit(limit).offset(offset).getRawMany(),
-      ]);
-
-      const totalPages = Math.ceil(totalItems / limit);
-      const movieRows = rawMovies.map((rawMovie) => ({
-        id: rawMovie.movie_id,
-        title: rawMovie.movie_title,
-        poster_path: rawMovie.movie_poster_path,
-        release_date: rawMovie.movie_release_date,
-        isWatchedTogether: rawMovie.movie_isWatchedTogether,
-        createdAt: rawMovie.movie_createdAt,
-        addedBy: rawMovie.user_id
-          ? {
-              id: rawMovie.user_id,
-              username: rawMovie.user_username,
-              avatar: rawMovie.user_avatar,
-            }
-          : null,
-        averageRate:
-          rawMovie.averageRate !== null && rawMovie.averageRate !== undefined
-            ? parseFloat(rawMovie.averageRate)
-            : null,
-        userSpecificRate:
-          rawMovie.userSpecificRate !== null &&
-          rawMovie.userSpecificRate !== undefined
-            ? parseFloat(rawMovie.userSpecificRate)
-            : null,
-      }));
-
-      const baseURL = this.request.protocol + '://' + this.request.get('host');
-      const newUrl = new URL(this.request.url, baseURL);
-      const nextPage = page + 1 <= totalPages ? page + 1 : page;
-      const previousPage = page - 1 > 0 ? page - 1 : page;
-
-      const movies = {
-        data: movieRows,
-        meta: {
-          totalItems,
-          itemsPerPage: limit,
-          totalPages,
-          currentPage: page,
-        },
-        links: {
-          first: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=1`,
-          current: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=${page}`,
-          next: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=${nextPage}`,
-          previous: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=${previousPage}`,
-          last: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=${totalPages}`,
-        },
-      };
-
-      const movieIds = movies.data.map((m: any) => m.id);
-
-      const ratings = await this.ratingsService.getRatingsOfRoomWithMovies(
-        roomId,
-        movieIds,
-      );
-
-      const fullMovies = movies.data.map((movie: any) => {
-        const existingRatings = ratings.filter((r) => r.movie.id === movie.id);
-
-        const allRatings = users.map((user) => {
-          const matchedRating = existingRatings.find(
-            (r) => r.user?.id === user.id,
-          );
-          return {
-            user,
-            rate: matchedRating?.rate ?? null,
-          };
-        });
-
-        return {
-          ...movie,
-          ratings: allRatings,
-          hasVoted: existingRatings.some((r) => r.user?.id === userId),
-        };
-      });
-
-      return {
-        ...movies,
-        data: fullMovies,
-      };
-    } catch (error) {
-      console.error('❌ Failed to get all movies with ratings 🐞', error);
-      throw new InternalServerErrorException(
-        'Failed to get movies with ratings ❌',
-      );
     }
+    return { movies, users: [...users.values()] };
   }
 
   async getOneWithRating(id: string): Promise<Movie> {
-    try {
-      const movie = await this.movieRepository
-        .createQueryBuilder('movie')
-        .leftJoinAndSelect('movie.addedBy', 'addedByUser')
-        .leftJoinAndSelect('movie.ratings', 'rating')
-        .leftJoinAndSelect('rating.user', 'ratingUser')
-        .select([
-          'movie',
-          'addedByUser.id',
-          'addedByUser.username',
-          'addedByUser.avatar',
-          'rating.id',
-          'rating.rate',
-          'ratingUser.id',
-          'ratingUser.username',
-          'ratingUser.avatar',
-        ])
-        .where('movie.id = :id', { id })
-        .getOne();
+    const movie = await this.withVisibleRatings(this.catalogueQuery())
+      .where('movie.id = :id', { id })
+      .getOne();
+    if (!movie) throw new NotFoundException('Movie not found');
+    return movie;
+  }
 
-      if (!movie) {
-        throw new NotFoundException(`Movie with id ${id} not found`);
-      }
-
-      return movie;
-    } catch (error) {
-      console.error(`❌ Failed to get movie with id ${id}:`, error);
-      throw error instanceof NotFoundException
-        ? error
-        : new InternalServerErrorException('Failed to get movie');
+  async getMoviesRatingORoom(filters: GetRatingDto, roomId: number) {
+    const userId = this.request[REQUEST_USER_KEY].sub;
+    const users = await this.roomService.getRoomUsers(roomId);
+    const query = this.movieRepository
+      .createQueryBuilder('movie')
+      .innerJoin('movie.rooms', 'room')
+      .leftJoin('movie.ratings', 'rating', 'rating.room = :roomId', { roomId })
+      .leftJoin('rating.user', 'rater')
+      .leftJoin('movie.addedBy', 'addedBy')
+      .where('room.id = :roomId', { roomId })
+      .select('movie.id', 'id')
+      .addSelect('movie.title', 'title')
+      .addSelect('movie.poster_path', 'poster_path')
+      .addSelect('movie.release_date', 'release_date')
+      .addSelect('movie.isWatchedTogether', 'isWatchedTogether')
+      .addSelect('movie.createdAt', 'createdAt')
+      .addSelect('addedBy.id', 'addedById')
+      .addSelect('addedBy.username', 'addedByUsername')
+      .addSelect('addedBy.avatar', 'addedByAvatar')
+      .addSelect('AVG(rating.rate)', 'averageRate')
+      .groupBy('movie.id')
+      .addGroupBy('addedBy.id');
+    this.filters(query, filters);
+    const order = filters.sortOrder === SortOrder.ASC ? 'ASC' : 'DESC';
+    if (filters.sortBy === MovieSortOption.RATE)
+      query.orderBy('"averageRate"', order, 'NULLS LAST');
+    if (filters.sortBy === MovieSortOption.USER_RATE) {
+      query
+        .addSelect(
+          'MAX(CASE WHEN rater.id = :sortByUserId THEN rating.rate END)',
+          'userSpecificRate',
+        )
+        .setParameter('sortByUserId', filters.sortByUserId)
+        .orderBy('"userSpecificRate"', order, 'NULLS LAST');
     }
+    query.addOrderBy('movie.createdAt', 'DESC').addOrderBy('movie.id', 'DESC');
+    const count = this.movieRepository
+      .createQueryBuilder('movie')
+      .innerJoin('movie.rooms', 'room')
+      .where('room.id = :roomId', { roomId });
+    this.filters(count, filters);
+    const limit = filters.limit ?? 10;
+    const page = filters.page ?? 1;
+    const [totalItems, rows] = await Promise.all([
+      count.getCount(),
+      query
+        .limit(limit)
+        .offset((page - 1) * limit)
+        .getRawMany<RoomMovieRow>(),
+    ]);
+    const ratings = await this.ratingsService.getRatingsOfRoomWithMovies(
+      roomId,
+      rows.map((row) => row.id),
+    );
+    const ratingMap = new Map(
+      ratings.map((rating) => [
+        rating.movie.id + ':' + rating.user.id,
+        rating.rate,
+      ]),
+    );
+    const totalPages = Math.ceil(totalItems / limit);
+    return {
+      data: rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        poster_path: row.poster_path,
+        release_date: row.release_date,
+        isWatchedTogether: row.isWatchedTogether,
+        createdAt: row.createdAt,
+        addedBy: row.addedById
+          ? {
+              id: row.addedById,
+              username: row.addedByUsername,
+              avatar: row.addedByAvatar,
+            }
+          : null,
+        averageRate: row.averageRate == null ? null : Number(row.averageRate),
+        userSpecificRate:
+          row.userSpecificRate == null ? null : Number(row.userSpecificRate),
+        ratings: users.map((user) => ({
+          user,
+          rate: ratingMap.get(row.id + ':' + user.id) ?? null,
+        })),
+        hasVoted: ratingMap.has(row.id + ':' + userId),
+      })),
+      meta: { totalItems, itemsPerPage: limit, totalPages, currentPage: page },
+      links: paginationLinks(this.request, limit, page, totalPages),
+    };
   }
 }

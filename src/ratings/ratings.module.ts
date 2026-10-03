@@ -4,12 +4,12 @@ import { RatingsService } from './providers/ratings.service';
 import { AddRatingProvider } from './providers/add-rating.provider';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Rating } from './rating.entity';
-import { UsersModule } from 'src/users/users.module';
-import { MoviesModule } from 'src/movies/movies.module';
+import { UsersModule } from '../users/users.module';
+import { MoviesModule } from '../movies/movies.module';
 import { GetRatingProvider } from './providers/get-rating.provider';
-import { RoomsModule } from 'src/rooms/rooms.module';
+import { RoomsModule } from '../rooms/rooms.module';
 import { DeleteRatingProvider } from './providers/delete-rating.provider';
-import { PaginationModule } from 'src/common/pagination/dtos/pagination.module';
+import { PaginationModule } from '../common/pagination/dtos/pagination.module';
 
 @Module({
   controllers: [RatingsController],

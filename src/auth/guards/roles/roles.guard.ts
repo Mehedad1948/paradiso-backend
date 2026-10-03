@@ -4,20 +4,12 @@ import {
   ExecutionContext,
   Injectable,
   ForbiddenException,
-  UseGuards,
-  Controller,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from 'src/auth/constants/auth.constants';
-import { Auth } from 'src/auth/decorator/auth.decorator';
-import { Roles } from 'src/auth/decorator/roles.decorator';
-import { AuthType } from 'src/auth/enums/auth.decorator';
+import { ROLES_KEY, REQUEST_USER_KEY } from '../../constants/auth.constants';
+import { AuthenticatedRequest } from '../../interfaces/authenticated-request.interface';
 
 @Injectable()
-@Auth(AuthType.Bearer)
-@Roles('admin')
-@UseGuards(RolesGuard)
-@Controller('roles')
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
@@ -29,8 +21,10 @@ export class RolesGuard implements CanActivate {
 
     if (!requiredRoles || requiredRoles.length === 0) return true;
 
-    const { user } = context.switchToHttp().getRequest();
-    if (!user || !requiredRoles.includes(user.role?.name)) {
+    const user = context.switchToHttp().getRequest<AuthenticatedRequest>()[
+      REQUEST_USER_KEY
+    ];
+    if (!user || !requiredRoles.includes(user.role)) {
       throw new ForbiddenException('Insufficient role');
     }
 

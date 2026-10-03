@@ -8,7 +8,9 @@ import {
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
+import { ActiveUserData } from '../../interfaces/active-user-data.interface';
+import { AuthenticatedRequest } from '../../interfaces/authenticated-request.interface';
+import { REQUEST_USER_KEY } from '../../constants/auth.constants';
 import jwtConfig from '../../config/jwt.config';
 
 @Injectable()
@@ -20,15 +22,25 @@ export class AccessTokenGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const token = this.extractTokenFromHeader(request);
     if (!token) {
       throw new UnauthorizedException();
     }
     try {
-      const payload = await this.jwtService.verifyAsync(token, {
+      const payload = await this.jwtService.verifyAsync<ActiveUserData>(token, {
         secret: this.configService.secret,
+        issuer: this.configService.issuer,
+        audience: this.configService.audience,
+        algorithms: ['HS256'],
       });
+      if (
+        payload.tokenUse !== 'access' ||
+        !Number.isSafeInteger(payload.sub) ||
+        payload.sub < 1
+      ) {
+        throw new UnauthorizedException();
+      }
       request[REQUEST_USER_KEY] = payload;
     } catch {
       throw new UnauthorizedException();

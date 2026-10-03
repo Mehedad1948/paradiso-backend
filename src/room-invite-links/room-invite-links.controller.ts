@@ -6,11 +6,15 @@ import {
   Param,
   Post,
   Query,
+  Patch,
+  ParseIntPipe,
 } from '@nestjs/common';
-import { Auth } from 'src/auth/decorator/auth.decorator';
-import { AuthType } from 'src/auth/enums/auth.decorator';
+import { Auth } from '../auth/decorator/auth.decorator';
+import { AuthType } from '../auth/enums/auth.decorator';
 import { CreateRoomInviteLinkDto } from './dto/create-room-invite-link.dto';
 import { RoomInviteLinksService } from './providers/room-invite-links.service';
+import { PaginationQueryDto } from '../common/pagination/dtos/pagination-query.dto';
+import { UpdateRoomInviteLinkDto } from './dto/update-room-invite-link.dto';
 
 @Controller('rooms/:roomId/invite-links')
 export class RoomInviteLinksController {
@@ -21,7 +25,7 @@ export class RoomInviteLinksController {
   @Auth(AuthType.Bearer)
   @Post()
   create(
-    @Param('roomId') roomId: number,
+    @Param('roomId', ParseIntPipe) roomId: number,
     @Body() createRoomInviteLinkDto: CreateRoomInviteLinkDto,
   ) {
     return this.roomInviteLinksService.create({
@@ -33,8 +37,8 @@ export class RoomInviteLinksController {
   @Auth(AuthType.Bearer)
   @Get()
   findAll(
-    @Param('roomId') roomId: number,
-    @Query() query: { page: number; limit: number },
+    @Param('roomId', ParseIntPipe) roomId: number,
+    @Query() query: PaginationQueryDto,
   ) {
     return this.roomInviteLinksService.findAll({
       ...query,
@@ -43,8 +47,21 @@ export class RoomInviteLinksController {
   }
 
   @Auth(AuthType.Bearer)
+  @Patch(':id')
+  update(
+    @Param('roomId', ParseIntPipe) roomId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateRoomInviteLinkDto,
+  ) {
+    return this.roomInviteLinksService.update(id, roomId, dto);
+  }
+
+  @Auth(AuthType.Bearer)
   @Delete(':id')
-  remove(@Param('roomId') roomId: number, @Param('id') id: string) {
-    return this.roomInviteLinksService.remove(Number(id));
+  remove(
+    @Param('roomId', ParseIntPipe) roomId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.roomInviteLinksService.remove(id, roomId);
   }
 }

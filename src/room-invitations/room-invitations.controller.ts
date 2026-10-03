@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
+import { PaginationQueryDto } from '../common/pagination/dtos/pagination-query.dto';
 import { RoomInvitationService } from './providers/invitations.service';
 import { InviteUserToRoomDto } from './dto/invite-user-to-room.dto';
 
@@ -8,7 +17,7 @@ export class RoomInvitationsController {
 
   @Post()
   async inviteUser(
-    @Param('roomId') roomId: number,
+    @Param('roomId', ParseIntPipe) roomId: number,
     @Body() inviteUserToRoomDto: InviteUserToRoomDto,
   ) {
     return this.invitationService.inviteUser(inviteUserToRoomDto, roomId);
@@ -16,10 +25,9 @@ export class RoomInvitationsController {
 
   @Get()
   async getRoomInvitations(
-    @Param('roomId') roomId: number,
-    @Query('limit') limit: number,
-    @Query('page') page = 1,
+    @Param('roomId', ParseIntPipe) roomId: number,
+    @Query() query: PaginationQueryDto,
   ) {
-    return this.invitationService.getRoomInvitations({ roomId, page, limit });
+    return this.invitationService.getRoomInvitations({ ...query, roomId });
   }
 }

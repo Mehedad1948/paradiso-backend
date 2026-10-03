@@ -35,11 +35,15 @@ export class RoomInviteLinksService {
     return this.verifyProvider.verify(token);
   }
 
-  update(id: string, updateRoomInviteLinkDto: UpdateRoomInviteLinkDto) {
-    return this.updateProvider.updateLink(id, updateRoomInviteLinkDto);
+  update(
+    id: number,
+    roomId: number,
+    updateRoomInviteLinkDto: UpdateRoomInviteLinkDto,
+  ) {
+    return this.updateProvider.updateLink(id, roomId, updateRoomInviteLinkDto);
   }
 
-  remove(id: number) {
-    return this.deleteProvider.deleteLink(Number(id));
+  remove(id: number, roomId: number) {
+    return this.deleteProvider.deleteLink(id, roomId);
   }
 }

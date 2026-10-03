@@ -11,7 +11,11 @@ export default Joi.object({
   DATABASE_USERNAME: Joi.string().required(),
   DATABASE_PASSWORD: Joi.string().required(),
   DATABASE_NAME: Joi.string().required(),
-  DATABASE_SYNCHRONIZE: Joi.boolean().default(true).required(),
+  DATABASE_SYNCHRONIZE: Joi.boolean().when('NODE_ENV', {
+    is: 'production',
+    then: Joi.valid(false).default(false),
+    otherwise: Joi.boolean().default(false),
+  }),
   DATABASE_AUTOLOADENTITIES: Joi.boolean().default(true).required(),
   PROFILE_API_KEY: Joi.string().required(),
   JWT_SECRET: Joi.string().required(),
@@ -22,4 +26,8 @@ export default Joi.object({
   JWT_INVITATION_TOKEN_TTL: Joi.number().required(),
   API_VERSION: Joi.string().required(),
   PRODUCT_BASE_URL: Joi.string().required(),
+  TMDB_API_KEY: Joi.string().required(),
+  TMDB_BASE_URL: Joi.string()
+    .uri({ scheme: ['https'] })
+    .default('https://api.themoviedb.org/3'),
 });

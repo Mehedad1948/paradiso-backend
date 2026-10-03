@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { UsersService } from 'src/users/providers/users.service';
+import { UsersService } from '../../users/providers/users.service';
 import { ForgetPasswordDto } from '../dtos/forget-password.dto';
 import { RefreshTokenDto } from '../dtos/refresh-token.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
@@ -44,6 +44,8 @@ export class AuthService {
     inviterUsername: string;
     email: string;
     roomId: number;
+    invitationId: number;
+    invitationVersion: string;
   }) {
     return await this.generateTokenProvider.generateInviteToken(data);
   }

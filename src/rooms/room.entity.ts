@@ -1,6 +1,6 @@
-import { Movie } from 'src/movies/movie.entity';
-import { Rating } from 'src/ratings/rating.entity';
-import { User } from 'src/users/user.entity';
+import { Movie } from '../movies/movie.entity';
+import { Rating } from '../ratings/rating.entity';
+import { User } from '../users/user.entity';
 import {
   Column,
   Entity,

@@ -1,119 +1,111 @@
+import { AuthenticatedRequest } from '../../auth/interfaces/authenticated-request.interface';
 import {
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
-  InternalServerErrorException,
-  NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
-import { AuthService } from 'src/auth/providers/auth.service';
-import { MailService } from 'src/mail/providers/mail.service';
-import { RoomsService } from 'src/rooms/providers/rooms.service';
-import { Room } from 'src/rooms/room.entity';
-import { UsersService } from 'src/users/providers/users.service';
+import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
+import { AuthService } from '../../auth/providers/auth.service';
+import { MailService } from '../../mail/providers/mail.service';
+import { Room } from '../../rooms/room.entity';
+import { lockRoom } from '../../rooms/providers/room-transaction';
+import { UsersService } from '../../users/providers/users.service';
 import { Repository } from 'typeorm';
+import { ConfigService } from '@nestjs/config';
 import { InviteUserToRoomDto } from '../dto/invite-user-to-room.dto';
 import { RoomInvitation } from '../room-invitation.entity';
 
 @Injectable()
 export class AddUserToRoomProvider {
   constructor(
-    @Inject(REQUEST) private readonly request: Request,
-
-    private readonly roomService: RoomsService,
-
+    @Inject(REQUEST) private readonly request: AuthenticatedRequest,
     private readonly authService: AuthService,
-
     private readonly userService: UsersService,
-
     private readonly mailService: MailService,
-
+    private readonly config: ConfigService,
     @InjectRepository(RoomInvitation)
     private readonly roomInvitationRepository: Repository<RoomInvitation>,
   ) {}
 
-  async inviteUserToRoom(inviteUserToRoomDto: InviteUserToRoomDto, roomId) {
-    try {
-      const userPayload = this.request[REQUEST_USER_KEY];
-      const userId = userPayload?.sub;
-
-      if (!userId) {
-        throw new UnauthorizedException('Invalid user');
-      }
-
-      const room = await this.roomService.findRoomById(roomId);
-      if (!room) {
-        throw new NotFoundException('Room not found');
-      }
-
-      if (room.owner.id !== userId) {
-        throw new UnauthorizedException('Only the room owner can invite users');
-      }
-
-      const invitingUser = await this.userService.findOneById(userId);
-
-      const { inviteToken } = await this.authService.generateInvitationToken({
-        inviterUsername: userPayload.username,
-        email: inviteUserToRoomDto.email,
-        roomId: room.id,
-      });
-
-      const invitedUser = await this.userService.findOneByEmail(
-        inviteUserToRoomDto.email,
-      );
-
-      const existingInvitation = await this.roomInvitationRepository.findOne({
-        where: {
-          email: inviteUserToRoomDto.email,
-          room: { id: room.id } as Room,
-        },
-      });
-
-      if (
-        existingInvitation &&
-        (existingInvitation.status === 'pending' ||
-          existingInvitation.status === 'accepted')
-      ) {
-        throw new ConflictException(
-          'An invitation for this email already exists and is still active.',
-        );
-      }
-
-      await this.mailService.sendInvitationEmail({
-        inviterUsername: invitingUser.username,
-        email: inviteUserToRoomDto.email,
-        invitationToken: inviteToken,
-      });
-
-      const createdInvitation = this.roomInvitationRepository.create({
-        email: inviteUserToRoomDto.email,
-        room: { id: room.id } as Room,
-        invitedBy: invitingUser,
-        status: 'pending',
-        userStatus: invitedUser
+  async inviteUserToRoom(dto: InviteUserToRoomDto, roomId: number) {
+    const userId = this.request[REQUEST_USER_KEY]?.sub;
+    if (!userId) throw new UnauthorizedException();
+    const email = dto.email.trim().toLowerCase();
+    const invitedUser = await this.userService.findOneByEmail(email);
+    const invitingUser = await this.userService.findOneById(userId);
+    const invitation = await this.roomInvitationRepository.manager.transaction(
+      async (manager) => {
+        await lockRoom(manager, roomId);
+        const room = await manager
+          .getRepository(Room)
+          .findOne({ where: { id: roomId }, relations: ['owner'] });
+        if (room?.owner?.id !== userId)
+          throw new ForbiddenException('Only the room owner can invite users');
+        if (
+          invitedUser &&
+          (await manager
+            .getRepository(Room)
+            .exists({ where: { id: roomId, users: { id: invitedUser.id } } }))
+        ) {
+          throw new ConflictException('User is already a room member');
+        }
+        const repo = manager.getRepository(RoomInvitation);
+        const existing = await repo.findOne({
+          where: { email, room: { id: roomId } },
+        });
+        const ttl = this.config.get<number>('jwt.invitationTokenTtl') ?? 3600;
+        const pendingActive =
+          existing?.status === 'pending' &&
+          Date.now() - existing.updatedAt.valueOf() < ttl * 1000;
+        if (existing && (pendingActive || existing.status === 'accepted')) {
+          throw new ConflictException(
+            'An active invitation for this email already exists',
+          );
+        }
+        const record = existing ?? repo.create({ email, room: { id: roomId } });
+        record.invitedBy = invitingUser;
+        record.status = 'pending';
+        record.updatedAt = new Date();
+        record.userStatus = invitedUser
           ? invitedUser.isEmailVerified
             ? 'member'
             : 'notVerified'
-          : 'guest',
+          : 'guest';
+        return repo.save(record);
+      },
+    );
+    try {
+      const { inviteToken } = await this.authService.generateInvitationToken({
+        inviterUsername: invitingUser.username,
+        email,
+        roomId,
+        invitationId: invitation.id,
+        invitationVersion: invitation.updatedAt.toISOString(),
       });
-
-      await this.roomInvitationRepository.save(createdInvitation);
-      return {
-        message: 'Invitation email sent successfully',
-      };
-    } catch (error) {
-      if (
-        error instanceof UnauthorizedException ||
-        error instanceof NotFoundException ||
-        error instanceof ConflictException
-      ) {
-        throw error; // rethrow known exceptions
-      }
-      // fallback for unexpected errors
-      throw new InternalServerErrorException('Failed to create room');
+      await this.mailService.sendInvitationEmail({
+        inviterUsername: invitingUser.username,
+        email,
+        invitationToken: inviteToken,
+      });
+    } catch {
+      // Failed deliveries can be retried; never leave a permanently blocking pending row.
+      await this.roomInvitationRepository.update(
+        {
+          id: invitation.id,
+          status: 'pending',
+          updatedAt: invitation.updatedAt,
+        },
+        { status: 'expired' },
+      );
+      throw new ServiceUnavailableException(
+        'Invitation email could not be sent. Please retry.',
+      );
     }
+    return { message: 'Invitation email sent successfully', id: invitation.id };
   }
 }

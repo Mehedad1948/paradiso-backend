@@ -1,14 +1,16 @@
-import { Room } from 'src/rooms/room.entity';
-import { User } from 'src/users/user.entity';
+import { Room } from '../rooms/room.entity';
+import { User } from '../users/user.entity';
 import {
   Column,
   Entity,
   ManyToOne,
   PrimaryGeneratedColumn,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity()
+@Index('IDX_invite_link_room_created', ['room', 'createdAt', 'id'])
 export class RoomInviteLink {
   @PrimaryGeneratedColumn()
   id: number;

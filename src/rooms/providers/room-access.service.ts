@@ -1,24 +1,46 @@
-// src/rooms/room-access.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { RoomsService } from './rooms.service'; // Or inject RoomRepository directly
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Room } from '../room.entity';
 
 @Injectable()
 export class RoomAccessService {
-  constructor(private roomsService: RoomsService) {} // Or inject RoomRepository
+  constructor(
+    @InjectRepository(Room) private readonly rooms: Repository<Room>,
+  ) {}
+
+  private async access(roomId: number, userId: number) {
+    const room = await this.rooms
+      .createQueryBuilder('room')
+      .leftJoin('room.owner', 'owner')
+      .leftJoin('room.users', 'member', 'member.id = :userId', { userId })
+      .select(['room.id', 'room.isPublic', 'owner.id', 'member.id'])
+      .where('room.id = :roomId', { roomId })
+      .getOne();
+    if (!room) throw new NotFoundException('Room not found');
+    return { room, member: room.owner?.id === userId || !!room.users?.length };
+  }
 
   async checkUserRoomAccess(roomId: number, userId: number): Promise<boolean> {
-    const room = await this.roomsService.findRoomById(roomId); // You might need a more lightweight query here if not all details are needed
+    return (await this.access(roomId, userId)).member;
+  }
 
-    if (!room) {
-      throw new NotFoundException('Room not found.');
-    }
+  async canRead(roomId: number, userId: number): Promise<boolean> {
+    const { room, member } = await this.access(roomId, userId);
+    return !!room.isPublic || member;
+  }
 
-    const isOwner = room.owner && room.owner.id === userId;
-    const isMember = room.users.some((user) => user.id === userId);
-
-    if (room.isPublic || isOwner || isMember) {
-      return true;
-    }
-    return false; // Or throw UnauthorizedException directly here
+  async requireOwner(roomId: number, userId: number) {
+    if (!userId) throw new UnauthorizedException();
+    const { room } = await this.access(roomId, userId);
+    if (room.owner?.id !== userId)
+      throw new ForbiddenException(
+        'Only the room owner can manage invitations',
+      );
   }
 }

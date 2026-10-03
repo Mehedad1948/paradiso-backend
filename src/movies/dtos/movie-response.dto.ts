@@ -1,16 +1,19 @@
-import { Expose, Transform } from 'class-transformer';
-import { Genre } from 'src/genres/genre.entity';
-import { Rating } from 'src/ratings/rating.entity';
+import { Expose, Transform, Type } from 'class-transformer';
+import { GenreResponseDto } from '../../genres/dtos/genre-response.dto';
+import { Rating } from '../../ratings/rating.entity';
 
 export class MovieResponseDto {
   @Expose()
   id: string;
 
   @Expose()
+  dbId: number;
+
+  @Expose()
   title: string;
 
   @Expose()
-  release_date: Date;
+  release_date: string;
 
   @Expose()
   imdbRate: number;
@@ -19,7 +22,10 @@ export class MovieResponseDto {
   imdbLink: string;
 
   @Expose()
-  image: string;
+  poster_path: string;
+
+  @Expose()
+  overview: string;
 
   @Expose()
   isWatchedTogether: boolean;
@@ -28,7 +34,8 @@ export class MovieResponseDto {
   ratings: Rating[];
 
   @Expose()
-  genres: Genre[];
+  @Type(() => GenreResponseDto)
+  genres: GenreResponseDto[];
 
   @Expose()
   @Transform(({ obj }) => ({

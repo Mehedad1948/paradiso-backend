@@ -2,13 +2,13 @@ import { Injectable } from '@nestjs/common';
 import { CreateMovieProvider } from './create-movie.provider';
 import { GetMovieProvider } from './get-movie.provider';
 import { CreateMovieDto } from '../dtos/create-movie.dto';
+import { UpdateMovieDto } from '../dtos/update-movie.dto';
 import { Movie } from '../movie.entity';
 import { UpdateMovieProvider } from './update-movie.provider';
 import { MovieResponseDto } from '../dtos/movie-response.dto';
 import { GetMovieDto } from '../dtos/get-movie.dto';
-import { Paginated } from 'src/common/pagination/interfaces/paginated.interface';
-import { GetRatingDto } from 'src/ratings/dtos/get-rating.dto';
-import { UserResponseDto } from 'src/users/dtos/user-response.dto';
+import { Paginated } from '../../common/pagination/interfaces/paginated.interface';
+import { GetRatingDto } from '../../ratings/dtos/get-rating.dto';
 
 @Injectable()
 export class MoviesService {
@@ -24,7 +24,7 @@ export class MoviesService {
 
   public async updateMovie(
     id: string,
-    createMovieDto: CreateMovieDto,
+    createMovieDto: UpdateMovieDto,
   ): Promise<MovieResponseDto> {
     return await this.updateMovieProvider.update(id, createMovieDto);
   }
@@ -35,9 +35,7 @@ export class MoviesService {
     return await this.getMovieProvider.getAll(movieQuery);
   }
 
-  public async getAllMoviesWithRating(
-    ratingQuery: GetRatingDto,
-  ): Promise<{ movies: Paginated<Movie>; users: UserResponseDto[] }> {
+  public async getAllMoviesWithRating(ratingQuery: GetRatingDto) {
     return await this.getMovieProvider.getAllWithRatings(ratingQuery);
   }
 

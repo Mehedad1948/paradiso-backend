@@ -3,17 +3,22 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
-import { RoomAccessService } from 'src/rooms/providers/room-access.service';
+import { REQUEST_USER_KEY } from '../../../auth/constants/auth.constants';
+import { RoomAccessService } from '../../providers/room-access.service';
+import { AuthenticatedRequest } from '../../../auth/interfaces/authenticated-request.interface';
 
 @Injectable()
 export class RoomMemberGuard implements CanActivate {
   constructor(private roomAccessService: RoomAccessService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest();
-    const roomId = request.params.id;
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const roomId = Number(request.params.roomId ?? request.params.id);
+    if (!Number.isSafeInteger(roomId) || roomId < 1)
+      throw new BadRequestException('Invalid room ID');
     const userPayload = request[REQUEST_USER_KEY];
     const userId = userPayload?.sub;
 
@@ -30,8 +35,6 @@ export class RoomMemberGuard implements CanActivate {
       return true;
     }
 
-    throw new UnauthorizedException(
-      'You are not authorized to access this room.',
-    );
+    throw new ForbiddenException('You are not authorized to access this room.');
   }
 }

@@ -1,5 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
-import { GoogleTokenDto } from './dtos/google-token.dto';
+import { Controller, Post } from '@nestjs/common';
 import { GoogleAuthenticationService } from './providers/google-authentication.service';
 import { Auth } from '../decorator/auth.decorator';
 import { AuthType } from '../enums/auth.decorator';
@@ -12,7 +11,7 @@ export class GoogleAuthenticationController {
   ) {}
 
   @Post()
-  public authenticate(@Body() googleTokenDto: GoogleTokenDto) {
-    // return this.googleAuthenticationService.authentication(googleTokenDto);
+  public authenticate() {
+    return this.googleAuthenticationService.authentication();
   }
 }

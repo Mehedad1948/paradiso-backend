@@ -1,4 +1,12 @@
-import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  forwardRef,
+  Inject,
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { HashingProvider } from '../../auth/providers/hashing.provider';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../user.entity';
@@ -7,7 +15,7 @@ import { UserResponseDto } from '../dtos/user-response.dto';
 import { plainToInstance } from 'class-transformer';
 import { REQUEST } from '@nestjs/core';
 import { Request } from 'express';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
+import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
 
 @Injectable()
 export class UpdateUserProvider {
@@ -15,6 +23,8 @@ export class UpdateUserProvider {
     @Inject(REQUEST) private readonly request: Request,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @Inject(forwardRef(() => HashingProvider))
+    private readonly hashing: HashingProvider,
   ) {}
 
   async update(email: string, data: Partial<User>): Promise<User | null> {
@@ -37,7 +47,15 @@ export class UpdateUserProvider {
       );
     }
 
-    await this.userRepository.update({ id }, data);
+    const changes = Object.fromEntries(
+      Object.entries(data).filter(([, value]) => value !== undefined),
+    ) as UpdateUserDto;
+    if (!Object.keys(changes).length)
+      throw new BadRequestException('Provide at least one field to update');
+    if (changes.password !== undefined)
+      changes.password = await this.hashing.hashPassword(changes.password);
+    const result = await this.userRepository.update({ id }, changes);
+    if (!result.affected) throw new NotFoundException('User not found');
 
     const updatedUser = await this.userRepository.findOneBy({ id });
     return plainToInstance(UserResponseDto, updatedUser, {

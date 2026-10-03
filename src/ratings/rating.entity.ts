@@ -4,13 +4,15 @@ import {
   Column,
   ManyToOne,
   Unique,
+  Index,
 } from 'typeorm';
-import { User } from 'src/users/user.entity';
-import { Movie } from 'src/movies/movie.entity';
-import { Room } from 'src/rooms/room.entity';
+import { User } from '../users/user.entity';
+import { Movie } from '../movies/movie.entity';
+import { Room } from '../rooms/room.entity';
 
 @Entity()
 @Unique(['user', 'movie', 'room'])
+@Index('IDX_rating_room_movie', ['room', 'movie'])
 export class Rating {
   @PrimaryGeneratedColumn('uuid')
   id: string;

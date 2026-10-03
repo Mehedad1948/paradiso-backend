@@ -1,5 +1,5 @@
-import { Room } from 'src/rooms/room.entity';
-import { User } from 'src/users/user.entity';
+import { Room } from '../rooms/room.entity';
+import { User } from '../users/user.entity';
 import {
   Column,
   Entity,
@@ -8,10 +8,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Unique,
+  Index,
 } from 'typeorm';
 
 @Entity()
 @Unique(['email', 'room'])
+@Index('IDX_invitation_room_created', ['room', 'createdAt', 'id'])
 export class RoomInvitation {
   @PrimaryGeneratedColumn()
   id: number;

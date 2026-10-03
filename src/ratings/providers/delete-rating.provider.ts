@@ -6,8 +6,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoviesService } from 'src/movies/providers/movies.service';
-import { RoomsService } from 'src/rooms/providers/rooms.service';
+import { MoviesService } from '../../movies/providers/movies.service';
+import { RoomsService } from '../../rooms/providers/rooms.service';
 import { Repository } from 'typeorm';
 import { Rating } from '../rating.entity';
 

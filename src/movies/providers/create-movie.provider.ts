@@ -1,65 +1,60 @@
+import { AuthenticatedRequest } from '../../auth/interfaces/authenticated-request.interface';
 import {
   ConflictException,
   Inject,
   Injectable,
-  InternalServerErrorException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
-import { Repository } from 'typeorm';
+import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
+import { QueryFailedError, Repository } from 'typeorm';
 import { CreateMovieDto } from '../dtos/create-movie.dto';
 import { Movie } from '../movie.entity';
-import { GenresService } from 'src/genres/providers/genres.service';
-import { Genre } from 'src/genres/genre.entity';
+import { GenresService } from '../../genres/providers/genres.service';
 
 @Injectable()
 export class CreateMovieProvider {
   constructor(
-    @Inject(REQUEST) private readonly request: Request,
+    @Inject(REQUEST) private readonly request: AuthenticatedRequest,
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
     private readonly genresService: GenresService,
   ) {}
-
-  async createMovie(createMovieDto: CreateMovieDto): Promise<Movie> {
+  async createMovie(dto: CreateMovieDto): Promise<Movie> {
+    const userId = this.request[REQUEST_USER_KEY]?.sub;
+    if (!userId) throw new UnauthorizedException();
+    const genres = dto.genres?.length
+      ? await this.genresService.findGenresWithTmdbIds(
+          dto.genres.map((g) => g.id),
+        )
+      : [];
+    // Map persisted columns explicitly; never accept arbitrary relations from a caller.
+    const movie = this.movieRepository.create({
+      dbId: dto.dbId,
+      title: dto.title,
+      original_title: dto.original_title,
+      overview: dto.overview,
+      release_date: dto.release_date,
+      video: dto.video,
+      poster_path: dto.poster_path,
+      vote_average: dto.vote_average,
+      imdbRate: dto.imdbRate,
+      imdbLink: dto.imdbLink,
+      isWatchedTogether: dto.isWatchedTogether ?? false,
+      addedBy: { id: userId },
+      genres,
+    });
     try {
-      const userPayload = this.request[REQUEST_USER_KEY];
-
-      const existingMovie = await this.movieRepository.findOne({
-        where: {
-          dbId: createMovieDto.dbId,
-        },
-      });
-
-      if (existingMovie) {
+      return await this.movieRepository.save(movie);
+    } catch (error) {
+      if (
+        error instanceof QueryFailedError &&
+        error.driverError.code === '23505'
+      ) {
         throw new ConflictException('Movie already exists');
       }
-
-      let genres: Genre[] = [];
-      const genreIds = createMovieDto.genres?.map((genre) => genre.id);
-      if (genreIds) {
-        genres = await this.genresService.findGenresWithTmdbIds(genreIds);
-      }
-
-      const movie = this.movieRepository.create({
-        ...createMovieDto,
-        addedBy: { id: userPayload.sub },
-        genres,
-      });
-
-      console.log('saving movie', movie);
-
-      const savedMovie = await this.movieRepository.save(movie);
-      return savedMovie;
-    } catch (error) {
-      console.log('❌❌❌➡️', error);
-
-      if (error instanceof ConflictException) {
-        throw error;
-      }
-
-      throw new InternalServerErrorException('Failed to create movie');
+      throw error;
     }
   }
 }

@@ -6,10 +6,12 @@ import {
   Post,
   Query,
   UseGuards,
+  ParseIntPipe,
+  ParseUUIDPipe,
 } from '@nestjs/common';
-import { Auth } from 'src/auth/decorator/auth.decorator';
-import { AuthType } from 'src/auth/enums/auth.decorator';
-import { RoomMemberGuard } from 'src/rooms/guards/RoomMember/roomMember.guard';
+import { Auth } from '../auth/decorator/auth.decorator';
+import { AuthType } from '../auth/enums/auth.decorator';
+import { RoomMemberGuard } from '../rooms/guards/RoomMember/roomMember.guard';
 import { AddRatingDto } from './dtos/add-rating.dto';
 import { GetRatingDto } from './dtos/get-rating.dto';
 import { RatingsService } from './providers/ratings.service';
@@ -22,7 +24,7 @@ export class RatingsController {
   @UseGuards(RoomMemberGuard)
   @Post(':id')
   public async addRating(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() addRatingDto: AddRatingDto,
   ) {
     return await this.ratingsService.addRating(id, addRatingDto);
@@ -36,7 +38,7 @@ export class RatingsController {
 
   @Auth(AuthType.Bearer)
   @Get('movie/:id')
-  public async getOneRating(@Param('id') id: string) {
+  public async getOneRating(@Param('id', ParseUUIDPipe) id: string) {
     return await this.ratingsService.getOneRating(id);
   }
 }

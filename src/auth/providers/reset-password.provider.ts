@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { UsersService } from 'src/users/providers/users.service';
+import { UsersService } from '../../users/providers/users.service';
 import { GenerateTokensProvider } from './generate-tokens.provider';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { HashingProvider } from './hashing.provider';

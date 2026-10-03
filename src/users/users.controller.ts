@@ -1,6 +1,14 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { Auth } from 'src/auth/decorator/auth.decorator';
-import { AuthType } from 'src/auth/enums/auth.decorator';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Put,
+} from '@nestjs/common';
+import { Auth } from '../auth/decorator/auth.decorator';
+import { AuthType } from '../auth/enums/auth.decorator';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UsersService } from './providers/users.service';
 import { UpdateUserDto } from './dtos/update-user.dto';
@@ -24,7 +32,7 @@ export class UsersController {
   @Put(':id')
   @Auth(AuthType.Bearer)
   async updateUser(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateUserDto: UpdateUserDto,
   ) {
     return this.usersService.updateById(id, updateUserDto);

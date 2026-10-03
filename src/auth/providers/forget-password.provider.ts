@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { MailService } from 'src/mail/providers/mail.service';
-import { UsersService } from 'src/users/providers/users.service';
+import { MailService } from '../../mail/providers/mail.service';
+import { UsersService } from '../../users/providers/users.service';
 import { ForgetPasswordDto } from '../dtos/forget-password.dto';
 import { GenerateTokensProvider } from './generate-tokens.provider';
 

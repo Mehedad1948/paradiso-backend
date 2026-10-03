@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import jwtConfig from '../config/jwt.config';
 import { ConfigType } from '@nestjs/config';
-import { User } from 'src/users/user.entity';
+import { User } from '../../users/user.entity';
 import { ActiveUserData } from '../interfaces/active-user-data.interface';
 
 @Injectable()
@@ -34,6 +34,7 @@ export class GenerateTokensProvider {
         this.jwtConfiguration.accessTokenTtl,
         {
           sub: user.id,
+          tokenUse: 'access',
           email: user.email,
           role: user.role?.name,
           isEmailVerified: user.isEmailVerified,
@@ -41,6 +42,7 @@ export class GenerateTokensProvider {
       ),
       this.signToken(this.jwtConfiguration.refreshTokenTtl, {
         sub: user.id,
+        tokenUse: 'refresh',
       }),
     ]);
 
@@ -54,16 +56,23 @@ export class GenerateTokensProvider {
     inviterUsername,
     email,
     roomId,
+    invitationId,
+    invitationVersion,
   }: {
     inviterUsername: string;
     email: string;
     roomId: number;
+    invitationId: number;
+    invitationVersion: string;
   }) {
     const inviteToken = await this.signToken(
       this.jwtConfiguration.invitationTokenTtl,
       {
         email: email,
         roomId,
+        invitationId,
+        invitationVersion,
+        tokenUse: 'room-invitation',
         inviterUsername: inviterUsername,
         expiresAt: new Date(
           new Date().getTime() +

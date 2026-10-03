@@ -1,3 +1,4 @@
+import { AuthenticatedRequest } from '../../auth/interfaces/authenticated-request.interface';
 import {
   ConflictException,
   forwardRef,
@@ -9,18 +10,18 @@ import {
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
-import { PaginationProvider } from 'src/common/pagination/providers/pagination.provider';
+import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
+import { PaginationProvider } from '../../common/pagination/providers/pagination.provider';
 import { Repository } from 'typeorm';
 import { GetRoomDto } from '../dtos/get-room.dto';
 import { Room } from '../room.entity';
 import { GetRoomRatingDto } from '../dtos/get-room-ratings';
-import { MoviesService } from 'src/movies/providers/movies.service';
+import { MoviesService } from '../../movies/providers/movies.service';
 
 @Injectable()
 export class GetRoomProvider {
   constructor(
-    @Inject(REQUEST) private readonly request: Request,
+    @Inject(REQUEST) private readonly request: AuthenticatedRequest,
     @InjectRepository(Room)
     private readonly roomRepository: Repository<Room>,
 
@@ -40,6 +41,9 @@ export class GetRoomProvider {
         .leftJoinAndSelect('room.users', 'user')
         .leftJoinAndSelect('room.movies', 'movie')
         .leftJoinAndSelect('room.owner', 'owner')
+        .leftJoin('room.users', 'membership', 'membership.id = :userId', {
+          userId,
+        })
         .leftJoinAndSelect('movie.genres', 'genre')
         .select([
           'room',
@@ -56,11 +60,13 @@ export class GetRoomProvider {
         .orderBy('room.id', 'DESC');
 
       if (roomQuery.usersRoom === 'true') {
-        query.where('user.id = :userId', { userId });
+        query.where('(membership.id = :userId OR owner.id = :userId)', {
+          userId,
+        });
       } else {
         query
           .where('room.isPublic = :isPublic', { isPublic: true })
-          .orWhere('user.id = :userId', { userId });
+          .orWhere('membership.id = :userId OR owner.id = :userId', { userId });
       }
 
       const rooms = await this.paginationProvider.paginateQuery(

@@ -1,13 +1,15 @@
+import { AuthenticatedRequest } from '../../auth/interfaces/authenticated-request.interface';
 import {
   Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
   UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
+import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
 import { Repository } from 'typeorm';
 import { UpdateMovieDto } from '../dtos/update-movie.dto';
 import { Movie } from '../movie.entity';
@@ -17,7 +19,7 @@ import { plainToInstance } from 'class-transformer';
 @Injectable()
 export class UpdateMovieProvider {
   constructor(
-    @Inject(REQUEST) private readonly request: Request,
+    @Inject(REQUEST) private readonly request: AuthenticatedRequest,
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
   ) {}
@@ -29,7 +31,7 @@ export class UpdateMovieProvider {
     try {
       const userPayload = this.request[REQUEST_USER_KEY];
 
-      if (!userPayload || !userPayload.sub || !userPayload.role) {
+      if (!userPayload?.sub) {
         throw new UnauthorizedException('User payload missing or invalid');
       }
 
@@ -47,7 +49,7 @@ export class UpdateMovieProvider {
       const isAdmin = userPayload.role === 'admin';
 
       if (!isOwner && !isAdmin) {
-        throw new UnauthorizedException(
+        throw new ForbiddenException(
           'You are not allowed to update this movie',
         );
       }
@@ -58,8 +60,8 @@ export class UpdateMovieProvider {
         excludeExtraneousValues: true,
       });
     } catch (error) {
-      console.error(`❌ Failed to update movie:`, error);
       throw error instanceof UnauthorizedException ||
+        error instanceof ForbiddenException ||
         error instanceof NotFoundException
         ? error
         : new InternalServerErrorException('Failed to update movie');

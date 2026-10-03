@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { Request } from 'express';
-import { REQUEST_USER_KEY } from 'src/auth/constants/auth.constants';
+import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
 import { Repository } from 'typeorm';
 import { UserResponseDto } from '../dtos/user-response.dto';
 import { User } from '../user.entity';

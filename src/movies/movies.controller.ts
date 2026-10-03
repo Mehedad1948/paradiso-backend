@@ -1,6 +1,18 @@
-import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
-import { Auth } from 'src/auth/decorator/auth.decorator';
-import { AuthType } from 'src/auth/enums/auth.decorator';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
+import { UpdateMovieDto } from './dtos/update-movie.dto';
+import { TmdbSearchDto } from './dtos/tmdb-search.dto';
+import { Auth } from '../auth/decorator/auth.decorator';
+import { AuthType } from '../auth/enums/auth.decorator';
 import { CreateMovieDto } from './dtos/create-movie.dto';
 import { GetMovieDto } from './dtos/get-movie.dto';
 import { MovieDbService } from './providers/MovieDb.serviec';
@@ -23,7 +35,7 @@ export class MoviesController {
   // Local DB: Get one movie by ID
   @Get(':id')
   @Auth(AuthType.none)
-  async getMovieById(@Param('id') id: string) {
+  async getMovieById(@Param('id', ParseUUIDPipe) id: string) {
     return await this.movieService.getMovieById(id);
   }
 
@@ -31,8 +43,8 @@ export class MoviesController {
   @Put(':id')
   @Auth(AuthType.Bearer)
   async updateMovieById(
-    @Param('id') id: string,
-    @Body() createMovieDto: CreateMovieDto,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() createMovieDto: UpdateMovieDto,
   ) {
     return await this.movieService.updateMovie(id, createMovieDto);
   }
@@ -47,11 +59,8 @@ export class MoviesController {
   // TMDb: Search movies (no auth)
   @Get('/tmdb/search')
   @Auth(AuthType.none)
-  async searchMoviesFromTmdb(
-    @Query('query') query: string,
-    @Query('page') page = 1,
-  ) {
-    return await this.movieDbService.searchMovies(query, page);
+  async searchMoviesFromTmdb(@Query() query: TmdbSearchDto) {
+    return await this.movieDbService.searchMovies(query.query, query.page);
   }
 
   // TMDb: Get genres (no auth)
@@ -64,7 +73,7 @@ export class MoviesController {
   // TMDb: Get movie details (no auth)
   @Get('/tmdb/:movieId')
   @Auth(AuthType.none)
-  async getTmdbMovieDetails(@Param('movieId') movieId: number) {
+  async getTmdbMovieDetails(@Param('movieId', ParseIntPipe) movieId: number) {
     return await this.movieDbService.getMovieDetails(movieId);
   }
 }

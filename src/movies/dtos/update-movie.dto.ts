@@ -1,38 +1,17 @@
-import {
-  IsBoolean,
-  IsDateString,
-  IsNumber,
-  IsOptional,
-  IsString,
-  IsUrl,
-  Max,
-  Min,
-} from 'class-validator';
+import { PartialType, PickType } from '@nestjs/swagger';
+import { CreateMovieDto } from './create-movie.dto';
 
-export class UpdateMovieDto {
-  @IsOptional()
-  @IsString()
-  title?: string;
-
-  @IsOptional()
-  @IsDateString()
-  releaseDate?: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(10)
-  imdbRate?: number;
-
-  @IsOptional()
-  @IsUrl()
-  imdbLink?: string;
-
-  @IsOptional()
-  @IsString()
-  image?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  isWatchedTogether?: boolean;
-}
+export class UpdateMovieDto extends PartialType(
+  PickType(CreateMovieDto, [
+    'title',
+    'original_title',
+    'release_date',
+    'video',
+    'overview',
+    'poster_path',
+    'vote_average',
+    'imdbRate',
+    'imdbLink',
+    'isWatchedTogether',
+  ] as const),
+) {}

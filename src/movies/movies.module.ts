@@ -6,12 +6,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Movie } from './movie.entity';
 import { GetMovieProvider } from './providers/get-movie.provider';
 import { UpdateMovieProvider } from './providers/update-movie.provider';
-import { PaginationModule } from 'src/common/pagination/dtos/pagination.module';
-import { UsersModule } from 'src/users/users.module';
+import { PaginationModule } from '../common/pagination/dtos/pagination.module';
+import { UsersModule } from '../users/users.module';
 import { MovieDbService } from './providers/MovieDb.serviec';
-import { GenresModule } from 'src/genres/genres.module';
-import { RoomsModule } from 'src/rooms/rooms.module';
-import { RatingsModule } from 'src/ratings/ratings.module';
+import { GenresModule } from '../genres/genres.module';
+import { RoomsModule } from '../rooms/rooms.module';
+import { RatingsModule } from '../ratings/ratings.module';
 
 @Module({
   controllers: [MoviesController],

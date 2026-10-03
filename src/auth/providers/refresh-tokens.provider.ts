@@ -9,8 +9,7 @@ import jwtConfig from '../config/jwt.config';
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { GenerateTokensProvider } from './generate-tokens.provider';
-import { ActiveUserData } from '../interfaces/active-user-data.interface';
-import { UsersService } from 'src/users/providers/users.service';
+import { UsersService } from '../../users/providers/users.service';
 
 @Injectable()
 export class RefreshTokensProvider {
@@ -28,19 +27,23 @@ export class RefreshTokensProvider {
   public async refreshToken(refreshTokenDto: RefreshTokenDto) {
     //  Verify Refresh token
     try {
-      const { sub } = await this.jwtService.verifyAsync<
-        Pick<ActiveUserData, 'sub'>
-      >(refreshTokenDto.refreshToken, {
+      const { sub, tokenUse } = await this.jwtService.verifyAsync<{
+        sub: number;
+        tokenUse: string;
+      }>(refreshTokenDto.refreshToken, {
         secret: this.jwtConfiguration.secret,
         audience: this.jwtConfiguration.audience,
         issuer: this.jwtConfiguration.issuer,
+        algorithms: ['HS256'],
       });
+      if (tokenUse !== 'refresh' || !Number.isSafeInteger(sub) || sub < 1)
+        throw new UnauthorizedException();
       //  Fetch user from database
       const user = await this.usersService.findOneById(sub);
       // Generate Token
       return await this.generateTokensProvider.generateTokens(user);
-    } catch (err) {
-      throw new UnauthorizedException(err);
+    } catch {
+      throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }
 }

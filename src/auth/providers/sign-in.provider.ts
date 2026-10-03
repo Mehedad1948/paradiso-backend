@@ -7,7 +7,7 @@ import {
 import { SignInDto } from '../dtos/signin.dto';
 import { GenerateTokensProvider } from './generate-tokens.provider';
 import { HashingProvider } from './hashing.provider';
-import { UsersService } from 'src/users/providers/users.service';
+import { UsersService } from '../../users/providers/users.service';
 @Injectable()
 export class SignInProvider {
   constructor(

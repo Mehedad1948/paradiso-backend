@@ -2,29 +2,26 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { In, Repository } from 'typeorm';
 import { Genre } from '../genre.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { MovieDbService } from '../../movies/providers/MovieDb.serviec';
 
 @Injectable()
 export class GenresService {
   constructor(
     @InjectRepository(Genre)
     private readonly genresRepository: Repository<Genre>,
+    private readonly catalogue: MovieDbService,
   ) {}
 
   async create() {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/genre/movie/list?api_key=ac8fc21d9289e79bd52cf5261b9b4931&language=en-US`,
-    );
-    const data = await res.json();
-    const newGenres = data.genres;
+    const newGenres = await this.catalogue.getGenres();
     const formattedGenres = newGenres.map((item) => ({
       tmdbId: item.id,
       name: item.name,
     }));
 
-    const genreEntities = this.genresRepository.create(formattedGenres);
-
-    // Save them to the database
-    return await this.genresRepository.save(genreEntities);
+    if (formattedGenres.length)
+      await this.genresRepository.upsert(formattedGenres, ['tmdbId']);
+    return this.findAll();
   }
 
   async findAll(): Promise<Genre[]> {

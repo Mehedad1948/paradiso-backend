@@ -1,4 +1,5 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { paginationLinks } from '../pagination-links';
 import { PaginationQueryDto } from '../dtos/pagination-query.dto';
 import { REQUEST } from '@nestjs/core';
 import { Request } from 'express';
@@ -18,6 +19,16 @@ export class PaginationProvider {
   ): Promise<Paginated<T>> {
     const limit = paginationQuery.limit ?? 10;
     const page = paginationQuery.page ?? 1;
+    if (
+      !Number.isSafeInteger(limit) ||
+      limit < 1 ||
+      limit > 100 ||
+      !Number.isSafeInteger(page) ||
+      page < 1 ||
+      page > 1000000
+    ) {
+      throw new BadRequestException('Invalid pagination');
+    }
 
     const [results, total] = await queryBuilder
       .take(limit)
@@ -25,12 +36,6 @@ export class PaginationProvider {
       .getManyAndCount();
 
     const totalPages = Math.ceil(total / limit);
-
-    const baseURL = this.request.protocol + '://' + this.request.get('host');
-    const newUrl = new URL(this.request.url, baseURL);
-
-    const nextPage = page + 1 <= totalPages ? page + 1 : page;
-    const previousPage = page - 1 > 0 ? page - 1 : page;
 
     return {
       data: results,
@@ -40,13 +45,7 @@ export class PaginationProvider {
         totalPages,
         currentPage: page,
       },
-      links: {
-        first: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=1`,
-        current: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=${page}`,
-        next: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=${nextPage}`,
-        previous: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=${previousPage}`,
-        last: `${newUrl.origin}${newUrl.pathname}?limit=${limit}&page=${totalPages}`,
-      },
+      links: paginationLinks(this.request, limit, page, totalPages),
     };
   }
 }

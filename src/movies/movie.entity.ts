@@ -1,6 +1,6 @@
-import { Rating } from 'src/ratings/rating.entity';
-import { User } from 'src/users/user.entity';
-import { Genre } from 'src/genres/genre.entity'; // You'll need to create this
+import { Rating } from '../ratings/rating.entity';
+import { User } from '../users/user.entity';
+import { Genre } from '../genres/genre.entity'; // You'll need to create this
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -12,11 +12,13 @@ import {
   ManyToMany,
   JoinTable,
   Unique,
+  Index,
 } from 'typeorm';
-import { Room } from 'src/rooms/room.entity';
+import { Room } from '../rooms/room.entity';
 
 @Entity()
 @Unique(['dbId'])
+@Index('IDX_movie_created_id', ['createdAt', 'id'])
 export class Movie {
   @PrimaryGeneratedColumn('uuid')
   id: string;

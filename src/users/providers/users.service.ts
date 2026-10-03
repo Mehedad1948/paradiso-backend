@@ -41,10 +41,13 @@ export class UsersService {
   }
 
   async findOneByEmail(email: string) {
-    return await this.userRepository.findOne({
-      where: { email },
-      relations: ['role'],
-    });
+    return this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .where('LOWER(user.email) = :email', {
+        email: email.trim().toLowerCase(),
+      })
+      .getOne();
   }
 
   async getRatingUsers(): Promise<UserResponseDto[]> {
@@ -68,7 +71,10 @@ export class UsersService {
   public async findOneById(id: number) {
     let user: User | null = null;
     try {
-      user = await this.userRepository.findOneBy({ id });
+      user = await this.userRepository.findOne({
+        where: { id },
+        relations: ['role'],
+      });
     } catch (error) {
       throw new RequestTimeoutException(
         'Unable to find user, please try again later',

@@ -1,7 +1,7 @@
 import { Exclude, Expose } from 'class-transformer';
-import { Rating } from 'src/ratings/rating.entity';
-import { Role } from 'src/roles/role.entity';
-import { Room } from 'src/rooms/room.entity';
+import { Rating } from '../ratings/rating.entity';
+import { Role } from '../roles/role.entity';
+import { Room } from '../rooms/room.entity';
 import {
   Column,
   Entity,
@@ -9,8 +9,10 @@ import {
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
+  Index,
 } from 'typeorm';
 @Entity()
+@Index('IDX_user_email_lower', { synchronize: false })
 export class User {
   @PrimaryGeneratedColumn()
   @Expose()
@@ -33,9 +35,11 @@ export class User {
   avatar?: string;
 
   @Column({ nullable: true, type: 'varchar', length: 255 })
+  @Exclude()
   verificationCode: string | null;
 
   @Column({ nullable: true, type: 'timestamp with time zone' })
+  @Exclude()
   verificationCodeExpiresAt: Date | null;
 
   @Column({ default: false })
