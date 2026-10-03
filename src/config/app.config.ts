@@ -3,11 +3,19 @@ import { registerAs } from '@nestjs/config';
 export default registerAs('appConfig', () => ({
   environment: process.env.NODE_ENV || 'production',
   apiVersion: process.env.API_VERSION,
-  awsBucketName: process.env.LIARA_BUCKET_NAME,
-  awsAddress: process.env.LIARA_ENDPOINT,
-  awsSecretKey: process.env.LIARA_SECRET_KEY,
-  awsAccessKey: process.env.LIARA_ACCESS_KEY,
-  awsRegion: process.env.LIARA_REGION,
+  r2BucketName: process.env.R2_BUCKET_NAME,
+  r2Endpoint:
+    process.env.R2_ENDPOINT ||
+    (process.env.R2_ACCOUNT_ID
+      ? `https://${process.env.R2_ACCOUNT_ID}${
+          process.env.jurisdiction && process.env.jurisdiction !== 'default'
+            ? `.${process.env.jurisdiction}`
+            : ''
+        }.r2.cloudflarestorage.com`
+      : undefined),
+  r2SecretKey: process.env.S3_SECRET_ACCESS_KEY,
+  r2AccessKey: process.env.S3_ACCESS_KEY_ID,
+  r2PublicUrl: process.env.R2_PUBLIC_URL,
   mailHost: process.env.MAIL_HOST,
   smtpUsername: process.env.SMTP_USERNAME,
   smtpPassword: process.env.SMTP_PASSWORD,

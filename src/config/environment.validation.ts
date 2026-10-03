@@ -6,6 +6,28 @@ export default Joi.object({
     .default('development')
     .required(),
   PORT: Joi.number().default(3000),
+  R2_BUCKET_NAME: Joi.string().required(),
+  R2_ACCOUNT_ID: Joi.string().hex().length(32),
+  R2_ENDPOINT: Joi.string()
+    .uri({ scheme: ['https'] })
+    .pattern(
+      /^https:\/\/[a-f0-9]{32}(?:\.(?:eu|us|fedramp))?\.r2\.cloudflarestorage\.com\/?$/,
+    )
+    .when('R2_ACCOUNT_ID', {
+      is: Joi.exist(),
+      then: Joi.optional(),
+      otherwise: Joi.required(),
+    }),
+  R2_PUBLIC_URL: Joi.string()
+    .uri({ scheme: ['https'] })
+    .pattern(/^https:\/\/[^?#]+$/)
+    .required(),
+  S3_ACCESS_KEY_ID: Joi.string().required(),
+  S3_SECRET_ACCESS_KEY: Joi.string().required(),
+  jurisdiction: Joi.string()
+    .valid('default', 'eu', 'us', 'fedramp')
+    .empty('')
+    .default('default'),
   DATABASE_HOST: Joi.string().default('localhost').required(),
   DATABASE_PORT: Joi.number().default(5432).required(),
   DATABASE_USERNAME: Joi.string().required(),

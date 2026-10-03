@@ -5,21 +5,25 @@ import * as path from 'path';
 import { v4 as uuid } from 'uuid';
 
 @Injectable()
-export class UploadToAwsProvider {
+export class UploadToR2Provider {
   private readonly s3Client: S3Client;
   private readonly bucket: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.bucket = this.configService.get('appConfig.awsBucketName') as string;
+    this.bucket = this.configService.getOrThrow<string>(
+      'appConfig.r2BucketName',
+    );
 
     this.s3Client = new S3Client({
-      region: 'default',
-      endpoint: `https://${this.configService.get('appConfig.awsAddress')}`,
+      region: 'auto',
+      endpoint: this.configService.getOrThrow<string>('appConfig.r2Endpoint'),
       credentials: {
-        accessKeyId: this.configService.get('appConfig.awsAccessKey') as string,
-        secretAccessKey: this.configService.get(
-          'appConfig.awsSecretKey',
-        ) as string,
+        accessKeyId: this.configService.getOrThrow<string>(
+          'appConfig.r2AccessKey',
+        ),
+        secretAccessKey: this.configService.getOrThrow<string>(
+          'appConfig.r2SecretKey',
+        ),
       },
     });
   }
@@ -42,9 +46,17 @@ export class UploadToAwsProvider {
       await this.s3Client.send(new PutObjectCommand(params));
       return key;
     } catch (error) {
-      console.error('❌ AWS Upload Error:', error);
-      throw new RequestTimeoutException('Failed to upload to S3');
+      console.error('R2 upload error:', error);
+      throw new RequestTimeoutException('Failed to upload to Cloudflare R2');
     }
+  }
+
+  public getPublicUrl(key: string): string {
+    const baseUrl = this.configService
+      .getOrThrow<string>('appConfig.r2PublicUrl')
+      .replace(/\/+$/, '');
+    const encodedKey = key.split('/').map(encodeURIComponent).join('/');
+    return `${baseUrl}/${encodedKey}`;
   }
 
   private generateFileName(file: Express.Multer.File): string {

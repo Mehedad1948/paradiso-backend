@@ -27,6 +27,35 @@
 
 ## Project setup
 
+Image uploads use Cloudflare R2. Add these settings to `.env.development`
+(or `.env.production` for production):
+
+```dotenv
+R2_ACCOUNT_ID=your-cloudflare-account-id
+R2_BUCKET_NAME=your-r2-bucket-name
+R2_PUBLIC_URL=https://images.example.com
+S3_ACCESS_KEY_ID=your-r2-access-key-id
+S3_SECRET_ACCESS_KEY=your-r2-secret-access-key
+jurisdiction=default
+```
+
+Alternatively, set `R2_ENDPOINT` to the full HTTPS S3 API endpoint shown in
+your R2 dashboard instead of setting `R2_ACCOUNT_ID`. With an account ID,
+`jurisdiction` selects the endpoint (`default`, `eu`, `us`, or `fedramp`).
+An explicit endpoint takes precedence and must match the bucket's jurisdiction.
+
+`R2_PUBLIC_URL` must be the bucket's connected custom domain or enabled public
+`r2.dev` URL, not its S3 API endpoint. Use a custom domain for production.
+The S3 credentials need Object Read & Write access to this bucket.
+`CLOUDFLAER_TOKEN` is not needed for S3 uploads; the two S3 credentials are used
+for authentication. The previous `LIARA_*` settings are no longer used.
+
+`POST /uploads/file` keeps the existing multipart fields (`file`, optional
+`folder`) and response shape. New files retain the key format
+`paradiso/<folder>/<filename>` and their public R2 URL is saved in `Upload.path`.
+Existing database URLs still point to Liara; migrating existing objects and
+rewriting those URLs is a separate data migration.
+
 ```bash
 $ npm install
 ```
@@ -34,8 +63,9 @@ $ npm install
 ## Compile and run the project
 
 ```bash
-# development
-$ npm run start
+# build and run the compiled application
+$ npm run build
+$ npm start
 
 # watch mode
 $ npm run start:dev
@@ -58,6 +88,38 @@ $ npm run test:cov
 ```
 
 ## Deployment
+
+### Render
+
+Configure the existing web service with:
+
+- **Build Command:** `npm ci --include=dev && npm run build`
+- **Start Command:** `npm start` (or `npm run start:prod`)
+- **Environment:** `NODE_ENV=production` and `DATABASE_SYNCHRONIZE=false`
+
+The build needs development dependencies, including the Nest CLI and TypeScript.
+Both start commands run `node dist/main.js` directly. Do not use `nest start`
+as Render's start command: it recompiles the application at runtime and can
+exhaust the smaller runtime instance's memory before opening a port. Keep
+compilation in the build phase rather than increasing the runtime heap limit.
+
+The server listens on `0.0.0.0` and Render's `PORT` environment variable.
+Set the required application environment variables in Render's dashboard:
+`DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`,
+`DATABASE_NAME`, `DATABASE_AUTOLOADENTITIES=true`, `PROFILE_API_KEY`, `JWT_SECRET`,
+`JWT_TOKEN_AUDIENCE`,
+`JWT_TOKEN_ISSUER`, `JWT_ACCESS_TOKEN_TTL`, `JWT_REFRESH_TOKEN_TTL`,
+`JWT_INVITATION_TOKEN_TTL`, `API_VERSION`, `PRODUCT_BASE_URL`, and `TMDB_API_KEY`.
+Also configure `MAIL_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `R2_BUCKET_NAME`,
+`R2_ACCOUNT_ID` (or `R2_ENDPOINT`), `R2_PUBLIC_URL`, `S3_ACCESS_KEY_ID`, and
+`S3_SECRET_ACCESS_KEY` for mail and uploads. Keep credentials in Render's
+environment settings, not in the repository. Provision the database schema before serving
+traffic; production disables automatic schema synchronization.
+
+After pushing these changes, redeploy the service. Confirm that the startup log
+shows `node dist/main.js`, followed by a successful Nest application startup.
+The dependency audit warnings in the original build log are a separate issue;
+this startup fix does not remediate those vulnerabilities.
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
 

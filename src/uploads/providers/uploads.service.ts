@@ -6,17 +6,14 @@ import {
 import { Repository } from 'typeorm';
 import { Upload } from '../upload.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { UploadToAwsProvider } from './upload-to-aws.provider';
-import { ConfigService } from '@nestjs/config';
+import { UploadToR2Provider } from './upload-to-r2.provider';
 import { UploadFile } from '../interfaces/upload-file.interface';
 import { fileTypes } from '../enums/file-types.enum';
 
 @Injectable()
 export class UploadsService {
   constructor(
-    private readonly uploadToAwsProvider: UploadToAwsProvider,
-
-    private readonly configService: ConfigService,
+    private readonly uploadToR2Provider: UploadToR2Provider,
 
     @InjectRepository(Upload)
     private readonly uploadsRepository: Repository<Upload>,
@@ -39,14 +36,14 @@ export class UploadsService {
 
     try {
       // Pass the folder to the file upload method
-      const fileKey = await this.uploadToAwsProvider.fileUpload(
+      const fileKey = await this.uploadToR2Provider.fileUpload(
         file,
         sanitizedFolder,
       );
 
       const uploadFile: UploadFile = {
         name: fileKey,
-        path: `https://${this.configService.get('appConfig.awsBucketName')}.${this.configService.get('appConfig.awsAddress')}/${fileKey}`,
+        path: this.uploadToR2Provider.getPublicUrl(fileKey),
         type: fileTypes.IMAGE,
         mime: file.mimetype,
         size: file.size,
