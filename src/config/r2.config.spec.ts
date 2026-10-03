@@ -42,6 +42,7 @@ describe('R2 configuration', () => {
     (field) => field.optional(),
   );
   const settings = {
+    DATABASE_URL: 'postgresql://user:password@localhost/test',
     R2_ACCOUNT_ID: '0123456789abcdef0123456789abcdef',
     R2_BUCKET_NAME: 'images',
     R2_PUBLIC_URL: 'https://images.example.test',

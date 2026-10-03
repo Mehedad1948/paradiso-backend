@@ -28,11 +28,8 @@ export default Joi.object({
     .valid('default', 'eu', 'us', 'fedramp')
     .empty('')
     .default('default'),
-  DATABASE_HOST: Joi.string().default('localhost').required(),
-  DATABASE_PORT: Joi.number().default(5432).required(),
-  DATABASE_USERNAME: Joi.string().required(),
-  DATABASE_PASSWORD: Joi.string().required(),
-  DATABASE_NAME: Joi.string().required(),
+  NEON_DB: Joi.string().uri({ scheme: ['postgres', 'postgresql'] }),
+  DATABASE_URL: Joi.string().uri({ scheme: ['postgres', 'postgresql'] }),
   DATABASE_SYNCHRONIZE: Joi.boolean().when('NODE_ENV', {
     is: 'production',
     then: Joi.valid(false).default(false),
@@ -52,4 +49,4 @@ export default Joi.object({
   TMDB_BASE_URL: Joi.string()
     .uri({ scheme: ['https'] })
     .default('https://api.themoviedb.org/3'),
-});
+}).or('NEON_DB', 'DATABASE_URL');

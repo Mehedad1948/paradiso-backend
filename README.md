@@ -27,6 +27,33 @@
 
 ## Project setup
 
+The application uses Neon PostgreSQL. Set `NEON_DB` to the connection URL
+in `.env.development` or in the production service's environment settings.
+Keep `sslmode=require` in the Neon URL. `DATABASE_URL` is also supported;
+`NEON_DB` takes precedence when both are set. The old `DATABASE_HOST`,
+`DATABASE_PORT`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`, and `DATABASE_NAME`
+settings are no longer used by the application.
+
+Neon CLI commands target project `mute-breeze-23233617`, branch `production`:
+
+```sh
+neon login
+neon link --project-id mute-breeze-23233617 --branch production -y
+neon deploy
+node scripts/check-neon.cjs
+```
+
+The CLI writes `.env.local`, which the app loads before `.env.development`
+(or `.env.production`). Process environment variables take precedence.
+`neon.ts` manages Neon service configuration; `neon deploy` does not deploy
+the NestJS server or create its TypeORM tables. Production keeps
+`DATABASE_SYNCHRONIZE=false`; provision the schema before serving traffic.
+For a new empty Neon database, run `npm run build`, then
+`node scripts/init-neon.cjs` to generate `database/neon-initial-schema.sql`.
+Run `node scripts/init-neon.cjs --apply` to create the tables, indexes, and
+default `user`/`admin` roles. The initializer refuses existing public tables;
+it does not copy records from the previous database.
+
 Image uploads use Cloudflare R2. Add these settings to `.env.development`
 (or `.env.production` for production):
 
@@ -105,8 +132,8 @@ compilation in the build phase rather than increasing the runtime heap limit.
 
 The server listens on `0.0.0.0` and Render's `PORT` environment variable.
 Set the required application environment variables in Render's dashboard:
-`DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`,
-`DATABASE_NAME`, `DATABASE_AUTOLOADENTITIES=true`, `PROFILE_API_KEY`, `JWT_SECRET`,
+`NEON_DB` (the Neon PostgreSQL URL with `sslmode=require`),
+`DATABASE_AUTOLOADENTITIES=true`, `PROFILE_API_KEY`, `JWT_SECRET`,
 `JWT_TOKEN_AUDIENCE`,
 `JWT_TOKEN_ISSUER`, `JWT_ACCESS_TOKEN_TTL`, `JWT_REFRESH_TOKEN_TTL`,
 `JWT_INVITATION_TOKEN_TTL`, `API_VERSION`, `PRODUCT_BASE_URL`, and `TMDB_API_KEY`.

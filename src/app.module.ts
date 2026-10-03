@@ -30,7 +30,7 @@ const ENV = process.env.NODE_ENV || 'development';
     // ConfigModule.forFeature(jwtConfig),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: [`.env.${ENV}`],
+      envFilePath: ['.env.local', `.env.${ENV}`],
       load: [appConfig, databaseConfigs],
       validationSchema: environmentValidation,
     }),
@@ -41,11 +41,7 @@ const ENV = process.env.NODE_ENV || 'development';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
         return {
-          port: +configService.get('database.port'),
-          username: configService.get('database.username'),
-          password: configService.get('database.password'),
-          database: configService.get('database.name'),
-          host: configService.get('database.host'),
+          url: configService.get<string>('database.url'),
           // entities: [__dirname + '/**/*.entity{.ts,.js}'],
           autoLoadEntities: configService.get('database.autoLoadEntities'),
           synchronize: configService.get('database.synchronize'),
