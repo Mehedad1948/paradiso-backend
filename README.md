@@ -142,11 +142,15 @@ Set the required application environment variables in Render's dashboard:
 `JWT_TOKEN_AUDIENCE`,
 `JWT_TOKEN_ISSUER`, `JWT_ACCESS_TOKEN_TTL`, `JWT_REFRESH_TOKEN_TTL`,
 `JWT_INVITATION_TOKEN_TTL`, `API_VERSION`, `PRODUCT_BASE_URL`, and `TMDB_API_KEY`.
-Also configure `MAIL_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `R2_BUCKET_NAME`,
+Also configure `BRAVO_API_KEY`, `BREVO_SENDER_EMAIL`, `R2_BUCKET_NAME`,
 `R2_ACCOUNT_ID` (or `R2_ENDPOINT`), `R2_PUBLIC_URL`, `S3_ACCESS_KEY_ID`, and
 `S3_SECRET_ACCESS_KEY` for mail and uploads. Keep credentials in Render's
 environment settings, not in the repository. Provision the database schema before serving
 traffic; production disables automatic schema synchronization.
+
+Email is sent through Brevo's transactional API. `BRAVO_API_KEY` must be a Brevo API
+key, and `BREVO_SENDER_EMAIL` must be a sender address verified in Brevo.
+`BRAVO_PORT` and `SMTP_SERVER` are SMTP settings and are not used by this API integration.
 
 After pushing these changes, redeploy the service. Confirm that the startup log
 shows `node dist/main.js`, followed by a successful Nest application startup.

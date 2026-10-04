@@ -62,11 +62,7 @@ export class CreateUserProvider {
         verificationCodeExpiresAt: expiresAt,
       });
 
-      try {
-        await this.mailService.sendVerificationEmail(user);
-      } catch (error) {
-        console.log('❌❌❌ Failed to send welcome error', error);
-      }
+      await this.mailService.sendVerificationEmail(user);
 
       const savedUser = await this.userRepository.save(user);
 
