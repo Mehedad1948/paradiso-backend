@@ -38,6 +38,39 @@
         "summary": "get Hello"
       }
     },
+    "/health": {
+      "get": {
+        "operationId": "App_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "App"
+        ],
+        "security": [],
+        "summary": "health"
+      }
+    },
     "/auth/{userId}": {
       "get": {
         "operationId": "Auth_isAuthenticated",
@@ -6111,6 +6144,40 @@
         },
         "required": [
           "data",
+          "apiVersion"
+        ]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "up"
+            ]
+          },
+          "uptime": {
+            "type": "integer"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "database",
+          "uptime",
+          "timestamp",
           "apiVersion"
         ]
       },

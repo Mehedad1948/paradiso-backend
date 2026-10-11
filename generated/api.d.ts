@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** health */
+        get: operations["App_health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/{userId}": {
         parameters: {
             query?: never;
@@ -1523,6 +1540,16 @@ export interface components {
             data: string;
             apiVersion: string;
         };
+        HealthResponse: {
+            /** @enum {string} */
+            status: "ok";
+            /** @enum {string} */
+            database: "up";
+            uptime: number;
+            /** Format: date-time */
+            timestamp: string;
+            apiVersion: string;
+        };
         EmptyResponse: {
             apiVersion: string;
         };
@@ -1627,6 +1654,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StringResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    App_health: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
                 };
             };
             /** @description Error response */

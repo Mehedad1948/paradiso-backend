@@ -352,6 +352,14 @@ export const responseSchemas: Record<string, SchemaObject> = {
     object({ accessToken: string, refreshToken: string, message: string }),
   ),
   StringResponse: data(string),
+  HealthResponse: envelope(
+    object({
+      status: { type: 'string', enum: ['ok'] },
+      database: { type: 'string', enum: ['up'] },
+      uptime: integer,
+      timestamp: date,
+    }),
+  ),
   EmptyResponse: envelope(object({})),
   RoleResponse: envelope(object({ id: uuid, name: string })),
   UploadResponse: envelope(
@@ -426,6 +434,7 @@ export const operationResponses: Record<string, string> = {
   Community_followers: 'CommunityUserPageResponse',
   Community_following: 'CommunityUserPageResponse',
   App_getHello: 'StringResponse',
+  App_health: 'HealthResponse',
   Auth_isAuthenticated: 'StringResponse',
   Auth_signIn: 'TokensResponse',
   Auth_refreshTokens: 'TokensResponse',

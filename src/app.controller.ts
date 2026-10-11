@@ -1,5 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service';
+import { AppService, HealthStatus } from './app.service';
+import { Auth } from './auth/decorator/auth.decorator';
+import { AuthType } from './auth/enums/auth.decorator';
 
 @Controller()
 export class AppController {
@@ -8,5 +10,11 @@ export class AppController {
   @Get()
   getHello(): string {
     return this.appService.getHello();
+  }
+
+  @Get('health')
+  @Auth(AuthType.none)
+  health(): Promise<HealthStatus> {
+    return this.appService.getHealth();
   }
 }
