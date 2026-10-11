@@ -337,6 +337,72 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       .expect(403);
   });
 
+  it('lets only the owner edit room details', async () => {
+    const roomId = (
+      await request(app.getHttpServer())
+        .post('/rooms')
+        .auth(access[0], { type: 'bearer' })
+        .send({
+          name: 'Editable room',
+          description: 'Old',
+          image: 'old.png',
+          themeColor: '#FF5733',
+        })
+        .expect(201)
+    ).body.id;
+    await request(app.getHttpServer())
+      .patch('/rooms/' + roomId)
+      .auth(access[0], { type: 'bearer' })
+      .send({ themeColor: 'red' })
+      .expect(400);
+    expect(
+      (
+        await request(app.getHttpServer())
+          .get('/rooms/' + roomId)
+          .auth(access[0], { type: 'bearer' })
+          .expect(200)
+      ).body.themeColor,
+    ).toBe('#ff5733');
+    await request(app.getHttpServer())
+      .patch('/rooms/' + roomId)
+      .auth(access[1], { type: 'bearer' })
+      .send({ name: 'Hijacked' })
+      .expect(403);
+    await request(app.getHttpServer())
+      .patch('/rooms/' + roomId)
+      .auth(access[0], { type: 'bearer' })
+      .send({ name: 'Public test room' })
+      .expect(409);
+    await request(app.getHttpServer())
+      .patch('/rooms/' + roomId)
+      .auth(access[0], { type: 'bearer' })
+      .send({ name: '   ' })
+      .expect(400);
+    const updated = await request(app.getHttpServer())
+      .patch('/rooms/' + roomId)
+      .auth(access[0], { type: 'bearer' })
+      .send({
+        name: ' Renamed room ',
+        description: 'New',
+        image: null,
+        isPublic: false,
+        themeColor: null,
+      })
+      .expect(200);
+    expect(updated.body).toMatchObject({
+      id: roomId,
+      name: 'Renamed room',
+      description: 'New',
+      image: null,
+      isPublic: false,
+      themeColor: null,
+    });
+    await request(app.getHttpServer())
+      .get('/rooms/' + roomId)
+      .auth(access[1], { type: 'bearer' })
+      .expect(403);
+  });
+
   it('applies the deployment index SQL to the isolated schema', async () => {
     const runner = database.createQueryRunner();
     await runner.connect();

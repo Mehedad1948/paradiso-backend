@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UsersService } from '../../users/providers/users.service';
 import { ForgetPasswordDto } from '../dtos/forget-password.dto';
+import { ResendVerificationDto } from '../dtos/resend-verification.dto';
 import { RefreshTokenDto } from '../dtos/refresh-token.dto';
 import { ResetPasswordDto } from '../dtos/reset-password.dto';
 import { SignInDto } from '../dtos/signin.dto';
@@ -30,6 +31,10 @@ export class AuthService {
   }
   public async verifyEmail({ email, code }: VerifyCodeDto) {
     return await this.verifyEmailProvider.verifyCode(email, code);
+  }
+
+  public async resendVerificationCode({ email }: ResendVerificationDto) {
+    return await this.verifyEmailProvider.resendCode(email);
   }
 
   public async resetPassword(body: ResetPasswordDto) {

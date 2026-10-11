@@ -35,12 +35,13 @@ export class RoomAccessService {
     return !!room.isPublic || member;
   }
 
-  async requireOwner(roomId: number, userId: number) {
+  async requireOwner(
+    roomId: number,
+    userId: number,
+    message = 'Only the room owner can manage invitations',
+  ) {
     if (!userId) throw new UnauthorizedException();
     const { room } = await this.access(roomId, userId);
-    if (room.owner?.id !== userId)
-      throw new ForbiddenException(
-        'Only the room owner can manage invitations',
-      );
+    if (room.owner?.id !== userId) throw new ForbiddenException(message);
   }
 }

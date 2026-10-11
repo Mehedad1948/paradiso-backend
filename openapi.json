@@ -246,6 +246,49 @@
         "summary": "verify Email"
       }
     },
+    "/auth/resend-verification": {
+      "post": {
+        "operationId": "Auth_resendVerification",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendVerificationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "summary": "resend Verification"
+      }
+    },
     "/auth/reset-password": {
       "post": {
         "operationId": "Auth_resetPassword",
@@ -1982,6 +2025,61 @@
           }
         ],
         "summary": "get Room By Id"
+      },
+      "patch": {
+        "operationId": "Rooms_updateRoom",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoomDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rooms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "update Room"
       }
     },
     "/rooms/add-movie/{id}": {
@@ -3373,6 +3471,20 @@
         ],
         "additionalProperties": false
       },
+      "ResendVerificationDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
       "ResetPasswordDto": {
         "type": "object",
         "properties": {
@@ -3716,6 +3828,13 @@
           "isPublic": {
             "type": "boolean",
             "nullable": true
+          },
+          "themeColor": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "example": "#ff5733",
+            "description": "Room theme color as a #RRGGBB hex code."
           }
         },
         "required": [
@@ -3743,6 +3862,36 @@
         "required": [
           "roomId"
         ],
+        "additionalProperties": false
+      },
+      "UpdateRoomDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1
+          },
+          "image": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "isPublic": {
+            "type": "boolean",
+            "nullable": true
+          },
+          "themeColor": {
+            "type": "string",
+            "nullable": true,
+            "pattern": "^#[0-9a-fA-F]{6}$",
+            "example": "#ff5733",
+            "description": "Room theme color as a #RRGGBB hex code."
+          }
+        },
         "additionalProperties": false
       },
       "AddRoomMovieDto": {
@@ -5285,6 +5434,10 @@
           "isPublic": {
             "type": "boolean"
           },
+          "themeColor": {
+            "type": "string",
+            "nullable": true
+          },
           "owner": {
             "type": "object",
             "properties": {
@@ -5352,6 +5505,7 @@
           "description",
           "image",
           "isPublic",
+          "themeColor",
           "owner",
           "users",
           "movies"
@@ -5403,6 +5557,10 @@
           "isPublic": {
             "type": "boolean"
           },
+          "themeColor": {
+            "type": "string",
+            "nullable": true
+          },
           "owner": {
             "$ref": "#/components/schemas/PublicUser"
           },
@@ -5446,6 +5604,7 @@
           "description",
           "image",
           "isPublic",
+          "themeColor",
           "owner",
           "users",
           "movies",
@@ -5470,6 +5629,10 @@
           },
           "isPublic": {
             "type": "boolean"
+          },
+          "themeColor": {
+            "type": "string",
+            "nullable": true
           },
           "owner": {
             "type": "object",
@@ -5507,6 +5670,7 @@
           "id",
           "name",
           "isPublic",
+          "themeColor",
           "owner",
           "apiVersion"
         ]

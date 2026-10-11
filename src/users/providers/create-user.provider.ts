@@ -31,17 +31,43 @@ export class CreateUserProvider {
   ) {}
 
   async createUser(createUserDto: CreateUserDto): Promise<UserResponseDto> {
-    const { email, username } = createUserDto;
+    const { email } = createUserDto;
 
     try {
-      // Duplication check
-      const existingUser = await this.userRepository.findOne({
-        where: [{ email }, { username }],
-      });
+      // Duplication check: only email must be unique, usernames may repeat
+      const existingUser = await this.userRepository
+        .createQueryBuilder('user')
+        .where('LOWER(user.email) = :email', {
+          email: email.trim().toLowerCase(),
+        })
+        .getOne();
+
+      if (existingUser && !existingUser.isEmailVerified) {
+        // Never overwrite the pending account's password here: only someone
+        // who can read the inbox may take it over (via verify or reset).
+        existingUser.verificationCode = Math.floor(
+          1000 + Math.random() * 9000,
+        ).toString();
+        existingUser.verificationCodeExpiresAt = new Date(
+          Date.now() + 60 * 60 * 1000,
+        );
+        await this.userRepository.update(
+          { id: existingUser.id },
+          {
+            verificationCode: existingUser.verificationCode,
+            verificationCodeExpiresAt: existingUser.verificationCodeExpiresAt,
+          },
+        );
+        await this.mailService.sendVerificationEmail(existingUser);
+
+        throw new BadRequestException(
+          'This email is registered but not verified. A new verification code has been sent; verify it or use forgot password to set a new password.',
+        );
+      }
 
       if (existingUser) {
         throw new BadRequestException(
-          'A user with the given email or username already exists',
+          'A user with the given email already exists',
         );
       }
 

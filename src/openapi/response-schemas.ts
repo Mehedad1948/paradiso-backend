@@ -74,6 +74,7 @@ const roomProperties: Properties = {
   description: nullable(string),
   image: nullable(string),
   isPublic: boolean,
+  themeColor: nullable(string),
 };
 const tmdbProperties: Properties = {
   id: integer,
@@ -259,9 +260,10 @@ export const responseSchemas: Record<string, SchemaObject> = {
         name: string,
         image: nullable(string),
         isPublic: boolean,
+        themeColor: nullable(string),
         owner: user,
       },
-      ['message', 'id', 'name', 'isPublic', 'owner'],
+      ['message', 'id', 'name', 'isPublic', 'themeColor', 'owner'],
     ),
   ),
   RoomRating: object({
@@ -441,6 +443,7 @@ export const operationResponses: Record<string, string> = {
   Auth_verifyEmail: 'TokensMessageResponse',
   Auth_resetPassword: 'TokensMessageResponse',
   Auth_forgetPassword: 'MessageResponse',
+  Auth_resendVerification: 'MessageResponse',
   GoogleAuthentication_authenticate: 'ErrorResponse',
   Movies_getMovies: 'MovieListResponse',
   Movies_getMovieById: 'MovieResponse',
@@ -453,6 +456,7 @@ export const operationResponses: Record<string, string> = {
   Rooms_joinRoom: 'MessageResponse',
   Rooms_getRooms: 'RoomListResponse',
   Rooms_getRoomById: 'RoomResponse',
+  Rooms_updateRoom: 'RoomResponse',
   Rooms_addMovieToRoom: 'AddedRoomMovieResponse',
   Rooms_removeMovieFromRoom: 'MessageResponse',
   Rooms_getRoomRatings: 'RoomRatingsResponse',

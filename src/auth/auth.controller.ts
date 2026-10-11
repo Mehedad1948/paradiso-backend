@@ -16,6 +16,7 @@ import { AuthType } from './enums/auth.decorator';
 import { AuthService } from './providers/auth.service';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { ForgetPasswordDto } from './dtos/forget-password.dto';
+import { ResendVerificationDto } from './dtos/resend-verification.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -42,6 +43,15 @@ export class AuthController {
   @Post('verify-email')
   async verifyEmail(@Body() verifyCodeDto: VerifyCodeDto) {
     return await this.authService.verifyEmail(verifyCodeDto);
+  }
+
+  @Auth(AuthType.none)
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendVerification(
+    @Body() resendVerificationDto: ResendVerificationDto,
+  ) {
+    return await this.authService.resendVerificationCode(resendVerificationDto);
   }
 
   @Auth(AuthType.none)

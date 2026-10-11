@@ -6,13 +6,20 @@ const { DataSource } = require('typeorm');
 const {
   Community1790985600000,
 } = require('../dist/community/migrations/1790985600000-community');
+const {
+  RoomThemeColor1791676800000,
+} = require('../dist/rooms/migrations/1791676800000-room-theme-color');
+
+const migrations = [Community1790985600000, RoomThemeColor1791676800000];
 
 async function main() {
   // Preview SQL without opening a connection or reading credentials.
   if (!process.argv.includes('--apply')) {
-    await new Community1790985600000().up({
-      query: async (sql) => console.log(sql.trim()),
-    });
+    for (const Migration of migrations) {
+      await new Migration().up({
+        query: async (sql) => console.log(sql.trim()),
+      });
+    }
     console.log(
       'Preview only. Use --apply with a direct database URL after testing on an isolated branch.',
     );
@@ -37,20 +44,20 @@ async function main() {
     url,
     synchronize: false,
     connectTimeoutMS: 15000,
-    migrations: [Community1790985600000],
+    migrations,
     migrationsTableName: 'community_migrations',
   });
   try {
     await db.initialize();
     await db.runMigrations({ transaction: 'all' });
-    console.log('Community migration applied successfully.');
+    console.log('Migrations applied successfully.');
   } finally {
     if (db.isInitialized) await db.destroy();
   }
 }
 main().catch((error) => {
   console.error(
-    'Community migration failed:',
+    'Migration failed:',
     error.code || (error.constructor === Error ? error.message : error.name),
   );
   process.exitCode = 1;

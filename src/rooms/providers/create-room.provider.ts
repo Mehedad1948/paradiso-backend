@@ -65,6 +65,7 @@ export class CreateRoomProvider {
         name: room.name,
         image: room.image,
         isPublic: room.isPublic,
+        themeColor: room.themeColor ?? null,
         owner: plainToInstance(UserResponseDto, room.owner, {
           excludeExtraneousValues: true,
         }),

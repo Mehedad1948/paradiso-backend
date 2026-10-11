@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -21,6 +22,7 @@ import { ActiveUser } from '../auth/decorator/active-user.decorator';
 import { ActiveUserData } from '../auth/interfaces/active-user-data.interface';
 import { RoomReadGuard } from './guards/room-read.guard';
 import { AddRoomMovieDto, RemoveRoomMovieDto } from './dtos/room-movie.dto';
+import { UpdateRoomDto } from './dtos/update-room.dto';
 
 @Controller('rooms')
 export class RoomsController {
@@ -52,6 +54,15 @@ export class RoomsController {
   @Get(':id')
   async getRoomById(@Param('id', ParseIntPipe) id: number) {
     return await this.roomsService.findRoomById(id);
+  }
+
+  @Auth(AuthType.Bearer)
+  @Patch(':id')
+  async updateRoom(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateRoomDto: UpdateRoomDto,
+  ) {
+    return await this.roomsService.updateRoom(id, updateRoomDto);
   }
 
   @Auth(AuthType.Bearer)

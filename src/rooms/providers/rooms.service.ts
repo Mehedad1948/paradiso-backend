@@ -7,6 +7,8 @@ import { JoinRoomProvider } from './join-room-provider';
 import { AddMovieToRoomProvider } from './add-movie-to-room.provider';
 import { DeleteMovieFromRoomProvider } from './delete-movie-from-room.provider';
 import { GetRoomRatingDto } from '../dtos/get-room-ratings';
+import { UpdateRoomDto } from '../dtos/update-room.dto';
+import { UpdateRoomProvider } from './update-room.provider';
 
 @Injectable()
 export class RoomsService {
@@ -16,10 +18,16 @@ export class RoomsService {
     private readonly joinRoomProvider: JoinRoomProvider,
     private readonly addMovieToRoomProvider: AddMovieToRoomProvider,
     private readonly deleteMovieFromRoomProvider: DeleteMovieFromRoomProvider,
+    private readonly updateRoomProvider: UpdateRoomProvider,
   ) {}
 
   async createRoom(createRoomDto: CreateRoomDto) {
     return await this.createRoomProvider.createRoom(createRoomDto);
+  }
+
+  async updateRoom(roomId: number, updateRoomDto: UpdateRoomDto) {
+    await this.updateRoomProvider.updateRoom(roomId, updateRoomDto);
+    return await this.getRoomProvider.findRoomById(roomId);
   }
 
   async getAllRooms(@Query() getRoomDto: GetRoomDto) {

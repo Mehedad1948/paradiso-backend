@@ -102,6 +102,7 @@ export class GetRoomProvider {
           'room.description',
           'room.image',
           'room.isPublic',
+          'room.themeColor',
         ])
 
         .leftJoin('room.movies', 'movie')
@@ -131,6 +132,7 @@ export class GetRoomProvider {
         description: room.description,
         image: room.image,
         isPublic: room.isPublic,
+        themeColor: room.themeColor ?? null,
         owner: room.owner,
         users: room.users,
         movies: room.movies,

@@ -106,6 +106,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/resend-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** resend Verification */
+        post: operations["Auth_resendVerification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/reset-password": {
         parameters: {
             query?: never;
@@ -515,7 +532,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** update Room */
+        patch: operations["Rooms_updateRoom"];
         trace?: never;
     };
     "/rooms/add-movie/{id}": {
@@ -829,6 +847,10 @@ export interface components {
             email: string;
             code: string;
         };
+        ResendVerificationDto: {
+            /** Format: email */
+            email: string;
+        };
         ResetPasswordDto: {
             /** Format: email */
             email: string;
@@ -929,6 +951,11 @@ export interface components {
             image?: string | null;
             description?: string | null;
             isPublic?: boolean | null;
+            /**
+             * @description Room theme color as a #RRGGBB hex code.
+             * @example #ff5733
+             */
+            themeColor?: string | null;
         };
         JoinRoomDto: {
             /**
@@ -939,6 +966,17 @@ export interface components {
             userId?: number | null;
             /** Format: int32 */
             roomId: number;
+        };
+        UpdateRoomDto: {
+            name?: string;
+            image?: string | null;
+            description?: string | null;
+            isPublic?: boolean | null;
+            /**
+             * @description Room theme color as a #RRGGBB hex code.
+             * @example #ff5733
+             */
+            themeColor?: string | null;
         };
         AddRoomMovieDto: {
             /** Format: int32 */
@@ -1327,6 +1365,7 @@ export interface components {
             description: string | null;
             image: string | null;
             isPublic: boolean;
+            themeColor: string | null;
             owner: {
                 id: number;
                 username: string;
@@ -1355,6 +1394,7 @@ export interface components {
             description: string | null;
             image: string | null;
             isPublic: boolean;
+            themeColor: string | null;
             owner: components["schemas"]["PublicUser"];
             users: components["schemas"]["PublicUser"][];
             movies: {
@@ -1371,6 +1411,7 @@ export interface components {
             name: string;
             image?: string | null;
             isPublic: boolean;
+            themeColor: string | null;
             owner: {
                 id: number;
                 /** Format: email */
@@ -1813,6 +1854,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TokensMessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Auth_resendVerification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResendVerificationDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
                 };
             };
             /** @description Error response */
@@ -2851,6 +2925,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Rooms_updateRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRoomDto"];
+            };
+        };
         responses: {
             /** @description Successful response */
             200: {

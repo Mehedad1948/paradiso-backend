@@ -17,6 +17,7 @@ import { AddMovieToRoomProvider } from './providers/add-movie-to-room.provider';
 import { RatingsModule } from '../ratings/ratings.module';
 import { DeleteMovieFromRoomProvider } from './providers/delete-movie-from-room.provider';
 import { RoomReadGuard } from './guards/room-read.guard';
+import { UpdateRoomProvider } from './providers/update-room.provider';
 
 @Module({
   providers: [
@@ -29,6 +30,7 @@ import { RoomReadGuard } from './guards/room-read.guard';
     RoomReadGuard,
     AddMovieToRoomProvider,
     DeleteMovieFromRoomProvider,
+    UpdateRoomProvider,
   ],
   exports: [RoomsService, RoomMemberGuard, RoomReadGuard, RoomAccessService],
   imports: [

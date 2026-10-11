@@ -22,16 +22,13 @@ export class ForgetPasswordProvider {
     if (!user) {
       throw new NotFoundException('No user found');
     }
-    if (!user.isEmailVerified) {
-      throw new NotFoundException("User's email is not  verified");
-    }
     const code = Math.floor(1000 + Math.random() * 9000).toString();
     const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
 
     user.verificationCode = code;
     user.verificationCodeExpiresAt = expiresAt;
     try {
-      await this.UserService.updateByEmail(email, user);
+      await this.UserService.updateByEmail(user.email, user);
       await this.mailService.sendResetPasswordEmail(user);
 
       return {

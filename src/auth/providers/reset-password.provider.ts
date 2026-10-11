@@ -42,7 +42,7 @@ export class ResetPasswordProvider {
     user.verificationCode = null;
     user.verificationCodeExpiresAt = null;
 
-    await this.UserService.updateByEmail(email, user);
+    await this.UserService.updateByEmail(user.email, user);
 
     return {
       ...(await this.generateTokensProvider.generateTokens(user)),

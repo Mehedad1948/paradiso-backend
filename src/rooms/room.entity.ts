@@ -28,6 +28,9 @@ export class Room {
   @Column({ default: true })
   isPublic?: boolean;
 
+  @Column({ type: 'varchar', length: 7, nullable: true })
+  themeColor?: string | null;
+
   @ManyToMany(() => User, (user) => user.rooms)
   @JoinTable()
   users: User[];
