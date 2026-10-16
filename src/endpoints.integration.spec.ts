@@ -20,7 +20,20 @@ import { RoomInvitation } from './room-invitations/room-invitation.entity';
 import { CommunityPost } from './community/community-post.entity';
 import { CommunityComment } from './community/community-comment.entity';
 import { UserFollow } from './community/user-follow.entity';
+import {
+  RoomChatRead,
+  RoomMessage,
+  RoomMessageMention,
+  RoomMessageMovie,
+  RoomMessageReaction,
+} from './room-chat/room-message.entity';
+import {
+  RoomPoll,
+  RoomPollOption,
+  RoomPollVote,
+} from './room-chat/room-poll.entity';
 import { Community1790985600000 } from './community/migrations/1790985600000-community';
+import { RoomChat1792368000000 } from './room-chat/migrations/1792368000000-room-chat';
 import { GenerateTokensProvider } from './auth/providers/generate-tokens.provider';
 import { MailService } from './mail/providers/mail.service';
 import { createOpenApiDocument, setupOpenApi } from './openapi/document';
@@ -72,6 +85,14 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         CommunityPost,
         CommunityComment,
         UserFollow,
+        RoomMessage,
+        RoomMessageMention,
+        RoomMessageMovie,
+        RoomMessageReaction,
+        RoomChatRead,
+        RoomPoll,
+        RoomPollOption,
+        RoomPollVote,
       ],
     }).initialize();
     const { AppModule } = await import('./app.module');
@@ -294,6 +315,69 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         [migrationSchema],
       )) as unknown[];
       expect(tables).toHaveLength(0);
+    } finally {
+      await runner.rollbackTransaction();
+      await runner.release();
+    }
+  });
+
+  it('applies the room chat migration with the same columns as the entities', async () => {
+    const runner = database.createQueryRunner();
+    const migrationSchema = schema + '_chat';
+    const tables = [
+      'room_message',
+      'room_message_mention',
+      'room_message_movie',
+      'room_message_reaction',
+      'room_chat_read',
+      'room_poll',
+      'room_poll_option',
+      'room_poll_vote',
+    ];
+    const columns = async (target: string) =>
+      (await runner.query(
+        'SELECT table_name, column_name, data_type, is_nullable, character_maximum_length FROM information_schema.columns WHERE table_schema = $1 AND table_name = ANY($2) ORDER BY table_name, column_name',
+        [target, tables],
+      )) as unknown[];
+    await runner.connect();
+    await runner.startTransaction();
+    try {
+      await runner.query('CREATE SCHEMA "' + migrationSchema + '"');
+      await runner.query(
+        'SET LOCAL search_path TO "' + migrationSchema + '", "' + schema + '"',
+      );
+      const migration = new RoomChat1792368000000();
+      await migration.up(runner);
+      expect(await columns(migrationSchema)).toEqual(await columns(schema));
+      const [message] = (await runner.query(
+        'INSERT INTO room_message ("roomId", "authorId", text) VALUES ($1, $2, $3) RETURNING id',
+        [publicRoom, users[0].id, 'Poll?'],
+      )) as { id: number }[];
+      await runner.query('INSERT INTO room_poll ("messageId") VALUES ($1)', [
+        message.id,
+      ]);
+      const [option] = (await runner.query(
+        'INSERT INTO room_poll_option ("messageId", position, text) VALUES ($1, 0, $2) RETURNING id',
+        [message.id, 'A'],
+      )) as { id: number }[];
+      await runner.query(
+        'INSERT INTO room_poll_vote ("optionId", "userId", "messageId") VALUES ($1, $2, $3)',
+        [option.id, users[1].id, message.id],
+      );
+      await runner.query('DELETE FROM room_message WHERE id = $1', [
+        message.id,
+      ]);
+      const votes = (await runner.query(
+        'SELECT count(*)::integer AS count FROM room_poll_vote',
+      )) as { count: number }[];
+      expect(votes[0].count).toBe(0);
+      await migration.down(runner);
+      expect(
+        await runner.query(
+          'SELECT tablename FROM pg_tables WHERE schemaname = $1',
+          [migrationSchema],
+        ),
+      ).toHaveLength(0);
     } finally {
       await runner.rollbackTransaction();
       await runner.release();
@@ -897,7 +981,7 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     const body = { title: 'Uncatalogued Film', year: 2004 };
     await request(server)
       .post('/rooms/add-custom-movie/' + publicRoom)
-      .auth(access[1], { type: 'bearer' })
+      .auth(access[3], { type: 'bearer' })
       .send(body)
       .expect(403);
     await request(server)
@@ -953,5 +1037,275 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         }),
       ]),
     );
+  });
+  it('runs room chat: mentions, replies, movie cards, reactions, polls, pins, sync and unread', async () => {
+    const server = app.getHttpServer();
+    const document = createOpenApiDocument(app);
+    const chat = '/rooms/' + publicRoom + '/chat';
+    // users[0] owns the room, users[1] joined it earlier, users[3] is outside.
+    const as = (index: number) => ({
+      get: (path: string) =>
+        request(server)
+          .get(chat + path)
+          .auth(access[index], { type: 'bearer' }),
+      post: (path: string, body?: object) =>
+        request(server)
+          .post(chat + path)
+          .auth(access[index], { type: 'bearer' })
+          .send(body),
+      put: (path: string, body?: object) =>
+        request(server)
+          .put(chat + path)
+          .auth(access[index], { type: 'bearer' })
+          .send(body),
+      patch: (path: string, body: object) =>
+        request(server)
+          .patch(chat + path)
+          .auth(access[index], { type: 'bearer' })
+          .send(body),
+      delete: (path: string, body?: object) =>
+        request(server)
+          .delete(chat + path)
+          .auth(access[index], { type: 'bearer' })
+          .send(body),
+    });
+    const owner = as(0);
+    const member = as(1);
+    const outsider = as(3);
+    const start = new Date(Date.now() - 1000).toISOString();
+
+    await outsider.get('/messages').expect(403);
+    await outsider.post('/messages', { text: 'Hi' }).expect(403);
+    await owner.post('/messages', {}).expect(400);
+    await owner.post('/messages', { text: '   ' }).expect(400);
+    await owner
+      .post('/messages', { text: 'Hi', mentionedUserIds: [users[3].id] })
+      .expect(400);
+
+    const roomMovie = (
+      await request(server)
+        .post('/rooms/add-custom-movie/' + publicRoom)
+        .auth(access[0], { type: 'bearer' })
+        .send({ title: 'Chat Night Film', year: 2010 })
+        .expect(201)
+    ).body.movieId as string;
+    // movieId is in the private room only after the earlier removal test.
+    await owner
+      .post('/messages', { text: 'x', movies: [{ movieId }] })
+      .expect(400);
+    await owner
+      .post('/messages', { movies: [{ movieId: roomMovie, tmdbId: 5 }] })
+      .expect(400);
+
+    const first = await owner
+      .post('/messages', {
+        text: '@User 1 watch these',
+        mentionedUserIds: [users[1].id],
+        // tmdbId 123 is in the local catalogue but not in this room.
+        movies: [{ movieId: roomMovie }, { tmdbId: 123 }],
+      })
+      .expect(201);
+    assertOpenApiResponse(document, 'RoomChat_sendMessage', first.body);
+    expect(first.body).toMatchObject({
+      text: '@User 1 watch these',
+      author: { id: users[0].id },
+      mentions: [{ id: users[1].id, username: 'User 1' }],
+      movies: [
+        { movieId: roomMovie, title: 'Chat Night Film', year: '2010' },
+        { movieId: null, tmdbId: 123, title: expect.any(String) },
+      ],
+      replyTo: null,
+      poll: null,
+    });
+    expect(JSON.stringify(first.body)).not.toMatch(/private-|example\.test/);
+
+    const reply = await member
+      .post('/messages', { text: 'Yes!', replyToId: first.body.id })
+      .expect(201);
+    expect(reply.body.replyTo).toMatchObject({
+      id: first.body.id,
+      text: '@User 1 watch these',
+      author: { id: users[0].id },
+      deleted: false,
+    });
+
+    await member
+      .put('/messages/' + first.body.id + '/reactions', { emoji: 'popcorn' })
+      .expect(400);
+    await member
+      .put('/messages/' + first.body.id + '/reactions', { emoji: '🍿' })
+      .expect(200);
+    await member
+      .put('/messages/' + first.body.id + '/reactions', { emoji: '🍿' })
+      .expect(200);
+    const reacted = await owner
+      .put('/messages/' + first.body.id + '/reactions', { emoji: '🍿' })
+      .expect(200);
+    assertOpenApiResponse(document, 'RoomChat_addReaction', reacted.body);
+    expect(reacted.body.reactions).toEqual([
+      {
+        emoji: '🍿',
+        count: 2,
+        reactedByMe: true,
+        userIds: [users[1].id, users[0].id],
+      },
+    ]);
+    const unreacted = await owner
+      .delete('/messages/' + first.body.id + '/reactions', { emoji: '🍿' })
+      .expect(200);
+    expect(unreacted.body.reactions).toEqual([
+      expect.objectContaining({ count: 1, reactedByMe: false }),
+    ]);
+
+    await owner
+      .post('/messages', { poll: { options: [{ text: 'A' }, { text: 'B' }] } })
+      .expect(400);
+    await owner
+      .post('/messages', { text: 'Q?', poll: { options: [{ text: 'A' }] } })
+      .expect(400);
+    const poll = await member
+      .post('/messages', {
+        text: 'Friday movie?',
+        poll: { options: [{ movieId: roomMovie }, { text: 'Something new' }] },
+      })
+      .expect(201);
+    expect(poll.body.poll).toMatchObject({
+      allowsMultiple: false,
+      isClosed: false,
+      totalVoters: 0,
+      options: [
+        { text: 'Chat Night Film', movieId: roomMovie, votes: 0 },
+        { text: 'Something new', movieId: null, votes: 0 },
+      ],
+    });
+    const [optionA, optionB] = poll.body.poll.options.map(
+      (option: { id: number }) => option.id,
+    );
+    const vote = '/messages/' + poll.body.id + '/poll/vote';
+    await owner.put(vote, { optionIds: [optionA, optionB] }).expect(400);
+    await owner.put(vote, { optionIds: [999999] }).expect(400);
+    await owner.put(vote, { optionIds: [optionA] }).expect(200);
+    await owner.put(vote, { optionIds: [optionB] }).expect(200);
+    const voted = await member.put(vote, { optionIds: [optionB] }).expect(200);
+    assertOpenApiResponse(document, 'RoomChat_votePoll', voted.body);
+    expect(voted.body.poll).toMatchObject({
+      totalVoters: 2,
+      options: [
+        { votes: 0, votedByMe: false, voterIds: [] },
+        { votes: 2, votedByMe: true, voterIds: [users[0].id, users[1].id] },
+      ],
+    });
+    await owner
+      .patch('/messages/' + poll.body.id, { text: 'Changed?' })
+      .expect(403);
+    await member
+      .patch('/messages/' + poll.body.id, { text: 'Changed?' })
+      .expect(400);
+    const closed = await owner
+      .post('/messages/' + poll.body.id + '/poll/close')
+      .expect(200);
+    expect(closed.body.poll.isClosed).toBe(true);
+    await member.put(vote, { optionIds: [optionA] }).expect(400);
+
+    await member
+      .patch('/messages/' + first.body.id, { text: 'Hijack' })
+      .expect(403);
+    const edited = await owner
+      .patch('/messages/' + first.body.id, {
+        text: 'Edited',
+        mentionedUserIds: [],
+      })
+      .expect(200);
+    expect(edited.body).toMatchObject({ text: 'Edited', mentions: [] });
+    expect(edited.body.editedAt).toEqual(expect.any(String));
+
+    await member.put('/messages/' + first.body.id + '/pin').expect(403);
+    await member.put('/messages/' + poll.body.id + '/pin').expect(200);
+    const pinned = await owner.get('/pinned').expect(200);
+    assertOpenApiResponse(document, 'RoomChat_listPinned', pinned.body);
+    expect(pinned.body.data.map((m: { id: number }) => m.id)).toEqual([
+      poll.body.id,
+    ]);
+
+    // The owner moderates a member's message; replies keep a tombstone.
+    await outsider.delete('/messages/' + reply.body.id).expect(403);
+    const removed = await owner
+      .delete('/messages/' + reply.body.id)
+      .expect(200);
+    expect(removed.body).toMatchObject({
+      text: null,
+      mentions: [],
+      reactions: [],
+    });
+    expect(removed.body.deletedAt).toEqual(expect.any(String));
+    const toTombstone = await member
+      .post('/messages', { text: 'Reply to me', replyToId: first.body.id })
+      .expect(201);
+    await member.delete('/messages/' + first.body.id).expect(403);
+    await owner.delete('/messages/' + first.body.id).expect(200);
+    const orphan = await member
+      .get('/messages/' + toTombstone.body.id)
+      .expect(200);
+    assertOpenApiResponse(document, 'RoomChat_getMessage', orphan.body);
+    expect(orphan.body.replyTo).toMatchObject({ deleted: true, text: null });
+    await member
+      .post('/messages', { text: 'late', replyToId: first.body.id })
+      .expect(400);
+
+    const history = await member.get('/messages?limit=2').expect(200);
+    assertOpenApiResponse(document, 'RoomChat_listMessages', history.body);
+    expect(history.body.data).toHaveLength(2);
+    const [newest, second] = history.body.data as { id: number }[];
+    expect(newest.id).toBeGreaterThan(second.id);
+    const older = await member
+      .get('/messages?limit=100&before=' + history.body.nextCursor)
+      .expect(200);
+    expect(older.body.nextCursor).toBeNull();
+
+    const sync = await member
+      .get('/messages/sync?since=' + encodeURIComponent(start))
+      .expect(200);
+    assertOpenApiResponse(document, 'RoomChat_syncMessages', sync.body);
+    expect(sync.body.hasMore).toBe(false);
+    expect(sync.body.data.map((m: { id: number }) => m.id).sort()).toEqual(
+      [first.body.id, reply.body.id, poll.body.id, toTombstone.body.id].sort(),
+    );
+    const paged = await member
+      .get('/messages/sync?limit=1&since=' + encodeURIComponent(start))
+      .expect(200);
+    expect(paged.body.hasMore).toBe(true);
+    await member.get('/messages/sync?since=yesterday').expect(400);
+
+    const unread = await owner.get('/unread').expect(200);
+    assertOpenApiResponse(document, 'RoomChat_getUnread', unread.body);
+    expect(unread.body).toMatchObject({
+      lastReadMessageId: null,
+      unreadCount: 2,
+      mentionCount: 0,
+    });
+    const read = await owner
+      .put('/read', { messageId: toTombstone.body.id })
+      .expect(200);
+    assertOpenApiResponse(document, 'RoomChat_markRead', read.body);
+    expect(read.body).toMatchObject({ unreadCount: 0 });
+    await owner.put('/read', { messageId: poll.body.id }).expect(200);
+    expect(
+      (await owner.get('/unread').expect(200)).body.lastReadMessageId,
+    ).toBe(toTombstone.body.id);
+
+    const mention = await owner
+      .post('/messages', { text: 'ping', mentionedUserIds: [users[1].id] })
+      .expect(201);
+    expect((await member.get('/unread').expect(200)).body).toMatchObject({
+      latestMessageId: mention.body.id,
+      mentionCount: 1,
+    });
+
+    let limited = false;
+    for (let index = 0; index < 12 && !limited; index++) {
+      const response = await member.post('/messages', { text: 'spam' });
+      limited = response.status === 429;
+    }
+    expect(limited).toBe(true);
   });
 });

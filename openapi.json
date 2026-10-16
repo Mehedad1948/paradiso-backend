@@ -3457,6 +3457,885 @@
         "security": [],
         "summary": "following"
       }
+    },
+    "/rooms/{roomId}/chat/messages": {
+      "get": {
+        "operationId": "RoomChat_listMessages",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Return messages older than this message ID.",
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessagePageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Message history, newest first. Page with before=nextCursor.",
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "RoomChat_sendMessage",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateChatMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Send text, a reply, mentions, movie cards or a poll.",
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/rooms/{roomId}/chat/messages/sync": {
+      "get": {
+        "description": "Poll while the chat is visible and pass back the returned cursor. Results overlap by a few seconds; replace messages by id. Call again at once while hasMore is true.",
+        "operationId": "RoomChat_syncMessages",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "since",
+            "required": true,
+            "in": "query",
+            "description": "The cursor from the previous sync response, or the time the first page was loaded.",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 200,
+              "default": 100,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatSyncResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Messages created or changed since a cursor, oldest change first.",
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/rooms/{roomId}/chat/pinned": {
+      "get": {
+        "operationId": "RoomChat_listPinned",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "list Pinned"
+      }
+    },
+    "/rooms/{roomId}/chat/unread": {
+      "get": {
+        "operationId": "RoomChat_getUnread",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatUnreadResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "get Unread"
+      }
+    },
+    "/rooms/{roomId}/chat/read": {
+      "put": {
+        "operationId": "RoomChat_markRead",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatReadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatUnreadResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "mark Read"
+      }
+    },
+    "/rooms/{roomId}/chat/messages/{messageId}": {
+      "get": {
+        "operationId": "RoomChat_getMessage",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "get Message"
+      },
+      "patch": {
+        "operationId": "RoomChat_editMessage",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateChatMessageDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "edit Message"
+      },
+      "delete": {
+        "operationId": "RoomChat_deleteMessage",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Delete a message. The author or the room owner may delete.",
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/rooms/{roomId}/chat/messages/{messageId}/reactions": {
+      "put": {
+        "operationId": "RoomChat_addReaction",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatReactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "add Reaction"
+      },
+      "delete": {
+        "operationId": "RoomChat_removeReaction",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatReactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "remove Reaction"
+      }
+    },
+    "/rooms/{roomId}/chat/messages/{messageId}/poll/vote": {
+      "put": {
+        "operationId": "RoomChat_votePoll",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatPollVoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "vote Poll"
+      }
+    },
+    "/rooms/{roomId}/chat/messages/{messageId}/poll/close": {
+      "post": {
+        "operationId": "RoomChat_closePoll",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "close Poll"
+      }
+    },
+    "/rooms/{roomId}/chat/messages/{messageId}/pin": {
+      "put": {
+        "operationId": "RoomChat_pinMessage",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "pin Message"
+      },
+      "delete": {
+        "operationId": "RoomChat_unpinMessage",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatMessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "RoomChat"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "unpin Message"
+      }
     }
   },
   "info": {
@@ -4134,6 +5013,170 @@
         ],
         "additionalProperties": false
       },
+      "ChatReadDto": {
+        "type": "object",
+        "properties": {
+          "messageId": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "messageId"
+        ],
+        "additionalProperties": false
+      },
+      "ChatMovieMentionDto": {
+        "type": "object",
+        "properties": {
+          "movieId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A movie already in this room. Send this or tmdbId."
+          },
+          "tmdbId": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "A TMDb movie ID from /movies/tmdb/search."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChatPollOptionDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Defaults to the movie title when movieId is set."
+          },
+          "movieId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "A movie in this room, for \"what do we watch\" polls."
+          }
+        },
+        "additionalProperties": false
+      },
+      "ChatPollDto": {
+        "type": "object",
+        "properties": {
+          "options": {
+            "minItems": 2,
+            "maxItems": 10,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatPollOptionDto"
+            }
+          },
+          "allowsMultiple": {
+            "type": "boolean",
+            "default": false
+          },
+          "anonymous": {
+            "type": "boolean",
+            "default": false,
+            "description": "Hide who voted for what. Counts stay visible."
+          },
+          "closesAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Automatic close time, at most 30 days ahead."
+          }
+        },
+        "required": [
+          "options"
+        ],
+        "additionalProperties": false
+      },
+      "CreateChatMessageDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Required for polls, where it is the question."
+          },
+          "replyToId": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "mentionedUserIds": {
+            "maxItems": 20,
+            "description": "Room members mentioned in the text.",
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "movies": {
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMovieMentionDto"
+            }
+          },
+          "poll": {
+            "$ref": "#/components/schemas/ChatPollDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "UpdateChatMessageDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "mentionedUserIds": {
+            "maxItems": 20,
+            "description": "Replaces the mentions when sent.",
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "ChatReactionDto": {
+        "type": "object",
+        "properties": {
+          "emoji": {
+            "type": "string",
+            "maxLength": 32,
+            "example": "🍿"
+          }
+        },
+        "required": [
+          "emoji"
+        ],
+        "additionalProperties": false
+      },
+      "ChatPollVoteDto": {
+        "type": "object",
+        "properties": {
+          "optionIds": {
+            "maxItems": 10,
+            "description": "Replaces your votes. An empty array retracts them.",
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "optionIds"
+        ],
+        "additionalProperties": false
+      },
       "CommunityPost": {
         "type": "object",
         "properties": {
@@ -4558,6 +5601,573 @@
         "required": [
           "data",
           "nextCursor",
+          "apiVersion"
+        ]
+      },
+      "ChatMessage": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "roomId": {
+            "type": "integer"
+          },
+          "text": {
+            "type": "string",
+            "nullable": true
+          },
+          "author": {
+            "$ref": "#/components/schemas/PublicUser"
+          },
+          "replyTo": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "text": {
+                "type": "string",
+                "nullable": true
+              },
+              "author": {
+                "$ref": "#/components/schemas/PublicUser"
+              },
+              "deleted": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "text",
+              "author",
+              "deleted"
+            ],
+            "nullable": true
+          },
+          "mentions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicUser"
+            }
+          },
+          "movies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "movieId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "nullable": true
+                },
+                "tmdbId": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "title": {
+                  "type": "string"
+                },
+                "year": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "posterPath": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "movieId",
+                "tmdbId",
+                "title",
+                "year",
+                "posterPath"
+              ]
+            }
+          },
+          "reactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "emoji": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "reactedByMe": {
+                  "type": "boolean"
+                },
+                "userIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "required": [
+                "emoji",
+                "count",
+                "reactedByMe",
+                "userIds"
+              ]
+            }
+          },
+          "poll": {
+            "type": "object",
+            "properties": {
+              "allowsMultiple": {
+                "type": "boolean"
+              },
+              "anonymous": {
+                "type": "boolean"
+              },
+              "closesAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "closedAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "isClosed": {
+                "type": "boolean"
+              },
+              "totalVoters": {
+                "type": "integer"
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "movieId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "votes": {
+                      "type": "integer"
+                    },
+                    "votedByMe": {
+                      "type": "boolean"
+                    },
+                    "voterIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "text",
+                    "movieId",
+                    "votes",
+                    "votedByMe",
+                    "voterIds"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "allowsMultiple",
+              "anonymous",
+              "closesAt",
+              "closedAt",
+              "isClosed",
+              "totalVoters",
+              "options"
+            ],
+            "nullable": true
+          },
+          "pinnedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "pinnedById": {
+            "type": "integer",
+            "nullable": true
+          },
+          "editedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "roomId",
+          "text",
+          "author",
+          "replyTo",
+          "mentions",
+          "movies",
+          "reactions",
+          "poll",
+          "pinnedAt",
+          "pinnedById",
+          "editedAt",
+          "deletedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ChatMessageResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "roomId": {
+            "type": "integer"
+          },
+          "text": {
+            "type": "string",
+            "nullable": true
+          },
+          "author": {
+            "$ref": "#/components/schemas/PublicUser"
+          },
+          "replyTo": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "text": {
+                "type": "string",
+                "nullable": true
+              },
+              "author": {
+                "$ref": "#/components/schemas/PublicUser"
+              },
+              "deleted": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "text",
+              "author",
+              "deleted"
+            ],
+            "nullable": true
+          },
+          "mentions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicUser"
+            }
+          },
+          "movies": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "movieId": {
+                  "type": "string",
+                  "format": "uuid",
+                  "nullable": true
+                },
+                "tmdbId": {
+                  "type": "integer",
+                  "nullable": true
+                },
+                "title": {
+                  "type": "string"
+                },
+                "year": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "posterPath": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "movieId",
+                "tmdbId",
+                "title",
+                "year",
+                "posterPath"
+              ]
+            }
+          },
+          "reactions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "emoji": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "reactedByMe": {
+                  "type": "boolean"
+                },
+                "userIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "required": [
+                "emoji",
+                "count",
+                "reactedByMe",
+                "userIds"
+              ]
+            }
+          },
+          "poll": {
+            "type": "object",
+            "properties": {
+              "allowsMultiple": {
+                "type": "boolean"
+              },
+              "anonymous": {
+                "type": "boolean"
+              },
+              "closesAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "closedAt": {
+                "type": "string",
+                "format": "date-time",
+                "nullable": true
+              },
+              "isClosed": {
+                "type": "boolean"
+              },
+              "totalVoters": {
+                "type": "integer"
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "text": {
+                      "type": "string"
+                    },
+                    "movieId": {
+                      "type": "string",
+                      "format": "uuid",
+                      "nullable": true
+                    },
+                    "votes": {
+                      "type": "integer"
+                    },
+                    "votedByMe": {
+                      "type": "boolean"
+                    },
+                    "voterIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "text",
+                    "movieId",
+                    "votes",
+                    "votedByMe",
+                    "voterIds"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "allowsMultiple",
+              "anonymous",
+              "closesAt",
+              "closedAt",
+              "isClosed",
+              "totalVoters",
+              "options"
+            ],
+            "nullable": true
+          },
+          "pinnedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "pinnedById": {
+            "type": "integer",
+            "nullable": true
+          },
+          "editedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "deletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "roomId",
+          "text",
+          "author",
+          "replyTo",
+          "mentions",
+          "movies",
+          "reactions",
+          "poll",
+          "pinnedAt",
+          "pinnedById",
+          "editedAt",
+          "deletedAt",
+          "createdAt",
+          "updatedAt",
+          "apiVersion"
+        ]
+      },
+      "ChatMessagePageResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            }
+          },
+          "nextCursor": {
+            "type": "integer",
+            "nullable": true
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "nextCursor",
+          "apiVersion"
+        ]
+      },
+      "ChatSyncResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            }
+          },
+          "cursor": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "hasMore": {
+            "type": "boolean"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "cursor",
+          "hasMore",
+          "apiVersion"
+        ]
+      },
+      "ChatMessageListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChatMessage"
+            }
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "apiVersion"
+        ]
+      },
+      "ChatUnreadResponse": {
+        "type": "object",
+        "properties": {
+          "lastReadMessageId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "latestMessageId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "unreadCount": {
+            "type": "integer"
+          },
+          "mentionCount": {
+            "type": "integer"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "lastReadMessageId",
+          "latestMessageId",
+          "unreadCount",
+          "mentionCount",
           "apiVersion"
         ]
       },

@@ -12,11 +12,15 @@ const {
 const {
   CustomMovies1792281600000,
 } = require('../dist/movies/migrations/1792281600000-custom-movies');
+const {
+  RoomChat1792368000000,
+} = require('../dist/room-chat/migrations/1792368000000-room-chat');
 
 const migrations = [
   Community1790985600000,
   RoomThemeColor1791676800000,
   CustomMovies1792281600000,
+  RoomChat1792368000000,
 ];
 
 async function main() {

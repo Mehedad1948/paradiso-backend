@@ -847,6 +847,184 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rooms/{roomId}/chat/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Message history, newest first. Page with before=nextCursor. */
+        get: operations["RoomChat_listMessages"];
+        put?: never;
+        /** Send text, a reply, mentions, movie cards or a poll. */
+        post: operations["RoomChat_sendMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{roomId}/chat/messages/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Messages created or changed since a cursor, oldest change first.
+         * @description Poll while the chat is visible and pass back the returned cursor. Results overlap by a few seconds; replace messages by id. Call again at once while hasMore is true.
+         */
+        get: operations["RoomChat_syncMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{roomId}/chat/pinned": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** list Pinned */
+        get: operations["RoomChat_listPinned"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{roomId}/chat/unread": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** get Unread */
+        get: operations["RoomChat_getUnread"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{roomId}/chat/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** mark Read */
+        put: operations["RoomChat_markRead"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{roomId}/chat/messages/{messageId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** get Message */
+        get: operations["RoomChat_getMessage"];
+        put?: never;
+        post?: never;
+        /** Delete a message. The author or the room owner may delete. */
+        delete: operations["RoomChat_deleteMessage"];
+        options?: never;
+        head?: never;
+        /** edit Message */
+        patch: operations["RoomChat_editMessage"];
+        trace?: never;
+    };
+    "/rooms/{roomId}/chat/messages/{messageId}/reactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** add Reaction */
+        put: operations["RoomChat_addReaction"];
+        post?: never;
+        /** remove Reaction */
+        delete: operations["RoomChat_removeReaction"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{roomId}/chat/messages/{messageId}/poll/vote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** vote Poll */
+        put: operations["RoomChat_votePoll"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{roomId}/chat/messages/{messageId}/poll/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** close Poll */
+        post: operations["RoomChat_closePoll"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{roomId}/chat/messages/{messageId}/pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** pin Message */
+        put: operations["RoomChat_pinMessage"];
+        post?: never;
+        /** unpin Message */
+        delete: operations["RoomChat_unpinMessage"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1052,6 +1230,64 @@ export interface components {
         CommunityCommentDto: {
             text: string;
         };
+        ChatReadDto: {
+            messageId: number;
+        };
+        ChatMovieMentionDto: {
+            /**
+             * Format: uuid
+             * @description A movie already in this room. Send this or tmdbId.
+             */
+            movieId?: string;
+            /** @description A TMDb movie ID from /movies/tmdb/search. */
+            tmdbId?: number;
+        };
+        ChatPollOptionDto: {
+            /** @description Defaults to the movie title when movieId is set. */
+            text?: string;
+            /**
+             * Format: uuid
+             * @description A movie in this room, for "what do we watch" polls.
+             */
+            movieId?: string;
+        };
+        ChatPollDto: {
+            options: components["schemas"]["ChatPollOptionDto"][];
+            /** @default false */
+            allowsMultiple: boolean;
+            /**
+             * @description Hide who voted for what. Counts stay visible.
+             * @default false
+             */
+            anonymous: boolean;
+            /**
+             * Format: date-time
+             * @description Automatic close time, at most 30 days ahead.
+             */
+            closesAt?: string;
+        };
+        CreateChatMessageDto: {
+            /** @description Required for polls, where it is the question. */
+            text?: string;
+            replyToId?: number;
+            /** @description Room members mentioned in the text. */
+            mentionedUserIds?: number[];
+            movies?: components["schemas"]["ChatMovieMentionDto"][];
+            poll?: components["schemas"]["ChatPollDto"];
+        };
+        UpdateChatMessageDto: {
+            text: string;
+            /** @description Replaces the mentions when sent. */
+            mentionedUserIds?: number[];
+        };
+        ChatReactionDto: {
+            /** @example 🍿 */
+            emoji: string;
+        };
+        ChatPollVoteDto: {
+            /** @description Replaces your votes. An empty array retracts them. */
+            optionIds: number[];
+        };
         CommunityPost: {
             id: number;
             text: string;
@@ -1161,6 +1397,144 @@ export interface components {
         CommunityUserPageResponse: {
             data: components["schemas"]["PublicUser"][];
             nextCursor: number | null;
+            apiVersion: string;
+        };
+        ChatMessage: {
+            id: number;
+            roomId: number;
+            text: string | null;
+            author: components["schemas"]["PublicUser"];
+            replyTo: {
+                id: number;
+                text: string | null;
+                author: components["schemas"]["PublicUser"];
+                deleted: boolean;
+            } | null;
+            mentions: components["schemas"]["PublicUser"][];
+            movies: {
+                /** Format: uuid */
+                movieId: string | null;
+                tmdbId: number | null;
+                title: string;
+                year: string | null;
+                posterPath: string | null;
+            }[];
+            reactions: {
+                emoji: string;
+                count: number;
+                reactedByMe: boolean;
+                userIds: number[];
+            }[];
+            poll: {
+                allowsMultiple: boolean;
+                anonymous: boolean;
+                /** Format: date-time */
+                closesAt: string | null;
+                /** Format: date-time */
+                closedAt: string | null;
+                isClosed: boolean;
+                totalVoters: number;
+                options: {
+                    id: number;
+                    text: string;
+                    /** Format: uuid */
+                    movieId: string | null;
+                    votes: number;
+                    votedByMe: boolean;
+                    voterIds: number[];
+                }[];
+            } | null;
+            /** Format: date-time */
+            pinnedAt: string | null;
+            pinnedById: number | null;
+            /** Format: date-time */
+            editedAt: string | null;
+            /** Format: date-time */
+            deletedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ChatMessageResponse: {
+            id: number;
+            roomId: number;
+            text: string | null;
+            author: components["schemas"]["PublicUser"];
+            replyTo: {
+                id: number;
+                text: string | null;
+                author: components["schemas"]["PublicUser"];
+                deleted: boolean;
+            } | null;
+            mentions: components["schemas"]["PublicUser"][];
+            movies: {
+                /** Format: uuid */
+                movieId: string | null;
+                tmdbId: number | null;
+                title: string;
+                year: string | null;
+                posterPath: string | null;
+            }[];
+            reactions: {
+                emoji: string;
+                count: number;
+                reactedByMe: boolean;
+                userIds: number[];
+            }[];
+            poll: {
+                allowsMultiple: boolean;
+                anonymous: boolean;
+                /** Format: date-time */
+                closesAt: string | null;
+                /** Format: date-time */
+                closedAt: string | null;
+                isClosed: boolean;
+                totalVoters: number;
+                options: {
+                    id: number;
+                    text: string;
+                    /** Format: uuid */
+                    movieId: string | null;
+                    votes: number;
+                    votedByMe: boolean;
+                    voterIds: number[];
+                }[];
+            } | null;
+            /** Format: date-time */
+            pinnedAt: string | null;
+            pinnedById: number | null;
+            /** Format: date-time */
+            editedAt: string | null;
+            /** Format: date-time */
+            deletedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            apiVersion: string;
+        };
+        ChatMessagePageResponse: {
+            data: components["schemas"]["ChatMessage"][];
+            nextCursor: number | null;
+            apiVersion: string;
+        };
+        ChatSyncResponse: {
+            data: components["schemas"]["ChatMessage"][];
+            /** Format: date-time */
+            cursor: string;
+            hasMore: boolean;
+            apiVersion: string;
+        };
+        ChatMessageListResponse: {
+            data: components["schemas"]["ChatMessage"][];
+            apiVersion: string;
+        };
+        ChatUnreadResponse: {
+            lastReadMessageId: number | null;
+            latestMessageId: number | null;
+            unreadCount: number;
+            mentionCount: number;
             apiVersion: string;
         };
         PublicUser: {
@@ -3779,6 +4153,512 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CommunityUserPageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_listMessages: {
+        parameters: {
+            query?: {
+                limit?: number;
+                /** @description Return messages older than this message ID. */
+                before?: number;
+            };
+            header?: never;
+            path: {
+                roomId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessagePageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_sendMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateChatMessageDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_syncMessages: {
+        parameters: {
+            query: {
+                /** @description The cursor from the previous sync response, or the time the first page was loaded. */
+                since: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                roomId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatSyncResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_listPinned: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageListResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_getUnread: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatUnreadResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatReadDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatUnreadResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_getMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+                messageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_deleteMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+                messageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_editMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+                messageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateChatMessageDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_addReaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+                messageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatReactionDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_removeReaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+                messageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatReactionDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_votePoll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+                messageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatPollVoteDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_closePoll: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+                messageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_pinMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+                messageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomChat_unpinMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+                messageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessageResponse"];
                 };
             };
             /** @description Error response */

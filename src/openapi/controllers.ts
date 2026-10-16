@@ -13,6 +13,7 @@ import { RoomsController } from '../rooms/rooms.controller';
 import { UploadsController } from '../uploads/uploads.controller';
 import { UsersController } from '../users/users.controller';
 import { CommunityController } from '../community/community.controller';
+import { RoomChatController } from '../room-chat/room-chat.controller';
 
 // Keep this list in sync with application controllers. Both runtime docs and the
 // offline exporter use their real route and DTO metadata.
@@ -32,4 +33,5 @@ export const apiControllers = [
   UploadsController,
   UsersController,
   CommunityController,
+  RoomChatController,
 ];

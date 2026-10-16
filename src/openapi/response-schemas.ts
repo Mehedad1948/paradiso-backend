@@ -177,6 +177,83 @@ export const responseSchemas: Record<string, SchemaObject> = {
   CommunityUserPageResponse: envelope(
     object({ data: array(ref('PublicUser')), nextCursor: nullable(integer) }),
   ),
+  ChatMessage: object({
+    id: integer,
+    roomId: integer,
+    text: nullable(string),
+    author: ref('PublicUser'),
+    replyTo: nullable(
+      object({
+        id: integer,
+        text: nullable(string),
+        author: ref('PublicUser'),
+        deleted: boolean,
+      }),
+    ),
+    mentions: array(ref('PublicUser')),
+    movies: array(
+      object({
+        movieId: nullable(uuid),
+        tmdbId: nullable(integer),
+        title: string,
+        year: nullable(string),
+        posterPath: nullable(string),
+      }),
+    ),
+    reactions: array(
+      object({
+        emoji: string,
+        count: integer,
+        reactedByMe: boolean,
+        userIds: array(integer),
+      }),
+    ),
+    poll: nullable(
+      object({
+        allowsMultiple: boolean,
+        anonymous: boolean,
+        closesAt: nullable(date),
+        closedAt: nullable(date),
+        isClosed: boolean,
+        totalVoters: integer,
+        options: array(
+          object({
+            id: integer,
+            text: string,
+            movieId: nullable(uuid),
+            votes: integer,
+            votedByMe: boolean,
+            voterIds: array(integer),
+          }),
+        ),
+      }),
+    ),
+    pinnedAt: nullable(date),
+    pinnedById: nullable(integer),
+    editedAt: nullable(date),
+    deletedAt: nullable(date),
+    createdAt: date,
+    updatedAt: date,
+  }),
+  ChatMessageResponse: {},
+  ChatMessagePageResponse: envelope(
+    object({
+      data: array(ref('ChatMessage')),
+      nextCursor: nullable(integer),
+    }),
+  ),
+  ChatSyncResponse: envelope(
+    object({ data: array(ref('ChatMessage')), cursor: date, hasMore: boolean }),
+  ),
+  ChatMessageListResponse: data(array(ref('ChatMessage'))),
+  ChatUnreadResponse: envelope(
+    object({
+      lastReadMessageId: nullable(integer),
+      latestMessageId: nullable(integer),
+      unreadCount: integer,
+      mentionCount: integer,
+    }),
+  ),
   PublicUser: publicUser,
   UserResponse: envelope(user),
   Genre: genre,
@@ -416,6 +493,7 @@ responseSchemas.CommunityPostResponse = envelope(responseSchemas.CommunityPost);
 responseSchemas.CommunityCommentResponse = envelope(
   responseSchemas.CommunityComment,
 );
+responseSchemas.ChatMessageResponse = envelope(responseSchemas.ChatMessage);
 
 // Stable operation IDs are also the keys in generated frontend contracts.
 // Adding a route without a response contract causes export/build checks to fail.
@@ -435,6 +513,21 @@ export const operationResponses: Record<string, string> = {
   Community_unfollow: 'MessageResponse',
   Community_followers: 'CommunityUserPageResponse',
   Community_following: 'CommunityUserPageResponse',
+  RoomChat_listMessages: 'ChatMessagePageResponse',
+  RoomChat_syncMessages: 'ChatSyncResponse',
+  RoomChat_listPinned: 'ChatMessageListResponse',
+  RoomChat_getUnread: 'ChatUnreadResponse',
+  RoomChat_markRead: 'ChatUnreadResponse',
+  RoomChat_getMessage: 'ChatMessageResponse',
+  RoomChat_sendMessage: 'ChatMessageResponse',
+  RoomChat_editMessage: 'ChatMessageResponse',
+  RoomChat_deleteMessage: 'ChatMessageResponse',
+  RoomChat_addReaction: 'ChatMessageResponse',
+  RoomChat_removeReaction: 'ChatMessageResponse',
+  RoomChat_votePoll: 'ChatMessageResponse',
+  RoomChat_closePoll: 'ChatMessageResponse',
+  RoomChat_pinMessage: 'ChatMessageResponse',
+  RoomChat_unpinMessage: 'ChatMessageResponse',
   App_getHello: 'StringResponse',
   App_health: 'HealthResponse',
   Auth_isAuthenticated: 'StringResponse',

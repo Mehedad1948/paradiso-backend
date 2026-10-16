@@ -27,6 +27,8 @@ The movie community API supports public recommendations with images and ratings,
 comments, follows, a following feed, room discussions and room promotions.
 See [the community API guide](docs/community.md) for endpoints, permissions,
 frontend integration and the database migration.
+Rooms also have a members-only chat with replies, mentions, movie cards,
+reactions and polls; see [the room chat API guide](docs/room-chat.md).
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
