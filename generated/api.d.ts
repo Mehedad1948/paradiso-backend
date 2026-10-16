@@ -553,6 +553,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rooms/add-custom-movie/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** add Custom Movie To Room */
+        post: operations["Rooms_addCustomMovieToRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rooms/delete-movie/{id}": {
         parameters: {
             query?: never;
@@ -982,6 +999,17 @@ export interface components {
             /** Format: int32 */
             dbId: number;
         };
+        CreateCustomMovieDto: {
+            title: string;
+            /** Format: int32 */
+            year: number;
+            /**
+             * Format: uri
+             * @description IMDb title URL or bare IMDb ID (e.g. tt0133093), normalised to a URL.
+             */
+            imdbLink?: string | null;
+            overview?: string | null;
+        };
         RemoveRoomMovieDto: {
             /** Format: uuid */
             movieId: string;
@@ -1037,7 +1065,7 @@ export interface components {
             movie: {
                 /** Format: uuid */
                 id: string;
-                dbId: number;
+                dbId: number | null;
                 title: string;
                 poster_path: string | null;
             };
@@ -1080,7 +1108,7 @@ export interface components {
             movie: {
                 /** Format: uuid */
                 id: string;
-                dbId: number;
+                dbId: number | null;
                 title: string;
                 poster_path: string | null;
             };
@@ -1182,7 +1210,7 @@ export interface components {
         Movie: {
             /** Format: uuid */
             id: string;
-            dbId: number;
+            dbId: number | null;
             title: string;
             poster_path: string | null;
             vote_average: number | null;
@@ -1203,7 +1231,7 @@ export interface components {
         MovieResponse: {
             /** Format: uuid */
             id: string;
-            dbId: number;
+            dbId: number | null;
             title: string;
             poster_path: string | null;
             vote_average: number | null;
@@ -1231,7 +1259,7 @@ export interface components {
         CreatedMovieResponse: {
             /** Format: uuid */
             id: string;
-            dbId: number;
+            dbId: number | null;
             title: string;
             poster_path?: string | null;
             vote_average?: number | null;
@@ -1255,7 +1283,7 @@ export interface components {
         UpdatedMovieResponse: {
             /** Format: uuid */
             id: string;
-            dbId: number;
+            dbId: number | null;
             title: string;
             release_date: string | null;
             imdbRate: number | null;
@@ -1283,7 +1311,7 @@ export interface components {
         RatedMovie: {
             /** Format: uuid */
             id: string;
-            dbId: number;
+            dbId: number | null;
             title: string;
             poster_path: string | null;
             vote_average: number | null;
@@ -1305,7 +1333,7 @@ export interface components {
         RatedMovieResponse: {
             /** Format: uuid */
             id: string;
-            dbId: number;
+            dbId: number | null;
             title: string;
             poster_path: string | null;
             vote_average: number | null;
@@ -1339,7 +1367,7 @@ export interface components {
             movie: {
                 /** Format: uuid */
                 id: string;
-                dbId: number;
+                dbId: number | null;
                 title: string;
                 poster_path: string | null;
                 vote_average: number | null;
@@ -2993,6 +3021,41 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["AddRoomMovieDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddedRoomMovieResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Rooms_addCustomMovieToRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCustomMovieDto"];
             };
         };
         responses: {

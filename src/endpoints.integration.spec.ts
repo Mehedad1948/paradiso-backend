@@ -891,4 +891,67 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       .send({ movieId, rate: 5 })
       .expect(409);
   });
+
+  it('adds a manually entered movie with only a title and year', async () => {
+    const server = app.getHttpServer();
+    const body = { title: 'Uncatalogued Film', year: 2004 };
+    await request(server)
+      .post('/rooms/add-custom-movie/' + publicRoom)
+      .auth(access[1], { type: 'bearer' })
+      .send(body)
+      .expect(403);
+    await request(server)
+      .post('/rooms/add-custom-movie/' + publicRoom)
+      .auth(access[0], { type: 'bearer' })
+      .send({ title: 'No year' })
+      .expect(400);
+    const added = await request(server)
+      .post('/rooms/add-custom-movie/' + publicRoom)
+      .auth(access[0], { type: 'bearer' })
+      .send(body)
+      .expect(201);
+    assertOpenApiResponse(
+      createOpenApiDocument(app),
+      'Rooms_addCustomMovieToRoom',
+      added.body,
+    );
+    const movie = await database.getRepository(Movie).findOne({
+      where: { id: added.body.movieId },
+      relations: { addedBy: true },
+    });
+    expect(movie).toMatchObject({
+      dbId: null,
+      title: 'Uncatalogued Film',
+      release_date: '2004',
+      addedBy: { id: users[0].id },
+    });
+    await request(server)
+      .post('/rooms/add-custom-movie/' + publicRoom)
+      .auth(access[0], { type: 'bearer' })
+      .send({ title: 'uncatalogued film', year: 2004 })
+      .expect(409);
+    expect(
+      await database
+        .getRepository(Movie)
+        .countBy({ title: 'uncatalogued film' }),
+    ).toBe(0);
+    // A second custom movie must not collide with the first on the null dbId.
+    await request(server)
+      .post('/rooms/add-custom-movie/' + privateRoom)
+      .auth(access[0], { type: 'bearer' })
+      .send(body)
+      .expect(201);
+    const listed = await request(server)
+      .get('/rooms/' + publicRoom + '/rating')
+      .auth(access[0], { type: 'bearer' })
+      .expect(200);
+    expect(listed.body.data).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: added.body.movieId,
+          release_date: '2004',
+        }),
+      ]),
+    );
+  });
 });

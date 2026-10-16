@@ -9,8 +9,15 @@ const {
 const {
   RoomThemeColor1791676800000,
 } = require('../dist/rooms/migrations/1791676800000-room-theme-color');
+const {
+  CustomMovies1792281600000,
+} = require('../dist/movies/migrations/1792281600000-custom-movies');
 
-const migrations = [Community1790985600000, RoomThemeColor1791676800000];
+const migrations = [
+  Community1790985600000,
+  RoomThemeColor1791676800000,
+  CustomMovies1792281600000,
+];
 
 async function main() {
   // Preview SQL without opening a connection or reading credentials.

@@ -66,6 +66,10 @@ describe('OpenAPI frontend contract', () => {
         },
       },
     });
+    expect(schemas.CreateCustomMovieDto).toMatchObject({
+      required: ['title', 'year'],
+      additionalProperties: false,
+    });
     expect(schemas.MovieGenreDto).toMatchObject({
       required: ['id'],
       properties: { id: { type: 'integer', minimum: 1 } },

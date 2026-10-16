@@ -2139,6 +2139,63 @@
         "summary": "add Movie To Room"
       }
     },
+    "/rooms/add-custom-movie/{id}": {
+      "post": {
+        "operationId": "Rooms_addCustomMovieToRoom",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomMovieDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddedRoomMovieResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rooms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "add Custom Movie To Room"
+      }
+    },
     "/rooms/delete-movie/{id}": {
       "delete": {
         "operationId": "Rooms_removeMovieFromRoom",
@@ -3908,6 +3965,38 @@
         ],
         "additionalProperties": false
       },
+      "CreateCustomMovieDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1870,
+            "maximum": 2100
+          },
+          "imdbLink": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true,
+            "description": "IMDb title URL or bare IMDb ID (e.g. tt0133093), normalised to a URL."
+          },
+          "overview": {
+            "type": "string",
+            "maxLength": 2000,
+            "nullable": true
+          }
+        },
+        "required": [
+          "title",
+          "year"
+        ],
+        "additionalProperties": false
+      },
       "RemoveRoomMovieDto": {
         "type": "object",
         "properties": {
@@ -4080,7 +4169,8 @@
                 "format": "uuid"
               },
               "dbId": {
-                "type": "integer"
+                "type": "integer",
+                "nullable": true
               },
               "title": {
                 "type": "string"
@@ -4238,7 +4328,8 @@
                 "format": "uuid"
               },
               "dbId": {
-                "type": "integer"
+                "type": "integer",
+                "nullable": true
               },
               "title": {
                 "type": "string"
@@ -4641,7 +4732,8 @@
             "format": "uuid"
           },
           "dbId": {
-            "type": "integer"
+            "type": "integer",
+            "nullable": true
           },
           "title": {
             "type": "string"
@@ -4737,7 +4829,8 @@
             "format": "uuid"
           },
           "dbId": {
-            "type": "integer"
+            "type": "integer",
+            "nullable": true
           },
           "title": {
             "type": "string"
@@ -4863,7 +4956,8 @@
             "format": "uuid"
           },
           "dbId": {
-            "type": "integer"
+            "type": "integer",
+            "nullable": true
           },
           "title": {
             "type": "string"
@@ -4952,7 +5046,8 @@
             "format": "uuid"
           },
           "dbId": {
-            "type": "integer"
+            "type": "integer",
+            "nullable": true
           },
           "title": {
             "type": "string"
@@ -5060,7 +5155,8 @@
             "format": "uuid"
           },
           "dbId": {
-            "type": "integer"
+            "type": "integer",
+            "nullable": true
           },
           "title": {
             "type": "string"
@@ -5163,7 +5259,8 @@
             "format": "uuid"
           },
           "dbId": {
-            "type": "integer"
+            "type": "integer",
+            "nullable": true
           },
           "title": {
             "type": "string"
@@ -5317,7 +5414,8 @@
                 "format": "uuid"
               },
               "dbId": {
-                "type": "integer"
+                "type": "integer",
+                "nullable": true
               },
               "title": {
                 "type": "string"

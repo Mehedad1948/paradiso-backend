@@ -23,6 +23,7 @@ import { ActiveUserData } from '../auth/interfaces/active-user-data.interface';
 import { RoomReadGuard } from './guards/room-read.guard';
 import { AddRoomMovieDto, RemoveRoomMovieDto } from './dtos/room-movie.dto';
 import { UpdateRoomDto } from './dtos/update-room.dto';
+import { CreateCustomMovieDto } from '../movies/dtos/create-custom-movie.dto';
 
 @Controller('rooms')
 export class RoomsController {
@@ -73,6 +74,18 @@ export class RoomsController {
     @Body() dto: AddRoomMovieDto,
   ) {
     return await this.roomsService.addMovieToRoom(id, dto.dbId);
+  }
+
+  // For movies missing from TMDb: only title and year are required.
+  @Auth(AuthType.Bearer)
+  @UseGuards(RoomMemberGuard)
+  @Post('/add-custom-movie/:id')
+  async addCustomMovieToRoom(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CreateCustomMovieDto,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return await this.roomsService.addCustomMovieToRoom(id, user.sub, dto);
   }
 
   @Auth(AuthType.Bearer)

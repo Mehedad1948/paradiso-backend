@@ -2,6 +2,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { GetRoomRatingDto } from '../../rooms/dtos/get-room-ratings';
 import { AddRoomMovieDto } from '../../rooms/dtos/room-movie.dto';
 import { CreateMovieDto } from '../../movies/dtos/create-movie.dto';
+import { CreateCustomMovieDto } from '../../movies/dtos/create-custom-movie.dto';
 
 describe('Endpoint validation', () => {
   const pipe = new ValidationPipe({
@@ -68,5 +69,31 @@ describe('Endpoint validation', () => {
         { type: 'body', metatype: CreateMovieDto },
       ),
     ).rejects.toThrow();
+  });
+  it('accepts a custom movie with only a title and year', async () => {
+    const custom = (body: object) =>
+      pipe.transform(body, { type: 'body', metatype: CreateCustomMovieDto });
+    await expect(
+      custom({ title: '  Home Movie ', year: 2019 }),
+    ).resolves.toEqual({ title: 'Home Movie', year: 2019 });
+    await expect(
+      custom({ title: 'Matrix', year: 1999, imdbLink: 'tt0133093' }),
+    ).resolves.toMatchObject({
+      imdbLink: 'https://www.imdb.com/title/tt0133093/',
+    });
+    await expect(
+      custom({ title: 'Matrix', year: 1999, imdbLink: '' }),
+    ).resolves.toEqual({ title: 'Matrix', year: 1999 });
+    for (const bad of [
+      { year: 1999 },
+      { title: '   ', year: 1999 },
+      { title: 'No year' },
+      { title: 'Bad year', year: '1999' },
+      { title: 'Bad year', year: 1500 },
+      { title: 'Off-site', year: 1999, imdbLink: 'https://evil.test/tt1' },
+      { title: 'Catalogue', year: 1999, dbId: 5 },
+    ]) {
+      await expect(custom(bad)).rejects.toThrow();
+    }
   });
 });

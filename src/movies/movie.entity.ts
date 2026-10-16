@@ -23,8 +23,9 @@ export class Movie {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ nullable: false })
-  dbId: number;
+  // TMDb ID; null for movies a user entered manually.
+  @Column({ type: 'integer', nullable: true })
+  dbId: number | null;
 
   @Column({ nullable: false })
   title: string;

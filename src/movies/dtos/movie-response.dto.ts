@@ -7,7 +7,7 @@ export class MovieResponseDto {
   id: string;
 
   @Expose()
-  dbId: number;
+  dbId: number | null;
 
   @Expose()
   title: string;

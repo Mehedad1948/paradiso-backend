@@ -42,7 +42,7 @@ const publicUser = object({
 const genre = object({ id: uuid, name: string, tmdbId: integer });
 const movieProperties: Properties = {
   id: uuid,
-  dbId: integer,
+  dbId: nullable(integer),
   title: string,
   poster_path: nullable(string),
   vote_average: nullable(number),
@@ -102,7 +102,7 @@ const user = object(
 );
 const updatedMovie = object({
   id: uuid,
-  dbId: integer,
+  dbId: nullable(integer),
   title: string,
   release_date: nullable(string),
   imdbRate: nullable(number),
@@ -131,7 +131,7 @@ export const responseSchemas: Record<string, SchemaObject> = {
     author: ref('PublicUser'),
     movie: object({
       id: uuid,
-      dbId: integer,
+      dbId: nullable(integer),
       title: string,
       poster_path: nullable(string),
     }),
@@ -458,6 +458,7 @@ export const operationResponses: Record<string, string> = {
   Rooms_getRoomById: 'RoomResponse',
   Rooms_updateRoom: 'RoomResponse',
   Rooms_addMovieToRoom: 'AddedRoomMovieResponse',
+  Rooms_addCustomMovieToRoom: 'AddedRoomMovieResponse',
   Rooms_removeMovieFromRoom: 'MessageResponse',
   Rooms_getRoomRatings: 'RoomRatingsResponse',
   Ratings_addRating: 'AddedRatingResponse',

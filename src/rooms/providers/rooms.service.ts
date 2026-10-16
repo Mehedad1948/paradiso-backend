@@ -9,6 +9,7 @@ import { DeleteMovieFromRoomProvider } from './delete-movie-from-room.provider';
 import { GetRoomRatingDto } from '../dtos/get-room-ratings';
 import { UpdateRoomDto } from '../dtos/update-room.dto';
 import { UpdateRoomProvider } from './update-room.provider';
+import { CreateCustomMovieDto } from '../../movies/dtos/create-custom-movie.dto';
 
 @Injectable()
 export class RoomsService {
@@ -44,6 +45,18 @@ export class RoomsService {
 
   async addMovieToRoom(roomId: number, movieId: number) {
     return await this.addMovieToRoomProvider.addMovieToRoom(roomId, movieId);
+  }
+
+  async addCustomMovieToRoom(
+    roomId: number,
+    userId: number,
+    dto: CreateCustomMovieDto,
+  ) {
+    return await this.addMovieToRoomProvider.addCustomMovieToRoom(
+      roomId,
+      userId,
+      dto,
+    );
   }
 
   async deleteMovieFromRoom(roomId: number, movieId: string) {
