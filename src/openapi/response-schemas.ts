@@ -288,7 +288,7 @@ export const responseSchemas: Record<string, SchemaObject> = {
     ]),
   ),
   UpdatedMovieResponse: envelope(updatedMovie),
-  Rating: object({ id: uuid, rate: integer, user: ref('PublicUser') }),
+  Rating: object({ id: uuid, rate: number, user: ref('PublicUser') }),
   RatedMovie: ratedMovie,
   RatedMovieResponse: envelope(ratedMovie),
   RatingsResponse: envelope(
@@ -299,7 +299,7 @@ export const responseSchemas: Record<string, SchemaObject> = {
   ),
   AddedRatingResponse: envelope(
     object({
-      rate: integer,
+      rate: number,
       movie: object(
         movieProperties,
         Object.keys(movieProperties).filter((key) => key !== 'genres'),
@@ -354,7 +354,7 @@ export const responseSchemas: Record<string, SchemaObject> = {
     averageRate: nullable(number),
     userSpecificRate: nullable(number),
     ratings: array(
-      object({ user: ref('PublicUser'), rate: nullable(integer) }),
+      object({ user: ref('PublicUser'), rate: nullable(number) }),
     ),
     hasVoted: boolean,
   }),

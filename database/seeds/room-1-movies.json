@@ -1,0 +1,1659 @@
+{
+  "roomId": 1,
+  "raters": {
+    "ali": {
+      "username": "Ali",
+      "email": "ali@placeholder.paradiso.invalid"
+    },
+    "mehdi": {
+      "username": "Mehdi",
+      "email": "mehdi@placeholder.paradiso.invalid"
+    },
+    "mehrdad": {
+      "userId": 3
+    }
+  },
+  "movies": [
+    {
+      "title": "Inception",
+      "year": 2012,
+      "imdbRate": 8.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 12:55:15.659649+00",
+      "ratings": {
+        "ali": 9.5,
+        "mehdi": 10.0,
+        "mehrdad": 9.1
+      }
+    },
+    {
+      "title": "Tenet",
+      "year": 2020,
+      "imdbRate": 7.3,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 13:33:07.513402+00",
+      "ratings": {
+        "ali": 7.2,
+        "mehdi": 8.9,
+        "mehrdad": 7.9
+      }
+    },
+    {
+      "title": "The Lord of the Rings: The Fellowship of the Ring",
+      "year": 2001,
+      "imdbRate": 8.8,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 14:14:44.990738+00",
+      "ratings": {
+        "ali": 8.6,
+        "mehdi": 9.1,
+        "mehrdad": 9.6
+      }
+    },
+    {
+      "title": "The Lord of the Rings: The Two Towers",
+      "year": 2002,
+      "imdbRate": 8.8,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 14:18:31.278264+00",
+      "ratings": {
+        "ali": 8.6,
+        "mehdi": 9.6,
+        "mehrdad": 9.0
+      }
+    },
+    {
+      "title": "The Lord of the Rings: The Return of the King",
+      "year": 2003,
+      "imdbRate": 9.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 14:20:19.656063+00",
+      "ratings": {
+        "ali": 9.1,
+        "mehdi": 9.5,
+        "mehrdad": 9.6
+      }
+    },
+    {
+      "title": "The Dark Knight",
+      "year": 2008,
+      "imdbRate": 9.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 14:23:56.001902+00",
+      "ratings": {
+        "ali": 9.0,
+        "mehdi": 10.0,
+        "mehrdad": 9.5
+      }
+    },
+    {
+      "title": "Babylon",
+      "year": 2022,
+      "imdbRate": 7.2,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 17:14:27.466689+00",
+      "ratings": {
+        "ali": 8.9,
+        "mehdi": 8.1,
+        "mehrdad": 7.8
+      }
+    },
+    {
+      "title": "The Platform",
+      "year": 2019,
+      "imdbRate": 7.0,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 17:17:55.599798+00",
+      "ratings": {
+        "ali": 8.8,
+        "mehdi": 8.8,
+        "mehrdad": 9.0
+      }
+    },
+    {
+      "title": "Rush",
+      "year": 2013,
+      "imdbRate": 8.1,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 17:20:14.362371+00",
+      "ratings": {
+        "ali": 8.2,
+        "mehdi": 8.3,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "Top Gun: Maverick",
+      "year": 2022,
+      "imdbRate": 8.3,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 18:38:57.817825+00",
+      "ratings": {
+        "ali": 7.9,
+        "mehdi": 7.9,
+        "mehrdad": 7.4
+      }
+    },
+    {
+      "title": "Parasite",
+      "year": 2019,
+      "imdbRate": 8.5,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 18:40:02.644735+00",
+      "ratings": {
+        "ali": 8.9,
+        "mehdi": 9.4,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "A Man Called Otto",
+      "year": 2022,
+      "imdbRate": 7.5,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 18:41:23.530309+00",
+      "ratings": {
+        "ali": 7.7,
+        "mehdi": 8.2,
+        "mehrdad": 7.3
+      }
+    },
+    {
+      "title": "Living",
+      "year": 2022,
+      "imdbRate": 7.3,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 18:42:01.315414+00",
+      "ratings": {
+        "ali": 7.4,
+        "mehdi": 7.6,
+        "mehrdad": 7.0
+      }
+    },
+    {
+      "title": "The Place Beyond the Pines",
+      "year": 2012,
+      "imdbRate": 7.3,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 18:45:47.838585+00",
+      "ratings": {
+        "ali": 7.3,
+        "mehdi": 6.3,
+        "mehrdad": 6.8
+      }
+    },
+    {
+      "title": "The Conjuring",
+      "year": 2013,
+      "imdbRate": 7.5,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 18:51:25.208786+00",
+      "ratings": {
+        "ali": 8.1,
+        "mehdi": 8.0,
+        "mehrdad": 7.3
+      }
+    },
+    {
+      "title": "The Black Phone",
+      "year": 2021,
+      "imdbRate": 6.9,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 18:52:24.506163+00",
+      "ratings": {
+        "ali": 7.8,
+        "mehdi": 7.7,
+        "mehrdad": 7.6
+      }
+    },
+    {
+      "title": "The Pope's Exorcist",
+      "year": 2023,
+      "imdbRate": 6.1,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 18:53:02.700898+00",
+      "ratings": {
+        "ali": 7.2,
+        "mehdi": 5.8,
+        "mehrdad": 7.5
+      }
+    },
+    {
+      "title": "John Wick: Chapter 4",
+      "year": 2023,
+      "imdbRate": 7.8,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 18:53:46.088757+00",
+      "ratings": {
+        "ali": 7.9,
+        "mehdi": 7.1,
+        "mehrdad": 7.8
+      }
+    },
+    {
+      "title": "Mad Max: Fury Road",
+      "year": 2015,
+      "imdbRate": 8.1,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 18:54:34.664799+00",
+      "ratings": {
+        "ali": 8.8,
+        "mehdi": 7.1,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "Green Book",
+      "year": 2018,
+      "imdbRate": 8.2,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 18:55:08.753313+00",
+      "ratings": {
+        "ali": 8.1,
+        "mehdi": 8.1,
+        "mehrdad": 8.6
+      }
+    },
+    {
+      "title": "The Peanut Butter Falcon",
+      "year": 2019,
+      "imdbRate": 7.6,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 18:56:41.157173+00",
+      "ratings": {
+        "ali": 7.7,
+        "mehdi": 7.4,
+        "mehrdad": 7.6
+      }
+    },
+    {
+      "title": "(500) Days of Summer",
+      "year": 2009,
+      "imdbRate": 7.7,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 18:58:03.870677+00",
+      "ratings": {
+        "ali": 7.6,
+        "mehdi": 7.8,
+        "mehrdad": 7.5
+      }
+    },
+    {
+      "title": "Donnie Darko",
+      "year": 2001,
+      "imdbRate": 8.0,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 19:00:55.839837+00",
+      "ratings": {
+        "ali": 5.2,
+        "mehdi": 5.4,
+        "mehrdad": 6.0
+      }
+    },
+    {
+      "title": "The Matrix",
+      "year": 1999,
+      "imdbRate": 8.7,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 19:01:30.821196+00",
+      "ratings": {
+        "ali": 8.9,
+        "mehrdad": 9.5
+      }
+    },
+    {
+      "title": "The Experiment",
+      "year": 2010,
+      "imdbRate": 6.1,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 19:03:43.102577+00",
+      "ratings": {
+        "ali": 8.2,
+        "mehdi": 8.1,
+        "mehrdad": 8.0
+      }
+    },
+    {
+      "title": "Decision to Leave",
+      "year": 2022,
+      "imdbRate": 7.3,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 19:05:16.95497+00",
+      "ratings": {
+        "ali": 6.0,
+        "mehdi": 4.4,
+        "mehrdad": 6.0
+      }
+    },
+    {
+      "title": "The Unbearable Weight of Massive Talent",
+      "year": 2022,
+      "imdbRate": 7.0,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 19:08:29.552453+00",
+      "ratings": {
+        "ali": 7.0,
+        "mehdi": 6.3,
+        "mehrdad": 7.0
+      }
+    },
+    {
+      "title": "Elvis",
+      "year": 2022,
+      "imdbRate": 7.3,
+      "watchedTogether": true,
+      "createdAt": "2023-08-12 19:09:31.910414+00",
+      "ratings": {
+        "ali": 7.9,
+        "mehdi": 6.7,
+        "mehrdad": 7.2
+      }
+    },
+    {
+      "title": "A Separation",
+      "year": 2011,
+      "imdbRate": 8.3,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 19:12:00.810952+00",
+      "ratings": {
+        "ali": 9.6,
+        "mehdi": 9.7,
+        "mehrdad": 8.4
+      }
+    },
+    {
+      "title": "The Salesman",
+      "year": 2016,
+      "imdbRate": 7.7,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 19:12:52.491036+00",
+      "ratings": {
+        "ali": 8.9,
+        "mehdi": 9.3,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "Memento",
+      "year": 2000,
+      "imdbRate": 8.4,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 20:05:03.561547+00",
+      "ratings": {
+        "ali": 8.0,
+        "mehdi": 9.2,
+        "mehrdad": 9.4
+      }
+    },
+    {
+      "title": "Insomnia",
+      "year": 2002,
+      "imdbRate": 7.2,
+      "watchedTogether": false,
+      "createdAt": "2023-08-12 20:07:11.218337+00",
+      "ratings": {
+        "ali": 8.0,
+        "mehdi": 7.9,
+        "mehrdad": 8.9
+      }
+    },
+    {
+      "title": "Bullet Train",
+      "year": 2022,
+      "imdbRate": 7.3,
+      "watchedTogether": true,
+      "createdAt": "2023-08-13 11:26:34.365324+00",
+      "ratings": {
+        "ali": 6.6,
+        "mehdi": 6.9,
+        "mehrdad": 6.9
+      }
+    },
+    {
+      "title": "The Good Nurse",
+      "year": 2022,
+      "imdbRate": 6.8,
+      "watchedTogether": true,
+      "createdAt": "2023-08-13 11:31:01.84263+00",
+      "ratings": {
+        "ali": 8.3,
+        "mehdi": 8.0,
+        "mehrdad": 8.3
+      }
+    },
+    {
+      "title": "Fractured",
+      "year": 2019,
+      "imdbRate": 6.4,
+      "watchedTogether": true,
+      "createdAt": "2023-08-13 11:32:47.552837+00",
+      "ratings": {
+        "ali": 7.0,
+        "mehdi": 6.2,
+        "mehrdad": 7.2
+      }
+    },
+    {
+      "title": "Gone Girl",
+      "year": 2014,
+      "imdbRate": 8.1,
+      "watchedTogether": false,
+      "createdAt": "2023-08-13 11:33:40.135946+00",
+      "ratings": {
+        "ali": 8.1,
+        "mehdi": 8.9,
+        "mehrdad": 8.4
+      }
+    },
+    {
+      "title": "The Shawshank Redemption",
+      "year": 1994,
+      "imdbRate": 9.3,
+      "watchedTogether": false,
+      "createdAt": "2023-08-13 11:37:53.005337+00",
+      "ratings": {
+        "ali": 8.2,
+        "mehdi": 9.7,
+        "mehrdad": 9.6
+      }
+    },
+    {
+      "title": "12 Angry Men",
+      "year": 1957,
+      "imdbRate": 9.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-13 11:38:31.850734+00",
+      "ratings": {
+        "ali": 9.0,
+        "mehdi": 9.3,
+        "mehrdad": 9.4
+      }
+    },
+    {
+      "title": "The Last Duel",
+      "year": 2021,
+      "imdbRate": 7.4,
+      "watchedTogether": true,
+      "createdAt": "2023-08-13 11:39:44.663419+00",
+      "ratings": {
+        "ali": 8.3,
+        "mehdi": 7.9,
+        "mehrdad": 7.0
+      }
+    },
+    {
+      "title": "Million Dollar Baby",
+      "year": 2004,
+      "imdbRate": 8.1,
+      "watchedTogether": false,
+      "createdAt": "2023-08-13 11:40:32.921175+00",
+      "ratings": {
+        "ali": 8.7,
+        "mehdi": 8.9,
+        "mehrdad": 9.5
+      }
+    },
+    {
+      "title": "Hugo",
+      "year": 2011,
+      "imdbRate": 7.5,
+      "watchedTogether": false,
+      "createdAt": "2023-08-13 11:45:05.287184+00",
+      "ratings": {
+        "ali": 8.3,
+        "mehrdad": 9.2
+      }
+    },
+    {
+      "title": "La La Land",
+      "year": 2018,
+      "imdbRate": 8.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-13 11:48:31.275606+00",
+      "ratings": {
+        "ali": 9.0,
+        "mehdi": 8.5,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "Whiplash",
+      "year": 2014,
+      "imdbRate": 8.5,
+      "watchedTogether": false,
+      "createdAt": "2023-08-13 11:49:52.233902+00",
+      "ratings": {
+        "ali": 8.6,
+        "mehdi": 8.6,
+        "mehrdad": 8.6
+      }
+    },
+    {
+      "title": "Constantine",
+      "year": 2005,
+      "imdbRate": 7.0,
+      "watchedTogether": true,
+      "createdAt": "2023-08-13 17:21:49.841202+00",
+      "ratings": {
+        "ali": 8.5,
+        "mehdi": 7.6,
+        "mehrdad": 8.4
+      }
+    },
+    {
+      "title": "Django Unchained",
+      "year": 2012,
+      "imdbRate": 8.4,
+      "watchedTogether": false,
+      "createdAt": "2023-08-13 17:22:57.020879+00",
+      "ratings": {
+        "ali": 8.3,
+        "mehdi": 8.9,
+        "mehrdad": 9.5
+      }
+    },
+    {
+      "title": "Inglourious Basterds",
+      "year": 2008,
+      "imdbRate": 8.3,
+      "watchedTogether": false,
+      "createdAt": "2023-08-13 17:23:52.543064+00",
+      "ratings": {
+        "ali": 8.2,
+        "mehdi": 8.1,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "Shutter Island",
+      "year": 2010,
+      "imdbRate": 8.2,
+      "watchedTogether": false,
+      "createdAt": "2023-08-13 17:25:13.887807+00",
+      "ratings": {
+        "ali": 9.4,
+        "mehdi": 9.0,
+        "mehrdad": 9.0
+      }
+    },
+    {
+      "title": "Fight Club",
+      "year": 1999,
+      "imdbRate": 8.8,
+      "watchedTogether": false,
+      "createdAt": "2023-08-13 17:26:37.454047+00",
+      "ratings": {
+        "ali": 7.5,
+        "mehdi": 9.4,
+        "mehrdad": 9.0
+      }
+    },
+    {
+      "title": "Forrest Gump",
+      "year": 1994,
+      "imdbRate": 8.8,
+      "watchedTogether": false,
+      "createdAt": "2023-08-13 17:27:33.08916+00",
+      "ratings": {
+        "ali": 8.0,
+        "mehdi": 8.4,
+        "mehrdad": 9.6
+      }
+    },
+    {
+      "title": "The Wolf of Wall Street",
+      "year": 2013,
+      "imdbRate": 8.2,
+      "watchedTogether": false,
+      "createdAt": "2023-08-15 04:51:43.149782+00",
+      "ratings": {
+        "ali": 8.9,
+        "mehdi": 8.6,
+        "mehrdad": 8.0
+      }
+    },
+    {
+      "title": "The Mist",
+      "year": 2008,
+      "imdbRate": 7.1,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 18:58:02.199952+00",
+      "ratings": {
+        "ali": 8.0,
+        "mehdi": 8.7,
+        "mehrdad": 7.8
+      }
+    },
+    {
+      "title": "All Quiet on the Western Front",
+      "year": 2022,
+      "imdbRate": 7.8,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 19:00:03.146787+00",
+      "ratings": {
+        "ali": 7.9,
+        "mehdi": 8.0,
+        "mehrdad": 7.9
+      }
+    },
+    {
+      "title": "Glass Onion",
+      "year": 2022,
+      "imdbRate": 7.1,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 19:00:48.074359+00",
+      "ratings": {
+        "ali": 7.2,
+        "mehdi": 7.9,
+        "mehrdad": 7.2
+      }
+    },
+    {
+      "title": "The Banshees of Inisherin",
+      "year": 2022,
+      "imdbRate": 7.7,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 19:01:24.114724+00",
+      "ratings": {
+        "ali": 7.0,
+        "mehdi": 7.3,
+        "mehrdad": 8.0
+      }
+    },
+    {
+      "title": "Limitless",
+      "year": 2011,
+      "imdbRate": 7.4,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 19:02:54.675167+00",
+      "ratings": {
+        "ali": 7.4,
+        "mehdi": 7.7,
+        "mehrdad": 7.0
+      }
+    },
+    {
+      "title": "Don't Look Up",
+      "year": 2021,
+      "imdbRate": 7.2,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 19:03:42.346633+00",
+      "ratings": {
+        "ali": 6.8,
+        "mehdi": 6.7,
+        "mehrdad": 6.9
+      }
+    },
+    {
+      "title": "See How They Run",
+      "year": 2022,
+      "imdbRate": 6.5,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 19:04:30.478667+00",
+      "ratings": {
+        "ali": 7.0,
+        "mehdi": 6.8,
+        "mehrdad": 6.5
+      }
+    },
+    {
+      "title": "Nightmare Alley",
+      "year": 2021,
+      "imdbRate": 7.0,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 19:06:05.930138+00",
+      "ratings": {
+        "ali": 6.9,
+        "mehdi": 6.9,
+        "mehrdad": 6.5
+      }
+    },
+    {
+      "title": "Red Notice",
+      "year": 2021,
+      "imdbRate": 6.3,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 19:06:45.247766+00",
+      "ratings": {
+        "ali": 5.5,
+        "mehdi": 5.5,
+        "mehrdad": 5.8
+      }
+    },
+    {
+      "title": "Seven Psychopaths",
+      "year": 2012,
+      "imdbRate": 7.1,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 19:07:56.151178+00",
+      "ratings": {
+        "ali": 6.9,
+        "mehdi": 6.8,
+        "mehrdad": 6.9
+      }
+    },
+    {
+      "title": "Aftersun",
+      "year": 2022,
+      "imdbRate": 7.7,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 19:08:37.797881+00",
+      "ratings": {
+        "ali": 7.0,
+        "mehdi": 4.4,
+        "mehrdad": 7.0
+      }
+    },
+    {
+      "title": "Argentina, 1985",
+      "year": 2022,
+      "imdbRate": 7.6,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 19:09:54.71332+00",
+      "ratings": {
+        "ali": 6.8,
+        "mehdi": 6.4,
+        "mehrdad": 6.9
+      }
+    },
+    {
+      "title": "Laggies",
+      "year": 2014,
+      "imdbRate": 6.4,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 19:13:22.703862+00",
+      "ratings": {
+        "ali": 6.5,
+        "mehdi": 5.5,
+        "mehrdad": 5.5
+      }
+    },
+    {
+      "title": "The Departed",
+      "year": 2006,
+      "imdbRate": 8.5,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:19:00.423965+00",
+      "ratings": {
+        "ali": 9.1,
+        "mehdi": 9.0,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "Gangs of New York",
+      "year": 2002,
+      "imdbRate": 7.5,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:20:14.550575+00",
+      "ratings": {
+        "ali": 8.3,
+        "mehdi": 8.6,
+        "mehrdad": 8.7
+      }
+    },
+    {
+      "title": "Requiem for a Dream",
+      "year": 2000,
+      "imdbRate": 8.3,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:21:16.978952+00",
+      "ratings": {
+        "ali": 9.2,
+        "mehdi": 8.3,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "Dallas Buyers Club",
+      "year": 2013,
+      "imdbRate": 7.9,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:22:23.343998+00",
+      "ratings": {
+        "ali": 8.5,
+        "mehdi": 8.7,
+        "mehrdad": 9.0
+      }
+    },
+    {
+      "title": "Arrival",
+      "year": 2016,
+      "imdbRate": 7.9,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:25:54.549003+00",
+      "ratings": {
+        "ali": 8.9,
+        "mehdi": 9.2,
+        "mehrdad": 8.4
+      }
+    },
+    {
+      "title": "Kill Bill 1 & 2",
+      "year": 2003,
+      "imdbRate": 8.2,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:25:54.557252+00",
+      "ratings": {
+        "ali": 7.9,
+        "mehrdad": 8.2
+      }
+    },
+    {
+      "title": "Zodiac",
+      "year": 2007,
+      "imdbRate": 7.7,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:27:46.617592+00",
+      "ratings": {
+        "ali": 7.6,
+        "mehdi": 7.7,
+        "mehrdad": 8.0
+      }
+    },
+    {
+      "title": "Se7en",
+      "year": 1995,
+      "imdbRate": 8.6,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:28:21.01523+00",
+      "ratings": {
+        "ali": 8.8,
+        "mehdi": 9.4,
+        "mehrdad": 8.9
+      }
+    },
+    {
+      "title": "The Curious Case of Benjamin Button",
+      "year": 2008,
+      "imdbRate": 7.8,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:30:10.75703+00",
+      "ratings": {
+        "ali": 8.4,
+        "mehrdad": 8.3
+      }
+    },
+    {
+      "title": "The Green Mile",
+      "year": 1999,
+      "imdbRate": 8.6,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:36:20.775029+00",
+      "ratings": {
+        "ali": 8.0,
+        "mehdi": 9.4,
+        "mehrdad": 9.2
+      }
+    },
+    {
+      "title": "The Silence of the Lambs",
+      "year": 1991,
+      "imdbRate": 8.6,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:37:21.344841+00",
+      "ratings": {
+        "ali": 8.0,
+        "mehdi": 9.3,
+        "mehrdad": 8.3
+      }
+    },
+    {
+      "title": "Ford v Ferrari",
+      "year": 2019,
+      "imdbRate": 8.11,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:38:52.208876+00",
+      "ratings": {
+        "ali": 8.7,
+        "mehdi": 8.9,
+        "mehrdad": 8.0
+      }
+    },
+    {
+      "title": "The Martian",
+      "year": 2015,
+      "imdbRate": 8.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:40:13.202501+00",
+      "ratings": {
+        "ali": 8.9,
+        "mehdi": 8.5,
+        "mehrdad": 8.3
+      }
+    },
+    {
+      "title": "The Imitation Game",
+      "year": 2014,
+      "imdbRate": 8.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:41:16.094091+00",
+      "ratings": {
+        "ali": 9.0,
+        "mehdi": 9.5,
+        "mehrdad": 8.7
+      }
+    },
+    {
+      "title": "Gladiator",
+      "year": 2000,
+      "imdbRate": 8.5,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:42:02.402397+00",
+      "ratings": {
+        "ali": 8.8,
+        "mehdi": 8.9,
+        "mehrdad": 9.4
+      }
+    },
+    {
+      "title": "3 billboards outside ebbing missouri",
+      "year": 2017,
+      "imdbRate": 8.1,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:43:32.043024+00",
+      "ratings": {
+        "ali": 8.9,
+        "mehdi": 8.4,
+        "mehrdad": 8.7
+      }
+    },
+    {
+      "title": "Pulp Fiction",
+      "year": 1994,
+      "imdbRate": 8.9,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:45:33.037605+00",
+      "ratings": {
+        "ali": 7.5,
+        "mehdi": 8.0,
+        "mehrdad": 8.0
+      }
+    },
+    {
+      "title": "Pirates of the Caribbean 1- 5",
+      "year": 2003,
+      "imdbRate": 8.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:47:38.248666+00",
+      "ratings": {
+        "ali": 7.9,
+        "mehdi": 7.2,
+        "mehrdad": 8.0
+      }
+    },
+    {
+      "title": "Manchester by the Sea",
+      "year": 2016,
+      "imdbRate": 7.8,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:48:23.017809+00",
+      "ratings": {
+        "ali": 8.5,
+        "mehdi": 7.6,
+        "mehrdad": 8.3
+      }
+    },
+    {
+      "title": "Nafas",
+      "year": 2016,
+      "imdbRate": 7.4,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:55:32.086312+00",
+      "ratings": {
+        "ali": 8.6,
+        "mehdi": 8.2,
+        "mehrdad": 7.8
+      }
+    },
+    {
+      "title": "Life of Pi",
+      "year": 2012,
+      "imdbRate": 7.9,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:56:42.784379+00",
+      "ratings": {
+        "ali": 7.9,
+        "mehrdad": 9.0
+      }
+    },
+    {
+      "title": "The Hateful Eight",
+      "year": 2015,
+      "imdbRate": 7.8,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:57:57.034408+00",
+      "ratings": {
+        "ali": 8.9,
+        "mehdi": 8.7,
+        "mehrdad": 8.8
+      }
+    },
+    {
+      "title": "The King's Speech",
+      "year": 2010,
+      "imdbRate": 8.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 19:59:56.288987+00",
+      "ratings": {
+        "ali": 8.5,
+        "mehrdad": 8.3
+      }
+    },
+    {
+      "title": "Léon: The Professional",
+      "year": 1994,
+      "imdbRate": 8.5,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 20:01:25.594014+00",
+      "ratings": {
+        "ali": 8.5,
+        "mehdi": 8.3,
+        "mehrdad": 9.0
+      }
+    },
+    {
+      "title": "Knives Out",
+      "year": 2019,
+      "imdbRate": 7.9,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 20:02:09.163984+00",
+      "ratings": {
+        "ali": 8.1,
+        "mehrdad": 8.0
+      }
+    },
+    {
+      "title": "Bohemian Rhapsody",
+      "year": 2018,
+      "imdbRate": 7.9,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 20:04:38.633707+00",
+      "ratings": {
+        "ali": 8.9,
+        "mehrdad": 8.0
+      }
+    },
+    {
+      "title": "The Revenant",
+      "year": 2015,
+      "imdbRate": 8.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 20:05:29.537653+00",
+      "ratings": {
+        "ali": 8.8,
+        "mehdi": 7.4,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "Coco",
+      "year": 2017,
+      "imdbRate": 8.4,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 20:06:52.853595+00",
+      "ratings": {
+        "ali": 8.9,
+        "mehdi": 7.9,
+        "mehrdad": 8.4
+      }
+    },
+    {
+      "title": "Room",
+      "year": 2015,
+      "imdbRate": 8.11,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 20:08:01.33344+00",
+      "ratings": {
+        "ali": 8.7,
+        "mehrdad": 8.3
+      }
+    },
+    {
+      "title": "The Pursuit of Happyness",
+      "year": 2006,
+      "imdbRate": 8.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 20:08:53.751984+00",
+      "ratings": {
+        "ali": 8.6,
+        "mehrdad": 8.1
+      }
+    },
+    {
+      "title": "The Lovely Bones",
+      "year": 2009,
+      "imdbRate": 6.6,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 20:09:35.61904+00",
+      "ratings": {
+        "ali": 8.8,
+        "mehdi": 9.1,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "Kung Fu Panda 1, 2, 3",
+      "year": 2008,
+      "imdbRate": 7.6,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 20:12:01.206149+00",
+      "ratings": {
+        "ali": 8.4,
+        "mehdi": 7.7,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "One Flew Over the Cuckoo's Nest",
+      "year": 1975,
+      "imdbRate": 8.7,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 20:16:25.957453+00",
+      "ratings": {
+        "ali": 9.1,
+        "mehrdad": 9.0
+      }
+    },
+    {
+      "title": "Despicable Me 1, 2, 3",
+      "year": 2017,
+      "imdbRate": 7.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 20:17:51.150322+00",
+      "ratings": {
+        "ali": 8.5,
+        "mehrdad": 7.9
+      }
+    },
+    {
+      "title": "Me Time",
+      "year": 2022,
+      "imdbRate": 5.1,
+      "watchedTogether": true,
+      "createdAt": "2023-08-16 22:35:33.895412+00",
+      "ratings": {
+        "ali": 7.0,
+        "mehdi": 6.1,
+        "mehrdad": 5.5
+      }
+    },
+    {
+      "title": "Schindler's List",
+      "year": 1993,
+      "imdbRate": 9.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 22:50:42.622097+00",
+      "ratings": {
+        "ali": 8.7,
+        "mehdi": 9.1,
+        "mehrdad": 9.5
+      }
+    },
+    {
+      "title": "The Pianist",
+      "year": 2002,
+      "imdbRate": 8.5,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 22:51:31.372655+00",
+      "ratings": {
+        "ali": 8.6,
+        "mehrdad": 9.4
+      }
+    },
+    {
+      "title": "Joker",
+      "year": 2019,
+      "imdbRate": 8.4,
+      "watchedTogether": false,
+      "createdAt": "2023-08-16 23:02:04.43739+00",
+      "ratings": {
+        "ali": 9.5,
+        "mehdi": 8.0,
+        "mehrdad": 9.0
+      }
+    },
+    {
+      "title": "Ad Astra",
+      "year": 2019,
+      "imdbRate": 6.5,
+      "watchedTogether": false,
+      "createdAt": "2023-08-19 15:24:33.714675+00",
+      "ratings": {
+        "mehdi": 7.7,
+        "mehrdad": 7.9
+      }
+    },
+    {
+      "title": "The Intouchables",
+      "year": 2011,
+      "imdbRate": 8.5,
+      "watchedTogether": false,
+      "createdAt": "2023-08-19 15:25:24.057573+00",
+      "ratings": {
+        "ali": 8.2,
+        "mehdi": 9.1,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "The Prestige",
+      "year": 2006,
+      "imdbRate": 8.5,
+      "watchedTogether": false,
+      "createdAt": "2023-08-19 15:25:49.728665+00",
+      "ratings": {
+        "ali": 8.9,
+        "mehdi": 9.3,
+        "mehrdad": 9.0
+      }
+    },
+    {
+      "title": "Her",
+      "year": 2013,
+      "imdbRate": 8.0,
+      "watchedTogether": false,
+      "createdAt": "2023-08-19 19:39:01.732986+00",
+      "ratings": {
+        "ali": 8.1,
+        "mehrdad": 8.6
+      }
+    },
+    {
+      "title": "The Lives of Others",
+      "year": 2006,
+      "imdbRate": 8.4,
+      "watchedTogether": false,
+      "createdAt": "2023-08-19 19:39:42.909832+00",
+      "ratings": {
+        "ali": 8.8,
+        "mehrdad": 9.7
+      }
+    },
+    {
+      "title": "Fury",
+      "year": 2014,
+      "imdbRate": 7.6,
+      "watchedTogether": false,
+      "createdAt": "2023-08-20 18:41:46.384545+00",
+      "ratings": {
+        "ali": 7.8,
+        "mehdi": 8.4,
+        "mehrdad": 8.1
+      }
+    },
+    {
+      "title": "Wind river",
+      "year": 2017,
+      "imdbRate": 7.7,
+      "watchedTogether": true,
+      "createdAt": "2023-08-20 21:49:42.881152+00",
+      "ratings": {
+        "ali": 8.4,
+        "mehdi": 8.7,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "Dunkirk",
+      "year": 2017,
+      "imdbRate": 7.8,
+      "watchedTogether": false,
+      "createdAt": "2023-08-20 21:56:47.195979+00",
+      "ratings": {
+        "ali": 7.8,
+        "mehdi": 7.9,
+        "mehrdad": 8.1
+      }
+    },
+    {
+      "title": "Amélie",
+      "year": 2001,
+      "imdbRate": 8.3,
+      "watchedTogether": false,
+      "createdAt": "2023-08-22 13:09:43.917267+00",
+      "ratings": {
+        "ali": 8.5,
+        "mehrdad": 9.2
+      }
+    },
+    {
+      "title": "The blind side",
+      "year": 2009,
+      "imdbRate": 7.6,
+      "watchedTogether": true,
+      "createdAt": "2023-08-30 21:19:20.350357+00",
+      "ratings": {
+        "ali": 7.9,
+        "mehdi": 7.6,
+        "mehrdad": 7.8
+      }
+    },
+    {
+      "title": "Molly's Game",
+      "year": 2017,
+      "imdbRate": 7.4,
+      "watchedTogether": true,
+      "createdAt": "2023-09-05 22:14:05.358412+00",
+      "ratings": {
+        "ali": 6.8,
+        "mehdi": 6.8,
+        "mehrdad": 6.5
+      }
+    },
+    {
+      "title": "Riders of Justice",
+      "year": 2020,
+      "imdbRate": 7.5,
+      "watchedTogether": false,
+      "createdAt": "2023-09-12 18:46:44.2084+00",
+      "ratings": {
+        "ali": 7.7,
+        "mehrdad": 8.0
+      }
+    },
+    {
+      "title": "Coherence",
+      "year": 2013,
+      "imdbRate": 7.2,
+      "watchedTogether": false,
+      "createdAt": "2023-09-16 20:18:21.263314+00",
+      "ratings": {
+        "ali": 8.3,
+        "mehrdad": 8.4
+      }
+    },
+    {
+      "title": "The death of Stalin",
+      "year": 2017,
+      "imdbRate": 7.2,
+      "watchedTogether": false,
+      "createdAt": "2023-09-16 20:19:20.394255+00",
+      "ratings": {
+        "ali": 6.9,
+        "mehrdad": 7.2
+      }
+    },
+    {
+      "title": "Talk to Me",
+      "year": 2022,
+      "imdbRate": 7.3,
+      "watchedTogether": true,
+      "createdAt": "2023-09-18 21:33:07.11633+00",
+      "ratings": {
+        "ali": 7.8,
+        "mehdi": 8.1,
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "Hell or High Water",
+      "year": 2016,
+      "imdbRate": 7.6,
+      "watchedTogether": true,
+      "createdAt": "2023-09-24 18:40:05.776204+00",
+      "ratings": {
+        "ali": 7.0,
+        "mehdi": 7.7,
+        "mehrdad": 7.6
+      }
+    },
+    {
+      "title": "Barbie",
+      "year": 2023,
+      "imdbRate": 7.1,
+      "watchedTogether": true,
+      "createdAt": "2023-09-28 05:50:52.726136+00",
+      "ratings": {
+        "ali": 6.3,
+        "mehdi": 4.8,
+        "mehrdad": 5.5
+      }
+    },
+    {
+      "title": "Sound of Freedom",
+      "year": 2023,
+      "imdbRate": 7.8,
+      "watchedTogether": true,
+      "createdAt": "2023-10-16 22:11:27.454998+00",
+      "ratings": {
+        "ali": 8.8,
+        "mehdi": 8.3,
+        "mehrdad": 8.9
+      }
+    },
+    {
+      "title": "Santouri",
+      "year": 2007,
+      "imdbRate": 7.5,
+      "watchedTogether": false,
+      "createdAt": "2023-10-19 16:16:38.373199+00",
+      "ratings": {
+        "mehrdad": 8.5
+      }
+    },
+    {
+      "title": "Oppenheimer",
+      "year": 2023,
+      "imdbRate": 8.5,
+      "watchedTogether": true,
+      "createdAt": "2023-11-11 21:54:09.493512+00",
+      "ratings": {
+        "ali": 8.8,
+        "mehdi": 8.7,
+        "mehrdad": 8.8
+      }
+    },
+    {
+      "title": "Mission: Impossible - Dead Reckoning Part One",
+      "year": 2023,
+      "imdbRate": 7.8,
+      "watchedTogether": true,
+      "createdAt": "2023-11-14 20:57:06.494384+00",
+      "ratings": {
+        "ali": 7.3,
+        "mehdi": 7.6,
+        "mehrdad": 7.6
+      }
+    },
+    {
+      "title": "The Killer",
+      "year": 2023,
+      "imdbRate": 6.9,
+      "watchedTogether": true,
+      "createdAt": "2023-11-14 20:59:43.274466+00",
+      "ratings": {
+        "ali": 7.3,
+        "mehdi": 7.1,
+        "mehrdad": 6.6
+      }
+    },
+    {
+      "title": "The Holdovers",
+      "year": 2023,
+      "imdbRate": 8.2,
+      "watchedTogether": true,
+      "createdAt": "2023-12-03 11:11:02.29706+00",
+      "ratings": {
+        "ali": 7.8,
+        "mehdi": 7.8,
+        "mehrdad": 7.9
+      }
+    },
+    {
+      "title": "Killers of the Flower Moon",
+      "year": 2023,
+      "imdbRate": 7.9,
+      "watchedTogether": true,
+      "createdAt": "2023-12-08 15:55:13.303023+00",
+      "ratings": {
+        "ali": 8.8,
+        "mehdi": 8.5,
+        "mehrdad": 8.7
+      }
+    },
+    {
+      "title": "The Promised land",
+      "year": 2023,
+      "imdbRate": 7.7,
+      "watchedTogether": true,
+      "createdAt": "2024-01-03 18:11:47.780037+00",
+      "ratings": {
+        "ali": 8.0,
+        "mehdi": 8.1,
+        "mehrdad": 8.0
+      }
+    },
+    {
+      "title": "Napoleon",
+      "year": 2023,
+      "imdbRate": 6.5,
+      "watchedTogether": true,
+      "createdAt": "2024-01-16 19:39:22.090467+00",
+      "ratings": {
+        "ali": 7.8,
+        "mehdi": 7.7,
+        "mehrdad": 7.5
+      }
+    },
+    {
+      "title": "Society of the Snow",
+      "year": 2023,
+      "imdbRate": 7.9,
+      "watchedTogether": true,
+      "createdAt": "2024-01-19 16:31:06.205711+00",
+      "ratings": {
+        "ali": 7.6,
+        "mehdi": 8.3,
+        "mehrdad": 7.9
+      }
+    },
+    {
+      "title": "Anatomy of a Fall",
+      "year": 2023,
+      "imdbRate": 7.8,
+      "watchedTogether": true,
+      "createdAt": "2024-02-11 18:59:25.877227+00",
+      "ratings": {
+        "ali": 8.2,
+        "mehdi": 8.6,
+        "mehrdad": 8.1
+      }
+    },
+    {
+      "title": "Poor Things",
+      "year": 2023,
+      "imdbRate": 8.2,
+      "watchedTogether": true,
+      "createdAt": "2024-03-03 13:46:28.222797+00",
+      "ratings": {
+        "ali": 8.3,
+        "mehdi": 8.5,
+        "mehrdad": 8.6
+      }
+    },
+    {
+      "title": "Goodnight Mommy",
+      "year": 2014,
+      "imdbRate": 6.7,
+      "watchedTogether": true,
+      "createdAt": "2024-03-19 21:38:27.778183+00",
+      "ratings": {
+        "ali": 7.8,
+        "mehrdad": 7.4
+      }
+    },
+    {
+      "title": "About Time",
+      "year": 2013,
+      "imdbRate": 7.8,
+      "watchedTogether": false,
+      "createdAt": "2024-03-19 21:40:19.770756+00",
+      "ratings": {
+        "ali": 8.3,
+        "mehrdad": 8.2
+      }
+    },
+    {
+      "title": "Me Before You",
+      "year": 2016,
+      "imdbRate": 7.4,
+      "watchedTogether": false,
+      "createdAt": "2024-03-19 21:40:56.630089+00",
+      "ratings": {
+        "ali": 8.3,
+        "mehrdad": 7.8
+      }
+    },
+    {
+      "title": "The Fault in Our Stars",
+      "year": 2014,
+      "imdbRate": 7.7,
+      "watchedTogether": true,
+      "createdAt": "2024-03-22 18:56:27.739136+00",
+      "ratings": {
+        "ali": 8.2,
+        "mehdi": 8.6,
+        "mehrdad": 8.2
+      }
+    },
+    {
+      "title": "Incendies",
+      "year": 2010,
+      "imdbRate": 8.3,
+      "watchedTogether": true,
+      "createdAt": "2024-03-25 18:45:43.09776+00",
+      "ratings": {
+        "ali": 9.0,
+        "mehdi": 9.1,
+        "mehrdad": 9.2
+      }
+    },
+    {
+      "title": "Interstellar",
+      "year": 2014,
+      "imdbRate": 8.7,
+      "watchedTogether": false,
+      "createdAt": "2024-03-25 18:50:40.665326+00",
+      "ratings": {
+        "ali": 9.3,
+        "mehdi": 9.8,
+        "mehrdad": 9.8
+      }
+    },
+    {
+      "title": "Dune Part One",
+      "year": 2021,
+      "imdbRate": 8.0,
+      "watchedTogether": true,
+      "createdAt": "2024-04-14 21:57:33.623585+00",
+      "ratings": {
+        "ali": 8.5,
+        "mehdi": 8.2,
+        "mehrdad": 8.2
+      }
+    },
+    {
+      "title": "Dune: Part Two",
+      "year": 2024,
+      "imdbRate": 8.7,
+      "watchedTogether": true,
+      "createdAt": "2024-04-26 17:59:17.86913+00",
+      "ratings": {
+        "ali": 8.1,
+        "mehdi": 8.1,
+        "mehrdad": 8.0
+      }
+    },
+    {
+      "title": "Furiosa: A Mad Max Saga",
+      "year": 2024,
+      "imdbRate": 7.6,
+      "watchedTogether": true,
+      "createdAt": "2024-07-28 20:18:49.147784+00",
+      "ratings": {
+        "mehrdad": 8.5
+      }
+    }
+  ]
+}

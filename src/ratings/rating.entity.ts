@@ -17,7 +17,16 @@ export class Rating {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'int' })
+  // numeric comes back from pg as a string; expose it as a number.
+  @Column({
+    type: 'numeric',
+    precision: 3,
+    scale: 1,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string | null) => (value == null ? null : Number(value)),
+    },
+  })
   rate: number;
 
   @ManyToOne(() => User, (user) => user.ratings, { onDelete: 'CASCADE' })

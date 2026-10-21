@@ -1,10 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 // add-rating.dto.ts
-import { IsInt, IsUUID, Max, Min } from 'class-validator';
+import { IsNumber, IsUUID, Max, Min } from 'class-validator';
 
 export class AddRatingDto {
-  @ApiProperty({ type: 'integer', format: 'int32', minimum: 1, maximum: 10 })
-  @IsInt()
+  @ApiProperty({ type: Number, minimum: 1, maximum: 10, multipleOf: 0.1 })
+  @IsNumber({ maxDecimalPlaces: 1, allowNaN: false, allowInfinity: false })
   @Min(1)
   @Max(10)
   rate: number;

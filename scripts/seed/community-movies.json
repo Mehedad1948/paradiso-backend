@@ -1,0 +1,162 @@
+[
+  {
+    "dbId": 11216,
+    "title": "Cinema Paradiso",
+    "original_title": "Nuovo Cinema Paradiso",
+    "release_date": "1988-11-17",
+    "overview": "A filmmaker recalls his childhood, when he fell in love with the movies at his village's theater and formed a deep friendship with the theater's projectionist.",
+    "poster_path": "/9JhfVOveaY00o8njQu2Xrp4YWud.jpg",
+    "vote_average": 8.4,
+    "imdbLink": "https://www.imdb.com/title/tt0095765/"
+  },
+  {
+    "dbId": 238,
+    "title": "The Godfather",
+    "original_title": "The Godfather",
+    "release_date": "1972-03-14",
+    "overview": "Spanning the years 1945 to 1955, a chronicle of the fictional Italian-American Corleone crime family. When organized crime family patriarch, Vito Corleone barely survives an attempt on his life, his youngest son, Michael steps in to take care of the would-be killers, launching a campaign of bloody revenge.",
+    "poster_path": "/3bhkrj58Vtu7enYsRolD1fZdja1.jpg",
+    "vote_average": 8.7,
+    "imdbLink": "https://www.imdb.com/title/tt0068646/"
+  },
+  {
+    "dbId": 496243,
+    "title": "Parasite",
+    "original_title": "기생충",
+    "release_date": "2019-05-30",
+    "overview": "All unemployed, Ki-taek's family takes peculiar interest in the wealthy and glamorous Parks for their livelihood until they get entangled in an unexpected incident.",
+    "poster_path": "/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg",
+    "vote_average": 8.5,
+    "imdbLink": "https://www.imdb.com/title/tt6751668/"
+  },
+  {
+    "dbId": 129,
+    "title": "Spirited Away",
+    "original_title": "千と千尋の神隠し",
+    "release_date": "2001-07-20",
+    "overview": "A young girl, Chihiro, becomes trapped in a strange new world of spirits. When her parents undergo a mysterious transformation, she must call upon the courage she never knew she had to free her family.",
+    "poster_path": "/jUo8cNmU400WtZiJss45HNXlQ2e.jpg",
+    "vote_average": 8.5,
+    "imdbLink": "https://www.imdb.com/title/tt0245429/"
+  },
+  {
+    "dbId": 157336,
+    "title": "Interstellar",
+    "original_title": "Interstellar",
+    "release_date": "2014-11-04",
+    "overview": "The adventures of a group of explorers who make use of a newly discovered wormhole to surpass the limitations on human space travel and conquer the vast distances involved in an interstellar voyage.",
+    "poster_path": "/yQvGrMoipbRoddT0ZR8tPoR7NfX.jpg",
+    "vote_average": 8.5,
+    "imdbLink": "https://www.imdb.com/title/tt0816692/"
+  },
+  {
+    "dbId": 60243,
+    "title": "A Separation",
+    "original_title": "جدایی نادر از سیمین",
+    "release_date": "2011-02-15",
+    "overview": "A married couple are faced with a difficult decision – to improve the life of their child by moving to another country or to stay in Iran and look after a deteriorating parent who has Alzheimer's disease.",
+    "poster_path": "/xQadpnoLokxzN3hRpCPbBGpxsiz.jpg",
+    "vote_average": 7.9,
+    "imdbLink": "https://www.imdb.com/title/tt1832382/"
+  },
+  {
+    "dbId": 27205,
+    "title": "Inception",
+    "original_title": "Inception",
+    "release_date": "2010-07-15",
+    "overview": "Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets is offered a chance to regain his old life as payment for a task considered to be impossible: \"inception\", the implantation of another person's idea into a target's subconscious.",
+    "poster_path": "/xlaY2zyzMfkhk0HSC5VUwzoZPU1.jpg",
+    "vote_average": 8.4,
+    "imdbLink": "https://www.imdb.com/title/tt1375666/"
+  },
+  {
+    "dbId": 244786,
+    "title": "Whiplash",
+    "original_title": "Whiplash",
+    "release_date": "2014-10-10",
+    "overview": "Under the direction of a ruthless instructor, a talented young drummer begins to pursue perfection at any cost, even his humanity.",
+    "poster_path": "/7fn624j5lj3xTme2SgiLCeuedmO.jpg",
+    "vote_average": 8.4,
+    "imdbLink": "https://www.imdb.com/title/tt2582802/"
+  },
+  {
+    "dbId": 313369,
+    "title": "La La Land",
+    "original_title": "La La Land",
+    "release_date": "2016-12-01",
+    "overview": "Mia, an aspiring actress, serves lattes to movie stars in between auditions and Sebastian, a jazz musician, scrapes by playing cocktail party gigs in dingy bars, but as success mounts they are faced with decisions that begin to fray the fragile fabric of their love affair, and the dreams they worked so hard to maintain in each other threaten to rip them apart.",
+    "poster_path": "/uDO8zWDhfWwoFdKS4fzkUJt0Rf0.jpg",
+    "vote_average": 7.9,
+    "imdbLink": "https://www.imdb.com/title/tt3783958/"
+  },
+  {
+    "dbId": 843,
+    "title": "In the Mood for Love",
+    "original_title": "花樣年華",
+    "release_date": "2000-09-29",
+    "overview": "In 1960s Hong Kong, two neighbors form an intimate bond after making a discovery about their spouses in this visually stunning tale of unrequited love.",
+    "poster_path": "/8BgGbbWiLNhPtkMkN0gGTnbtvBv.jpg",
+    "vote_average": 8.1,
+    "imdbLink": "https://www.imdb.com/title/tt0118694/"
+  },
+  {
+    "dbId": 680,
+    "title": "Pulp Fiction",
+    "original_title": "Pulp Fiction",
+    "release_date": "1994-09-10",
+    "overview": "A burger-loving hit man, his philosophical partner, a drug-addled gangster's moll and a washed-up boxer converge in this sprawling, comedic crime caper. Their adventures unfurl in three stories that ingeniously trip back and forth in time.",
+    "poster_path": "/vQWk5YBFWF4bZaofAbv0tShwBvQ.jpg",
+    "vote_average": 8.5,
+    "imdbLink": "https://www.imdb.com/title/tt0110912/"
+  },
+  {
+    "dbId": 545611,
+    "title": "Everything Everywhere All at Once",
+    "original_title": "Everything Everywhere All at Once",
+    "release_date": "2022-03-24",
+    "overview": "An aging Chinese immigrant is swept up in an insane adventure, where she alone can save what's important to her by connecting with the lives she could have led in other universes.",
+    "poster_path": "/u68AjlvlutfEIcpmbYpKcdi09ut.jpg",
+    "vote_average": 7.7,
+    "imdbLink": "https://www.imdb.com/title/tt6710474/"
+  },
+  {
+    "dbId": 872585,
+    "title": "Oppenheimer",
+    "original_title": "Oppenheimer",
+    "release_date": "2023-07-19",
+    "overview": "The story of J. Robert Oppenheimer's role in the development of the atomic bomb during World War II.",
+    "poster_path": "/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
+    "vote_average": 8,
+    "imdbLink": "https://www.imdb.com/title/tt15398776/"
+  },
+  {
+    "dbId": 278,
+    "title": "The Shawshank Redemption",
+    "original_title": "The Shawshank Redemption",
+    "release_date": "1994-09-23",
+    "overview": "Imprisoned in the 1940s for the double murder of his wife and her lover, upstanding banker Andy Dufresne begins a new life at the Shawshank prison, where he puts his accounting skills to work for an amoral warden. During his long stretch in prison, Dufresne comes to be admired by the other inmates -- including an older prisoner named Red -- for his integrity and unquenchable sense of hope.",
+    "poster_path": "/9cqNxx0GxF0bflZmeSMuL5tnGzr.jpg",
+    "vote_average": 8.7,
+    "imdbLink": "https://www.imdb.com/title/tt0111161/"
+  },
+  {
+    "dbId": 1018,
+    "title": "Mulholland Drive",
+    "original_title": "Mulholland Drive",
+    "release_date": "2001-06-06",
+    "overview": "Blonde Betty Elms has only just arrived in Hollywood to become a movie star when she meets an enigmatic brunette with amnesia. Meanwhile, as the two set off to solve the second woman's identity, filmmaker Adam Kesher runs into ominous trouble while casting his latest project.",
+    "poster_path": "/x7A59t6ySylr1L7aubOQEA480vM.jpg",
+    "vote_average": 7.8,
+    "imdbLink": "https://www.imdb.com/title/tt0166924/"
+  },
+  {
+    "dbId": 194,
+    "title": "Amélie",
+    "original_title": "Le Fabuleux Destin d'Amélie Poulain",
+    "release_date": "2001-04-25",
+    "overview": "At a tiny Parisian café, the adorable yet painfully shy Amélie accidentally discovers a gift for helping others. Soon Amelie is spending her days as a matchmaker, guardian angel, and all-around do-gooder. But when she bumps into a handsome stranger, will she find the courage to become the star of her very own love story?",
+    "poster_path": "/nSxDa3M9aMvGVLoItzWTepQ5h5d.jpg",
+    "vote_average": 7.9,
+    "imdbLink": "https://www.imdb.com/title/tt0211915/"
+  }
+]

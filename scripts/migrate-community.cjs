@@ -15,12 +15,16 @@ const {
 const {
   RoomChat1792368000000,
 } = require('../dist/room-chat/migrations/1792368000000-room-chat');
+const {
+  DecimalRatings1792454400000,
+} = require('../dist/ratings/migrations/1792454400000-decimal-ratings');
 
 const migrations = [
   Community1790985600000,
   RoomThemeColor1791676800000,
   CustomMovies1792281600000,
   RoomChat1792368000000,
+  DecimalRatings1792454400000,
 ];
 
 async function main() {

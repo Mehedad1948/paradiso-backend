@@ -1101,7 +1101,6 @@ export interface components {
             isWatchedTogether?: boolean | null;
         };
         AddRatingDto: {
-            /** Format: int32 */
             rate: number;
             /** Format: uuid */
             movieId: string;
