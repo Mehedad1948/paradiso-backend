@@ -30,16 +30,6 @@
     "imdbLink": "https://www.imdb.com/title/tt6751668/"
   },
   {
-    "dbId": 129,
-    "title": "Spirited Away",
-    "original_title": "千と千尋の神隠し",
-    "release_date": "2001-07-20",
-    "overview": "A young girl, Chihiro, becomes trapped in a strange new world of spirits. When her parents undergo a mysterious transformation, she must call upon the courage she never knew she had to free her family.",
-    "poster_path": "/jUo8cNmU400WtZiJss45HNXlQ2e.jpg",
-    "vote_average": 8.5,
-    "imdbLink": "https://www.imdb.com/title/tt0245429/"
-  },
-  {
     "dbId": 157336,
     "title": "Interstellar",
     "original_title": "Interstellar",
@@ -90,36 +80,6 @@
     "imdbLink": "https://www.imdb.com/title/tt3783958/"
   },
   {
-    "dbId": 843,
-    "title": "In the Mood for Love",
-    "original_title": "花樣年華",
-    "release_date": "2000-09-29",
-    "overview": "In 1960s Hong Kong, two neighbors form an intimate bond after making a discovery about their spouses in this visually stunning tale of unrequited love.",
-    "poster_path": "/8BgGbbWiLNhPtkMkN0gGTnbtvBv.jpg",
-    "vote_average": 8.1,
-    "imdbLink": "https://www.imdb.com/title/tt0118694/"
-  },
-  {
-    "dbId": 680,
-    "title": "Pulp Fiction",
-    "original_title": "Pulp Fiction",
-    "release_date": "1994-09-10",
-    "overview": "A burger-loving hit man, his philosophical partner, a drug-addled gangster's moll and a washed-up boxer converge in this sprawling, comedic crime caper. Their adventures unfurl in three stories that ingeniously trip back and forth in time.",
-    "poster_path": "/vQWk5YBFWF4bZaofAbv0tShwBvQ.jpg",
-    "vote_average": 8.5,
-    "imdbLink": "https://www.imdb.com/title/tt0110912/"
-  },
-  {
-    "dbId": 545611,
-    "title": "Everything Everywhere All at Once",
-    "original_title": "Everything Everywhere All at Once",
-    "release_date": "2022-03-24",
-    "overview": "An aging Chinese immigrant is swept up in an insane adventure, where she alone can save what's important to her by connecting with the lives she could have led in other universes.",
-    "poster_path": "/u68AjlvlutfEIcpmbYpKcdi09ut.jpg",
-    "vote_average": 7.7,
-    "imdbLink": "https://www.imdb.com/title/tt6710474/"
-  },
-  {
     "dbId": 872585,
     "title": "Oppenheimer",
     "original_title": "Oppenheimer",
@@ -140,16 +100,6 @@
     "imdbLink": "https://www.imdb.com/title/tt0111161/"
   },
   {
-    "dbId": 1018,
-    "title": "Mulholland Drive",
-    "original_title": "Mulholland Drive",
-    "release_date": "2001-06-06",
-    "overview": "Blonde Betty Elms has only just arrived in Hollywood to become a movie star when she meets an enigmatic brunette with amnesia. Meanwhile, as the two set off to solve the second woman's identity, filmmaker Adam Kesher runs into ominous trouble while casting his latest project.",
-    "poster_path": "/x7A59t6ySylr1L7aubOQEA480vM.jpg",
-    "vote_average": 7.8,
-    "imdbLink": "https://www.imdb.com/title/tt0166924/"
-  },
-  {
     "dbId": 194,
     "title": "Amélie",
     "original_title": "Le Fabuleux Destin d'Amélie Poulain",
@@ -158,5 +108,105 @@
     "poster_path": "/nSxDa3M9aMvGVLoItzWTepQ5h5d.jpg",
     "vote_average": 7.9,
     "imdbLink": "https://www.imdb.com/title/tt0211915/"
+  },
+  {
+    "dbId": 2013,
+    "title": "The Diving Bell and the Butterfly",
+    "original_title": "Le Scaphandre et le Papillon",
+    "release_date": "2007-05-23",
+    "overview": "Jean-Dominique Bauby, editor-in-chief of French fashion bible Elle magazine, has a devastating stroke at age 43. The damage to his brain stem results in locked-in syndrome, with which he is almost completely paralyzed and only able to communicate by blinking an eye. Bauby painstakingly dictates his memoir via the only means of expression left to him.",
+    "poster_path": "/6NkJ4gnLrvLj0PZDW6sNM85JMbj.jpg",
+    "vote_average": 7.6,
+    "imdbLink": "https://www.imdb.com/title/tt0401383/"
+  },
+  {
+    "dbId": 655,
+    "title": "Paris, Texas",
+    "original_title": "Paris, Texas",
+    "release_date": "1984-07-16",
+    "overview": "A man wanders out of the desert not knowing who he is. His brother finds him, and helps to pull his memory back of the life he led before he walked out on his family and disappeared four years earlier.",
+    "poster_path": "/sP27Qm4THyRZyHjHYMfIDtJP6YE.jpg",
+    "vote_average": 8.074,
+    "imdbLink": "https://www.imdb.com/title/tt0087884/"
+  },
+  {
+    "dbId": 37165,
+    "title": "The Truman Show",
+    "original_title": "The Truman Show",
+    "release_date": "1998-06-04",
+    "overview": "In a picture-perfect seaside town, an insurance salesman begins to realize that his entire existence may be staged and observed by a vast unseen audience as part of a long-running real-time reality TV show.",
+    "poster_path": "/vuza0WqY239yBXOadKlGwJsZJFE.jpg",
+    "vote_average": 8.16,
+    "imdbLink": "https://www.imdb.com/title/tt0120382/"
+  },
+  {
+    "dbId": 632,
+    "title": "Stalag 17",
+    "original_title": "Stalag 17",
+    "release_date": "1953-05-29",
+    "overview": "After two American prisoners are killed by guards in the act of escaping from a German POW camp in World War II, barracks black marketeer J.J. Sefton is suspected of being an informer.",
+    "poster_path": "/lfve9FDKjT7JPbWI9NCs5340F79.jpg",
+    "vote_average": 7.681,
+    "imdbLink": "https://www.imdb.com/title/tt0046359/"
+  },
+  {
+    "dbId": 1585,
+    "title": "It's a Wonderful Life",
+    "original_title": "It's a Wonderful Life",
+    "release_date": "1946-12-20",
+    "overview": "George Bailey has spent his entire life giving to the people of Bedford Falls.  All that prevents rich skinflint Mr. Potter from taking over the entire town is George's modest building and loan company.  But on Christmas Eve the business's $8,000 is lost and George's troubles begin.",
+    "poster_path": "/bSqt9rhDZx1Q7UZ86dBPKdNomp2.jpg",
+    "vote_average": 8.278,
+    "imdbLink": "https://www.imdb.com/title/tt0038650/"
+  },
+  {
+    "dbId": 389,
+    "title": "12 Angry Men",
+    "original_title": "12 Angry Men",
+    "release_date": "1957-04-10",
+    "overview": "The defense and the prosecution have rested and the jury is filing into the jury room to decide if a young Spanish-American is guilty or innocent of murdering his father. What begins as an open and shut case soon becomes a mini-drama of each of the jurors' prejudices and preconceptions about the trial, the accused, and each other.",
+    "poster_path": "/zhG3vKWyDRaZYoaww1UVAi29T9h.jpg",
+    "vote_average": 8.575,
+    "imdbLink": "https://www.imdb.com/title/tt0050083/"
+  },
+  {
+    "dbId": 77,
+    "title": "Memento",
+    "original_title": "Memento",
+    "release_date": "2000-10-11",
+    "overview": "Leonard Shelby is tracking down the man who raped and murdered his wife. The difficulty of locating his wife's killer, however, is compounded by the fact that he suffers from a rare, untreatable form of short-term memory loss. Although he can recall details of life before his accident, Leonard cannot remember what happened fifteen minutes ago, where he's going, or why.",
+    "poster_path": "/nzlv62aC0octS5AklAiWpXLX9Z0.jpg",
+    "vote_average": 8.174,
+    "imdbLink": "https://www.imdb.com/title/tt0209144/"
+  },
+  {
+    "dbId": 329865,
+    "title": "Arrival",
+    "original_title": "Arrival",
+    "release_date": "2016-11-10",
+    "overview": "Taking place after alien crafts land around the world, an expert linguist is recruited by the military to determine whether they come in peace or are a threat.",
+    "poster_path": "/pEzNVQfdzYDzVK0XqxERIw2x2se.jpg",
+    "vote_average": 7.638,
+    "imdbLink": "https://www.imdb.com/title/tt2543164/"
+  },
+  {
+    "dbId": 87827,
+    "title": "Life of Pi",
+    "original_title": "Life of Pi",
+    "release_date": "2012-11-20",
+    "overview": "The story of an Indian boy named Pi, a zookeeper's son who finds himself in the company of a hyena, zebra, orangutan, and a Bengal tiger after a shipwreck sets them adrift in the Pacific Ocean.",
+    "poster_path": "/iLgRu4hhSr6V1uManX6ukDriiSc.jpg",
+    "vote_average": 7.419,
+    "imdbLink": "https://www.imdb.com/title/tt0454876/"
+  },
+  {
+    "dbId": 152601,
+    "title": "Her",
+    "original_title": "Her",
+    "release_date": "2013-12-18",
+    "overview": "In the not so distant future, Theodore, a lonely writer, purchases a newly developed operating system designed to meet the user's every need. To Theodore's surprise, a romantic relationship develops between him and his operating system. This unconventional love story blends science fiction and romance in a sweet tale that explores the nature of love and the ways that technology isolates and connects us all.",
+    "poster_path": "/eCOtqtfvn7mxGl6nfmq4b1exJRc.jpg",
+    "vote_average": 7.8,
+    "imdbLink": "https://www.imdb.com/title/tt1798709/"
   }
 ]

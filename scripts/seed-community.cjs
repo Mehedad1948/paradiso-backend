@@ -30,11 +30,6 @@ const posts = [
   [496243, 0, 290, 9.0, 'Parasite works as a heist comedy for an hour and then quietly turns into something much darker. The staircase motif is everywhere once you notice it.', [
     [1, 'The peach scene is a masterclass in editing.'],
   ]],
-  [129, 1, 260, 8.5, 'Spirited Away for a cozy Sunday. The train ride across the flooded sea is one of the calmest sequences ever animated — no dialogue, just waiting.', [
-    [2, 'No-Face on that train is such a mood.'],
-    [0, 'Studio Ghibli marathon next weekend?'],
-    [1, 'Count me in.'],
-  ]],
   [238, 2, 240, 10, 'Finally saw The Godfather on a big screen. The opening wedding sequence introduces twenty characters and you never feel lost. Pacino\'s transformation is terrifyingly gradual.', [
     [0, 'The baptism montage is still the best cross-cutting in cinema.'],
   ]],
@@ -42,7 +37,6 @@ const posts = [
     [1, 'The video messages scene hurts more every time I rewatch.'],
     [2, 'Science is shaky but the emotion lands. 8 feels right.'],
   ]],
-  [843, 1, 190, 9.0, 'In the Mood for Love: two people who never say what they feel, a corridor, a staircase and a hundred cheongsams. Every frame could hang in a gallery.', []],
   [244786, 2, 170, 8.5, 'Whiplash plays like a war movie about jazz drumming. The last nine minutes are the best ending of the 2010s, and I will not be taking questions.', [
     [0, 'Not quite my tempo.'],
     [1, 'Saw it with a drummer friend; he had to leave the room twice.'],
@@ -53,22 +47,47 @@ const posts = [
   [313369, 1, 130, 7.5, 'La La Land is about choosing between the person you love and the person you want to become. The epilogue \"what if\" sequence is devastating.', [
     [0, 'City of Stars has been stuck in my head for a week now.'],
   ]],
-  [680, 2, 110, 8.5, 'Pulp Fiction\'s structure still feels fresh. Watching it again, I noticed how much of it is just people talking — about burgers, foot massages, watches — and it never drags.', [
-    [1, 'The diner bookends are so satisfying.'],
-  ]],
-  [545611, 0, 90, 9.0, 'Everything Everywhere All at Once is chaotic, hilarious and secretly a quiet story about a mother and daughter. The rock scene made the whole theatre go silent.', [
-    [1, 'The rocks! I did not expect to cry at googly eyes.'],
-    [2, 'Ke Huy Quan deserved every award he got.'],
-  ]],
   [872585, 1, 70, 8.0, 'Oppenheimer is three hours that feel like a countdown. The Trinity test silence before the sound hits is a bold choice that pays off.', [
     [0, 'Seeing it in IMAX 70mm was worth the trip.'],
   ]],
   [278, 2, 48, 9.0, 'The Shawshank Redemption is comfort food cinema. Morgan Freeman\'s narration could make a grocery list sound profound.', [
     [0, 'Get busy living, or get busy dying.'],
   ]],
-  [1018, 0, 30, 8.5, 'Mulholland Drive: I understood maybe 60% of it and loved 100% of it. Club Silencio is one of the most haunting scenes I have ever seen.', [
-    [1, 'Read the theories AFTER your second watch, not before.'],
-    [2, 'No hay banda. 🎺'],
+  [655, 2, 275, 9.0, "Paris, Texas is about how hard it is to say the one thing that matters. Harry Dean Stanton barely speaks for the first half hour, and the peep-show monologue near the end is one of the great scenes about regret.", [
+    [1, "Ry Cooder's slide guitar is the sound of the desert itself."],
+    [0, "That red cap and the vast empty landscapes — every frame is a painting."],
+  ]],
+  [2013, 1, 255, 8.5, "The Diving Bell and the Butterfly shoots the first act through the narrator's one working eye, and it is both claustrophobic and unexpectedly tender. A film about what a mind can do when the body cannot.", [
+    [2, "Blinking an entire book into existence. Unbelievable."],
+  ]],
+  [632, 0, 235, 8.0, "Stalag 17 is a POW comedy-thriller where the real question is who the informant is. Billy Wilder lets the suspicion curdle the barracks from the inside. William Holden is superb.", [
+    [1, "Sefton is such a great cynical lead."],
+    [2, "Wilder never made the same film twice."],
+  ]],
+  [1585, 2, 205, 9.0, "It's a Wonderful Life is darker than its reputation: a man at the end of his rope is shown what his small, ordinary life actually built. Every December I think I'm done with it and every December it gets me.", [
+    [0, "Every time the bell rings I tear up."],
+    [1, "Capra at his most generous. Stewart gives everything."],
+  ]],
+  [389, 1, 185, 9.0, "12 Angry Men: one room, twelve men, and a whole argument about doubt. Lumet tightens the camera lenses as the heat rises. It is a masterclass in tension from nothing but dialogue.", [
+    [2, "Juror 8 quietly dismantling everything is pure patience."],
+  ]],
+  [37165, 0, 165, 8.5, "The Truman Show was a comedy about reality TV that turned into a prophecy about life online. Jim Carrey's final look into the camera and his bow still gives me chills.", [
+    [1, "And in case I don't see ya, good afternoon, good evening and good night!"],
+    [2, "Christof is one of the best quiet villains in cinema."],
+  ]],
+  [77, 2, 100, 8.5, "Memento is told backward so you share Leonard's confusion, and then it quietly asks what you'd believe to feel purposeful. Rewatching it the clues are all right there.", [
+    [0, "Don't trust your notes."],
+    [1, "The black-and-white sequences click into place at the end — so clever."],
+  ]],
+  [329865, 1, 85, 8.0, "Arrival is a first-contact film that is really about grief, time and choosing to love anyway. Jóhannsson's score and the design of the heptapod language make it feel genuinely alien.", [
+    [2, "The twist on time reframes the whole film on a rewatch."],
+  ]],
+  [87827, 0, 60, 7.5, "Life of Pi is worth seeing for the visuals alone — the glowing night sea, the island, the whale. And the final question about which story you prefer is surprisingly moving.", [
+    [1, "Richard Parker is the best CGI tiger ever."],
+  ]],
+  [152601, 2, 20, 8.0, "Her is a gentle, melancholy love story set in a near-future that looks too plausible. Joaquin Phoenix carries it, and Scarlett Johansson's voice does what most actors need a face for.", [
+    [0, "The soft pastel LA future is gorgeous."],
+    [1, "Hits harder now than in 2013."],
   ]],
   [194, 1, 12, 8.0, 'Amélie is a warm blanket of a movie. Perfect pick for a group watch — everyone leaves smiling.', [
     [2, 'Adding this to our room\'s list!'],
