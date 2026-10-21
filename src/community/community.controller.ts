@@ -19,6 +19,7 @@ import {
   CommunityCommentDto,
   CommunityFeedDto,
   CommunityPageDto,
+  CommunityReactionDto,
   CreateCommunityPostDto,
   UpdateCommunityPostDto,
 } from './community.dto';
@@ -28,13 +29,13 @@ export class CommunityController {
   constructor(private readonly community: CommunityService) {}
 
   @Get('posts')
-  @Auth(AuthType.none)
+  @Auth(AuthType.Bearer, AuthType.none)
   @ApiOperation({
     summary:
       'Public movie recommendations, newest first. Private room posts are excluded.',
   })
-  feed(@Query() query: CommunityFeedDto) {
-    return this.community.feed(query);
+  feed(@Query() query: CommunityFeedDto, @ActiveUser('sub') userId?: number) {
+    return this.community.feed(query, userId);
   }
 
   @Get('following')
@@ -83,6 +84,45 @@ export class CommunityController {
     @ActiveUser('sub') userId: number,
   ) {
     return this.community.updatePost(id, dto, userId);
+  }
+
+  @Post('posts/:postId/repost')
+  @ApiOperation({
+    summary: 'Repost a post as-is. Reposting twice returns the same repost.',
+  })
+  repost(
+    @Param('postId', ParseIntPipe) id: number,
+    @ActiveUser('sub') userId: number,
+  ) {
+    return this.community.repost(id, userId);
+  }
+
+  @Delete('posts/:postId/repost')
+  undoRepost(
+    @Param('postId', ParseIntPipe) id: number,
+    @ActiveUser('sub') userId: number,
+  ) {
+    return this.community.undoRepost(id, userId);
+  }
+
+  @Put('posts/:postId/reaction')
+  @ApiOperation({
+    summary: 'Like (1) or dislike (-1) a post, replacing any earlier reaction.',
+  })
+  react(
+    @Param('postId', ParseIntPipe) id: number,
+    @Body() dto: CommunityReactionDto,
+    @ActiveUser('sub') userId: number,
+  ) {
+    return this.community.react(id, dto.value, userId);
+  }
+
+  @Delete('posts/:postId/reaction')
+  removeReaction(
+    @Param('postId', ParseIntPipe) id: number,
+    @ActiveUser('sub') userId: number,
+  ) {
+    return this.community.removeReaction(id, userId);
   }
 
   @Delete('posts/:postId')

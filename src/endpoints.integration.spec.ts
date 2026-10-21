@@ -19,6 +19,7 @@ import { RoomInviteLink } from './room-invite-links/room-invite-link.entity';
 import { RoomInvitation } from './room-invitations/room-invitation.entity';
 import { CommunityPost } from './community/community-post.entity';
 import { CommunityComment } from './community/community-comment.entity';
+import { CommunityPostReaction } from './community/community-post-reaction.entity';
 import { UserFollow } from './community/user-follow.entity';
 import {
   RoomChatRead,
@@ -84,6 +85,7 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         RoomInvitation,
         CommunityPost,
         CommunityComment,
+        CommunityPostReaction,
         UserFollow,
         RoomMessage,
         RoomMessageMention,

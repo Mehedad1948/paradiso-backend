@@ -123,19 +123,41 @@ const ratedMovie = object({
 export const responseSchemas: Record<string, SchemaObject> = {
   CommunityPost: object({
     id: integer,
+    kind: { type: 'string', enum: ['post', 'quote', 'repost'] },
     text: string,
-    rating: number,
+    rating: nullable(number),
     imageUrl: nullable(string),
     createdAt: date,
     updatedAt: date,
     author: ref('PublicUser'),
-    movie: object({
-      id: uuid,
-      dbId: nullable(integer),
-      title: string,
-      poster_path: nullable(string),
-    }),
+    movie: nullable(
+      object({
+        id: uuid,
+        dbId: nullable(integer),
+        title: string,
+        poster_path: nullable(string),
+      }),
+    ),
     room: nullable(object({ id: integer, name: string })),
+    quotedPostId: nullable(integer),
+    quotedPost: nullable(
+      object({
+        id: integer,
+        text: string,
+        rating: nullable(number),
+        imageUrl: nullable(string),
+        createdAt: date,
+        author: ref('PublicUser'),
+        movie: nullable(
+          object({
+            id: uuid,
+            dbId: nullable(integer),
+            title: string,
+            poster_path: nullable(string),
+          }),
+        ),
+      }),
+    ),
     promotion: nullable(
       object({
         room: object({ id: integer, name: string, image: nullable(string) }),
@@ -144,7 +166,19 @@ export const responseSchemas: Record<string, SchemaObject> = {
       }),
     ),
     commentCount: integer,
+    likeCount: integer,
+    dislikeCount: integer,
+    repostCount: integer,
+    quoteCount: integer,
+    myReaction: nullable({ type: 'integer', enum: [1, -1] }),
+    reposted: boolean,
   }),
+  CommunityReaction: object({
+    likeCount: integer,
+    dislikeCount: integer,
+    myReaction: nullable({ type: 'integer', enum: [1, -1] }),
+  }),
+  CommunityReactionResponse: {},
   CommunityComment: object({
     id: integer,
     postId: integer,
@@ -353,9 +387,7 @@ export const responseSchemas: Record<string, SchemaObject> = {
     addedBy: nullable(ref('PublicUser')),
     averageRate: nullable(number),
     userSpecificRate: nullable(number),
-    ratings: array(
-      object({ user: ref('PublicUser'), rate: nullable(number) }),
-    ),
+    ratings: array(object({ user: ref('PublicUser'), rate: nullable(number) })),
     hasVoted: boolean,
   }),
   RoomRatingsResponse: envelope(page(ref('RoomRating'))),
@@ -490,6 +522,9 @@ export const responseSchemas: Record<string, SchemaObject> = {
 };
 
 responseSchemas.CommunityPostResponse = envelope(responseSchemas.CommunityPost);
+responseSchemas.CommunityReactionResponse = envelope(
+  responseSchemas.CommunityReaction,
+);
 responseSchemas.CommunityCommentResponse = envelope(
   responseSchemas.CommunityComment,
 );
@@ -505,6 +540,10 @@ export const operationResponses: Record<string, string> = {
   Community_createPost: 'CommunityPostResponse',
   Community_updatePost: 'CommunityPostResponse',
   Community_deletePost: 'MessageResponse',
+  Community_repost: 'CommunityPostResponse',
+  Community_undoRepost: 'MessageResponse',
+  Community_react: 'CommunityReactionResponse',
+  Community_removeReaction: 'CommunityReactionResponse',
   Community_listComments: 'CommunityCommentPageResponse',
   Community_createComment: 'CommunityCommentResponse',
   Community_deleteComment: 'MessageResponse',

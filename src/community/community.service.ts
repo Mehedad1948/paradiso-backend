@@ -12,6 +12,7 @@ import { RoomInviteLink } from '../room-invite-links/room-invite-link.entity';
 import { RoomAccessService } from '../rooms/providers/room-access.service';
 import { CommunityPost } from './community-post.entity';
 import { CommunityComment } from './community-comment.entity';
+import { CommunityPostReaction } from './community-post-reaction.entity';
 import { UserFollow } from './user-follow.entity';
 import {
   CommunityCommentDto,
@@ -20,6 +21,15 @@ import {
   CreateCommunityPostDto,
   UpdateCommunityPostDto,
 } from './community.dto';
+
+interface PostEngagement {
+  likeCount: number;
+  dislikeCount: number;
+  repostCount: number;
+  quoteCount: number;
+  myReaction: 1 | -1 | null;
+  reposted: boolean;
+}
 
 @Injectable()
 export class CommunityService {
@@ -35,6 +45,8 @@ export class CommunityService {
     @InjectRepository(RoomInviteLink)
     private readonly invites: Repository<RoomInviteLink>,
     private readonly roomAccess: RoomAccessService,
+    @InjectRepository(CommunityPostReaction)
+    private readonly reactions: Repository<CommunityPostReaction>,
   ) {}
 
   private publicUser(user: User) {
@@ -53,6 +65,9 @@ export class CommunityService {
       .leftJoin('post.room', 'room')
       .leftJoin('post.promotedInvite', 'invite')
       .leftJoin('invite.room', 'promotedRoom')
+      .leftJoin('post.quotedPost', 'quoted')
+      .leftJoin('quoted.author', 'quotedAuthor')
+      .leftJoin('quoted.movie', 'quotedMovie')
       .select([
         'post',
         'author.id',
@@ -74,32 +89,98 @@ export class CommunityService {
         'promotedRoom.id',
         'promotedRoom.name',
         'promotedRoom.image',
+        'quoted.id',
+        'quoted.text',
+        'quoted.rating',
+        'quoted.imageUrl',
+        'quoted.createdAt',
+        'quotedAuthor.id',
+        'quotedAuthor.username',
+        'quotedAuthor.avatar',
+        'quotedMovie.id',
+        'quotedMovie.title',
+        'quotedMovie.poster_path',
+        'quotedMovie.dbId',
       ])
       .loadRelationCountAndMap('post.commentCount', 'post.comments');
   }
 
-  private serializePost(post: CommunityPost & { commentCount?: number }) {
+  private serializeMovie(movie: Movie | null) {
+    return movie
+      ? {
+          id: movie.id,
+          dbId: movie.dbId,
+          title: movie.title,
+          poster_path: movie.poster_path ?? null,
+        }
+      : null;
+  }
+
+  // Like/dislike/repost/quote counts and the viewer's own state, per post.
+  private async engagement(ids: number[], userId?: number) {
+    const stats = new Map<number, PostEngagement>();
+    if (ids.length === 0) return stats;
+    const rows = (await this.reactions.query(
+      `SELECT p.id,
+        (SELECT count(*) FROM community_post_reaction r WHERE r."postId" = p.id AND r.value = 1)::int AS "likeCount",
+        (SELECT count(*) FROM community_post_reaction r WHERE r."postId" = p.id AND r.value = -1)::int AS "dislikeCount",
+        (SELECT r.value FROM community_post_reaction r WHERE r."postId" = p.id AND r."userId" = $2::int) AS "myReaction",
+        (SELECT count(*) FROM community_post q WHERE q."quotedPostId" = p.id AND q.text = '')::int AS "repostCount",
+        (SELECT count(*) FROM community_post q WHERE q."quotedPostId" = p.id AND q.text <> '')::int AS "quoteCount",
+        EXISTS (SELECT 1 FROM community_post q WHERE q."quotedPostId" = p.id AND q.text = '' AND q."authorId" = $2::int) AS "reposted"
+       FROM community_post p WHERE p.id = ANY($1::int[])`,
+      [ids, userId ?? null],
+    )) as (PostEngagement & { id: number })[];
+    for (const row of rows) stats.set(row.id, row);
+    return stats;
+  }
+
+  private async serializePosts(
+    posts: (CommunityPost & { commentCount?: number })[],
+    userId?: number,
+  ) {
+    const stats = await this.engagement(
+      posts.map((post) => post.id),
+      userId,
+    );
+    return posts.map((post) => this.serializePost(post, stats.get(post.id)));
+  }
+
+  private serializePost(
+    post: CommunityPost & { commentCount?: number },
+    stats?: PostEngagement,
+  ) {
     const invite = post.promotedInvite;
     const canJoin =
       !!invite &&
       invite.isActive &&
       (!invite.expiresAt || invite.expiresAt > new Date()) &&
       (invite.maxUsage === 0 || invite.uses < invite.maxUsage);
+    const quoted = post.quotedPost;
+    const isRepost = post.text === '' && !!post.quotedPostId;
     return {
       id: post.id,
+      kind: isRepost ? 'repost' : post.quotedPostId ? 'quote' : 'post',
       text: post.text,
-      rating: post.rating,
-      imageUrl: post.imageUrl ?? post.movie.poster_path ?? null,
+      rating: post.rating ?? null,
+      imageUrl: post.imageUrl ?? post.movie?.poster_path ?? null,
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       author: this.publicUser(post.author),
-      movie: {
-        id: post.movie.id,
-        dbId: post.movie.dbId,
-        title: post.movie.title,
-        poster_path: post.movie.poster_path ?? null,
-      },
+      movie: this.serializeMovie(post.movie),
       room: post.room ? { id: post.room.id, name: post.room.name } : null,
+      quotedPostId: post.quotedPostId ?? null,
+      quotedPost: quoted
+        ? {
+            id: quoted.id,
+            text: quoted.text,
+            rating: quoted.rating ?? null,
+            imageUrl: quoted.imageUrl ?? quoted.movie?.poster_path ?? null,
+            createdAt: quoted.createdAt,
+            author: this.publicUser(quoted.author),
+            movie: this.serializeMovie(quoted.movie),
+          }
+        : null,
       promotion: invite
         ? {
             room: {
@@ -112,6 +193,12 @@ export class CommunityService {
           }
         : null,
       commentCount: post.commentCount ?? 0,
+      likeCount: stats?.likeCount ?? 0,
+      dislikeCount: stats?.dislikeCount ?? 0,
+      repostCount: stats?.repostCount ?? 0,
+      quoteCount: stats?.quoteCount ?? 0,
+      myReaction: stats?.myReaction ?? null,
+      reposted: stats?.reposted ?? false,
     };
   }
 
@@ -160,10 +247,7 @@ export class CommunityService {
       .orderBy('post.id', 'DESC')
       .take(query.limit + 1)
       .getMany();
-    return this.page(
-      rows.map((post) => this.serializePost(post)),
-      query.limit,
-    );
+    return this.page(await this.serializePosts(rows, userId), query.limit);
   }
 
   private async readablePost(id: number, userId?: number) {
@@ -178,16 +262,41 @@ export class CommunityService {
   }
 
   async getPost(id: number, userId?: number) {
-    return this.serializePost(await this.readablePost(id, userId));
+    const [post] = await this.serializePosts(
+      [await this.readablePost(id, userId)],
+      userId,
+    );
+    return post;
+  }
+
+  // A repost of a repost points at the original post instead.
+  private async quoteTarget(id: number, userId: number) {
+    const post = await this.readablePost(id, userId);
+    if (post.text === '' && post.quotedPostId)
+      return this.readablePost(post.quotedPostId, userId);
+    return post;
   }
 
   async createPost(dto: CreateCommunityPostDto, userId: number) {
-    if (!(await this.movies.existsBy({ id: dto.movieId })))
+    if (dto.movieId && !(await this.movies.existsBy({ id: dto.movieId })))
       throw new NotFoundException('Movie not found');
-    if (
-      dto.roomId &&
-      !(await this.roomAccess.checkUserRoomAccess(dto.roomId, userId))
-    )
+    if (dto.rating !== undefined && !dto.movieId)
+      throw new BadRequestException('A rating requires a movie');
+    let roomId = dto.roomId ?? null;
+    let quotedPostId: number | null = null;
+    if (dto.quotedPostId) {
+      const quoted = await this.quoteTarget(dto.quotedPostId, userId);
+      quotedPostId = quoted.id;
+      // A quote of a private room post stays inside that room.
+      if (quoted.roomId && quoted.room && !quoted.room.isPublic) {
+        if (roomId !== null && roomId !== quoted.roomId)
+          throw new BadRequestException(
+            'Posts quoting a private room post must stay in that room',
+          );
+        roomId = quoted.roomId;
+      }
+    }
+    if (roomId && !(await this.roomAccess.checkUserRoomAccess(roomId, userId)))
       throw new ForbiddenException('Join the room before posting');
     let promotedInviteId: number | null = null;
     if (dto.promotedInviteToken) {
@@ -208,11 +317,12 @@ export class CommunityService {
     const post = await this.posts.save(
       this.posts.create({
         authorId: userId,
-        movieId: dto.movieId,
+        movieId: dto.movieId ?? null,
         text: dto.text,
-        rating: dto.rating,
+        rating: dto.rating ?? null,
         imageUrl: dto.imageUrl ?? null,
-        roomId: dto.roomId ?? null,
+        quotedPostId,
+        roomId,
         promotedInviteId,
       }),
     );
@@ -227,6 +337,12 @@ export class CommunityService {
     const post = await this.readablePost(id, userId);
     if (post.authorId !== userId)
       throw new ForbiddenException('Only the author can edit this post');
+    if (post.text === '' && post.quotedPostId)
+      throw new BadRequestException(
+        'Reposts cannot be edited; quote the post instead',
+      );
+    if (dto.rating !== undefined && !post.movieId)
+      throw new BadRequestException('A rating requires a movie');
     await this.posts.update({ id, authorId: userId }, dto);
     return this.getPost(id, userId);
   }
@@ -238,8 +354,85 @@ export class CommunityService {
         throw new ForbiddenException('Only the author can delete this post');
       await this.roomAccess.requireOwner(post.roomId, userId);
     }
+    // Plain reposts have nothing of their own to show once the original is gone.
+    await this.posts.delete({ quotedPostId: id, text: '' });
     await this.posts.delete(id);
     return { message: 'Post deleted' };
+  }
+
+  async repost(id: number, userId: number) {
+    const target = await this.quoteTarget(id, userId);
+    const roomId =
+      target.roomId && target.room && !target.room.isPublic
+        ? target.roomId
+        : null;
+    if (roomId && !(await this.roomAccess.checkUserRoomAccess(roomId, userId)))
+      throw new ForbiddenException('Join the room before reposting');
+    const existing = () =>
+      this.posts.findOneBy({
+        authorId: userId,
+        quotedPostId: target.id,
+        text: '',
+      });
+    let repost = await existing();
+    if (!repost) {
+      try {
+        repost = await this.posts.save(
+          this.posts.create({
+            authorId: userId,
+            movieId: null,
+            text: '',
+            rating: null,
+            imageUrl: null,
+            quotedPostId: target.id,
+            roomId,
+          }),
+        );
+      } catch (error) {
+        // A concurrent request already reposted it.
+        if ((error as { code?: string }).code !== '23505') throw error;
+        repost = await existing();
+      }
+    }
+    return this.getPost(repost!.id, userId);
+  }
+
+  async undoRepost(id: number, userId: number) {
+    await this.posts.delete({ authorId: userId, quotedPostId: id, text: '' });
+    return { message: 'Repost removed' };
+  }
+
+  private async reactionSummary(postId: number, userId: number) {
+    const stats = (await this.engagement([postId], userId)).get(postId);
+    return {
+      likeCount: stats?.likeCount ?? 0,
+      dislikeCount: stats?.dislikeCount ?? 0,
+      myReaction: stats?.myReaction ?? null,
+    };
+  }
+
+  private async requireReactable(id: number, userId: number) {
+    const post = await this.readablePost(id, userId);
+    if (
+      post.roomId &&
+      !(await this.roomAccess.checkUserRoomAccess(post.roomId, userId))
+    )
+      throw new ForbiddenException('Join the room before reacting');
+  }
+
+  async react(postId: number, value: 1 | -1, userId: number) {
+    await this.requireReactable(postId, userId);
+    await this.reactions.upsert({ postId, userId, value }, [
+      'postId',
+      'userId',
+    ]);
+    return this.reactionSummary(postId, userId);
+  }
+
+  async removeReaction(postId: number, userId: number) {
+    await this.requireReactable(postId, userId);
+    await this.reactions.delete({ postId, userId });
+    return this.reactionSummary(postId, userId);
   }
 
   private commentQuery() {

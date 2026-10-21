@@ -3020,6 +3020,200 @@
         "summary": "delete Post"
       }
     },
+    "/community/posts/{postId}/repost": {
+      "post": {
+        "operationId": "Community_repost",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityPostResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Repost a post as-is. Reposting twice returns the same repost.",
+        "tags": [
+          "Community"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "Community_undoRepost",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Community"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "undo Repost"
+      }
+    },
+    "/community/posts/{postId}/reaction": {
+      "put": {
+        "operationId": "Community_react",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommunityReactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityReactionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Like (1) or dislike (-1) a post, replacing any earlier reaction.",
+        "tags": [
+          "Community"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "Community_removeReaction",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityReactionResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Community"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "remove Reaction"
+      }
+    },
     "/community/posts/{postId}/comments": {
       "get": {
         "operationId": "Community_listComments",
@@ -4941,7 +5135,8 @@
         "properties": {
           "movieId": {
             "type": "string",
-            "format": "uuid"
+            "format": "uuid",
+            "description": "Movie the post is about. Optional: posts can be general or about an unreleased film."
           },
           "text": {
             "type": "string",
@@ -4952,12 +5147,17 @@
             "type": "number",
             "minimum": 0,
             "maximum": 10,
-            "description": "Personal movie rating out of 10."
+            "description": "Optional personal rating out of 10. Requires movieId."
           },
           "imageUrl": {
             "type": "string",
             "maxLength": 2048,
             "description": "HTTPS image URL from /uploads/file; defaults to movie poster."
+          },
+          "quotedPostId": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Quote another post: your text is shown with the original embedded."
           },
           "roomId": {
             "type": "number",
@@ -4971,9 +5171,7 @@
           }
         },
         "required": [
-          "movieId",
-          "text",
-          "rating"
+          "text"
         ],
         "additionalProperties": false
       },
@@ -4989,7 +5187,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 10,
-            "description": "Personal movie rating out of 10."
+            "description": "Optional personal rating out of 10. Requires movieId."
           },
           "imageUrl": {
             "type": "string",
@@ -4997,6 +5195,23 @@
             "description": "HTTPS image URL from /uploads/file; defaults to movie poster."
           }
         },
+        "additionalProperties": false
+      },
+      "CommunityReactionDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number",
+            "enum": [
+              1,
+              -1
+            ],
+            "description": "1 = like, -1 = dislike."
+          }
+        },
+        "required": [
+          "value"
+        ],
         "additionalProperties": false
       },
       "CommunityCommentDto": {
@@ -5183,11 +5398,20 @@
           "id": {
             "type": "integer"
           },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "post",
+              "quote",
+              "repost"
+            ]
+          },
           "text": {
             "type": "string"
           },
           "rating": {
-            "type": "number"
+            "type": "number",
+            "nullable": true
           },
           "imageUrl": {
             "type": "string",
@@ -5228,7 +5452,8 @@
               "dbId",
               "title",
               "poster_path"
-            ]
+            ],
+            "nullable": true
           },
           "room": {
             "type": "object",
@@ -5243,6 +5468,73 @@
             "required": [
               "id",
               "name"
+            ],
+            "nullable": true
+          },
+          "quotedPostId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "quotedPost": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "text": {
+                "type": "string"
+              },
+              "rating": {
+                "type": "number",
+                "nullable": true
+              },
+              "imageUrl": {
+                "type": "string",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "author": {
+                "$ref": "#/components/schemas/PublicUser"
+              },
+              "movie": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "dbId": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "poster_path": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "id",
+                  "dbId",
+                  "title",
+                  "poster_path"
+                ],
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "text",
+              "rating",
+              "imageUrl",
+              "createdAt",
+              "author",
+              "movie"
             ],
             "nullable": true
           },
@@ -5287,10 +5579,34 @@
           },
           "commentCount": {
             "type": "integer"
+          },
+          "likeCount": {
+            "type": "integer"
+          },
+          "dislikeCount": {
+            "type": "integer"
+          },
+          "repostCount": {
+            "type": "integer"
+          },
+          "quoteCount": {
+            "type": "integer"
+          },
+          "myReaction": {
+            "type": "integer",
+            "enum": [
+              1,
+              -1
+            ],
+            "nullable": true
+          },
+          "reposted": {
+            "type": "boolean"
           }
         },
         "required": [
           "id",
+          "kind",
           "text",
           "rating",
           "imageUrl",
@@ -5299,8 +5615,68 @@
           "author",
           "movie",
           "room",
+          "quotedPostId",
+          "quotedPost",
           "promotion",
-          "commentCount"
+          "commentCount",
+          "likeCount",
+          "dislikeCount",
+          "repostCount",
+          "quoteCount",
+          "myReaction",
+          "reposted"
+        ]
+      },
+      "CommunityReaction": {
+        "type": "object",
+        "properties": {
+          "likeCount": {
+            "type": "integer"
+          },
+          "dislikeCount": {
+            "type": "integer"
+          },
+          "myReaction": {
+            "type": "integer",
+            "enum": [
+              1,
+              -1
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "likeCount",
+          "dislikeCount",
+          "myReaction"
+        ]
+      },
+      "CommunityReactionResponse": {
+        "type": "object",
+        "properties": {
+          "likeCount": {
+            "type": "integer"
+          },
+          "dislikeCount": {
+            "type": "integer"
+          },
+          "myReaction": {
+            "type": "integer",
+            "enum": [
+              1,
+              -1
+            ],
+            "nullable": true
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "likeCount",
+          "dislikeCount",
+          "myReaction",
+          "apiVersion"
         ]
       },
       "CommunityComment": {
@@ -5342,11 +5718,20 @@
           "id": {
             "type": "integer"
           },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "post",
+              "quote",
+              "repost"
+            ]
+          },
           "text": {
             "type": "string"
           },
           "rating": {
-            "type": "number"
+            "type": "number",
+            "nullable": true
           },
           "imageUrl": {
             "type": "string",
@@ -5387,7 +5772,8 @@
               "dbId",
               "title",
               "poster_path"
-            ]
+            ],
+            "nullable": true
           },
           "room": {
             "type": "object",
@@ -5402,6 +5788,73 @@
             "required": [
               "id",
               "name"
+            ],
+            "nullable": true
+          },
+          "quotedPostId": {
+            "type": "integer",
+            "nullable": true
+          },
+          "quotedPost": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "text": {
+                "type": "string"
+              },
+              "rating": {
+                "type": "number",
+                "nullable": true
+              },
+              "imageUrl": {
+                "type": "string",
+                "nullable": true
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "author": {
+                "$ref": "#/components/schemas/PublicUser"
+              },
+              "movie": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "dbId": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "poster_path": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": [
+                  "id",
+                  "dbId",
+                  "title",
+                  "poster_path"
+                ],
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "text",
+              "rating",
+              "imageUrl",
+              "createdAt",
+              "author",
+              "movie"
             ],
             "nullable": true
           },
@@ -5447,12 +5900,36 @@
           "commentCount": {
             "type": "integer"
           },
+          "likeCount": {
+            "type": "integer"
+          },
+          "dislikeCount": {
+            "type": "integer"
+          },
+          "repostCount": {
+            "type": "integer"
+          },
+          "quoteCount": {
+            "type": "integer"
+          },
+          "myReaction": {
+            "type": "integer",
+            "enum": [
+              1,
+              -1
+            ],
+            "nullable": true
+          },
+          "reposted": {
+            "type": "boolean"
+          },
           "apiVersion": {
             "type": "string"
           }
         },
         "required": [
           "id",
+          "kind",
           "text",
           "rating",
           "imageUrl",
@@ -5461,8 +5938,16 @@
           "author",
           "movie",
           "room",
+          "quotedPostId",
+          "quotedPost",
           "promotion",
           "commentCount",
+          "likeCount",
+          "dislikeCount",
+          "repostCount",
+          "quoteCount",
+          "myReaction",
+          "reposted",
           "apiVersion"
         ]
       },

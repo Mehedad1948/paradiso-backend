@@ -7,6 +7,7 @@ import { RoomInviteLink } from '../room-invite-links/room-invite-link.entity';
 import { RoomsModule } from '../rooms/rooms.module';
 import { CommunityPost } from './community-post.entity';
 import { CommunityComment } from './community-comment.entity';
+import { CommunityPostReaction } from './community-post-reaction.entity';
 import { UserFollow } from './user-follow.entity';
 import { CommunityService } from './community.service';
 import { CommunityController } from './community.controller';
@@ -17,6 +18,7 @@ import { CommunityController } from './community.controller';
     TypeOrmModule.forFeature([
       CommunityPost,
       CommunityComment,
+      CommunityPostReaction,
       UserFollow,
       User,
       Movie,

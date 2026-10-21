@@ -36,6 +36,10 @@ All routes are under `/community`. Successful responses include `apiVersion`.
 | POST   | `/posts`                             | Publish a recommendation                                         |
 | PATCH  | `/posts/:postId`                     | Edit text, rating or image URL                                   |
 | DELETE | `/posts/:postId`                     | Delete a post and its comments                                   |
+| POST   | `/posts/:postId/repost`              | Repost as-is; repeating returns the same repost                  |
+| DELETE | `/posts/:postId/repost`              | Undo your repost                                                 |
+| PUT    | `/posts/:postId/reaction`            | Like or dislike with `{ "value": 1 }` or `{ "value": -1 }`       |
+| DELETE | `/posts/:postId/reaction`            | Remove your reaction                                             |
 | GET    | `/posts/:postId/comments`            | List comments, newest first                                      |
 | POST   | `/posts/:postId/comments`            | Comment with `{ "text": "..." }`                                 |
 | DELETE | `/posts/:postId/comments/:commentId` | Delete a comment                                                 |
@@ -72,6 +76,24 @@ Ratings are personal scores from 0 to 10, with at most one decimal place;
 they do not change the existing room rating system. Text is trimmed and must
 contain 1–4000 characters; comments must contain 1–2000 characters. Image URLs
 must use HTTPS. Render text as plain text in the frontend.
+
+`movieId` and `rating` are optional, so posts can be general or about a film
+that is not out yet. A rating requires a `movieId`. Only `text` is required.
+
+## Likes, dislikes, reposts and quotes
+
+Every post carries `likeCount`, `dislikeCount`, `repostCount`, `quoteCount`,
+the viewer's `myReaction` (`1`, `-1` or `null`) and `reposted`. The viewer
+fields need a bearer token; anonymous requests get `null` and `false`.
+One reaction per user per post; a new `PUT` replaces the old one. Both reaction
+routes return `{ likeCount, dislikeCount, myReaction }`.
+
+`kind` is `post`, `quote` or `repost`. Quote a post by sending `quotedPostId`
+with your own `text` to `POST /posts`; the response embeds `quotedPost`.
+A plain repost has empty `text` and cannot be edited. Reposting or quoting a
+repost targets the original. Deleting a post removes plain reposts of it; quotes
+stay with `quotedPost: null`. Quotes and reposts of private room posts stay in
+that room, and reacting or reposting there requires membership.
 
 Add `roomId` to publish inside a room. There is no automatic membership change
 or automatic addition of that movie to the room's movie list.

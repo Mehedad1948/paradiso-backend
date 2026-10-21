@@ -1,5 +1,6 @@
 import { Transform, Type } from 'class-transformer';
 import {
+  IsIn,
   IsInt,
   IsNumber,
   IsString,
@@ -53,22 +54,30 @@ export class CommunityFeedDto extends CommunityPageDto {
 }
 
 export class CreateCommunityPostDto {
-  @ApiProperty({ format: 'uuid' }) @IsUUID() movieId: string;
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description:
+      'Movie the post is about. Optional: posts can be general or about an unreleased film.',
+  })
+  @ValidateIf((_, value) => value !== undefined)
+  @IsUUID()
+  movieId?: string;
   @ApiProperty({ minLength: 1, maxLength: 4000 })
   @Transform(trim)
   @IsString()
   @MinLength(1)
   @MaxLength(4000)
   text: string;
-  @ApiProperty({
+  @ApiPropertyOptional({
     minimum: 0,
     maximum: 10,
-    description: 'Personal movie rating out of 10.',
+    description: 'Optional personal rating out of 10. Requires movieId.',
   })
+  @ValidateIf((_, value) => value !== undefined)
   @IsNumber({ maxDecimalPlaces: 1 })
   @Min(0)
   @Max(10)
-  rating: number;
+  rating?: number;
   @ApiPropertyOptional({
     maxLength: 2048,
     description:
@@ -78,6 +87,15 @@ export class CreateCommunityPostDto {
   @IsUrl({ protocols: ['https'], require_protocol: true })
   @MaxLength(2048)
   imageUrl?: string;
+  @ApiPropertyOptional({
+    minimum: 1,
+    description:
+      'Quote another post: your text is shown with the original embedded.',
+  })
+  @ValidateIf((_, value) => value !== undefined)
+  @IsInt()
+  @Min(1)
+  quotedPostId?: number;
   @ApiPropertyOptional({
     minimum: 1,
     description: 'Scope the post to a room. Requires membership.',
@@ -108,4 +126,10 @@ export class CommunityCommentDto {
   @MinLength(1)
   @MaxLength(2000)
   text: string;
+}
+
+export class CommunityReactionDto {
+  @ApiProperty({ enum: [1, -1], description: '1 = like, -1 = dislike.' })
+  @IsIn([1, -1])
+  value: 1 | -1;
 }

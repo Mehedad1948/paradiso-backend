@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { CommunityService } from './community.service';
 import { CommunityPost } from './community-post.entity';
 import { CommunityComment } from './community-comment.entity';
+import { CommunityPostReaction } from './community-post-reaction.entity';
 import { UserFollow } from './user-follow.entity';
 import { User } from '../users/user.entity';
 import { Movie } from '../movies/movie.entity';
@@ -15,6 +16,7 @@ import { RoomInviteLink } from '../room-invite-links/room-invite-link.entity';
 import { RoomAccessService } from '../rooms/providers/room-access.service';
 import {
   CommunityCommentDto,
+  CommunityReactionDto,
   CreateCommunityPostDto,
   UpdateCommunityPostDto,
 } from './community.dto';
@@ -51,7 +53,11 @@ describe('Community permissions and privacy', () => {
     createQueryBuilder: jest.Mock;
     delete: jest.Mock;
     update: jest.Mock;
+    findOneBy: jest.Mock;
+    save: jest.Mock;
+    create: jest.Mock;
   };
+  let reactions: { query: jest.Mock; upsert: jest.Mock; delete: jest.Mock };
   let access: {
     canRead: jest.Mock;
     checkUserRoomAccess: jest.Mock;
@@ -84,6 +90,14 @@ describe('Community permissions and privacy', () => {
       createQueryBuilder: jest.fn().mockReturnValue(builder),
       delete: jest.fn(),
       update: jest.fn(),
+      findOneBy: jest.fn().mockResolvedValue(null),
+      save: jest.fn().mockResolvedValue({ id: 99 }),
+      create: jest.fn((value: unknown) => value),
+    };
+    reactions = {
+      query: jest.fn().mockResolvedValue([]),
+      upsert: jest.fn(),
+      delete: jest.fn(),
     };
     const follows = {
       createQueryBuilder: jest.fn().mockReturnValue(builder),
@@ -106,6 +120,7 @@ describe('Community permissions and privacy', () => {
       movies as unknown as Repository<Movie>,
       invites as unknown as Repository<RoomInviteLink>,
       access as unknown as RoomAccessService,
+      reactions as unknown as Repository<CommunityPostReaction>,
     );
   });
 
@@ -216,6 +231,167 @@ describe('Community permissions and privacy', () => {
     }
   });
 
+  it('serializes posts without a movie or rating, with engagement state', async () => {
+    builder.getOne.mockResolvedValue({
+      ...post,
+      movie: null,
+      movieId: null,
+      rating: null,
+    });
+    reactions.query.mockResolvedValue([
+      {
+        id: 12,
+        likeCount: 4,
+        dislikeCount: 1,
+        myReaction: -1,
+        repostCount: 2,
+        quoteCount: 3,
+        reposted: true,
+      },
+    ]);
+    const result = await service.getPost(12, 5);
+    expect(result).toMatchObject({
+      kind: 'post',
+      movie: null,
+      rating: null,
+      imageUrl: null,
+      likeCount: 4,
+      dislikeCount: 1,
+      myReaction: -1,
+      repostCount: 2,
+      quoteCount: 3,
+      reposted: true,
+    });
+    expect(reactions.query.mock.calls[0][1]).toEqual([[12], 5]);
+  });
+
+  it('embeds the quoted post and tells quotes from reposts', async () => {
+    const quoted = {
+      id: 7,
+      text: 'Original',
+      rating: null,
+      imageUrl: null,
+      createdAt: new Date(),
+      author: { id: 3, username: 'Other', avatar: null, password: 'secret' },
+      movie: null,
+    };
+    builder.getOne.mockResolvedValue({
+      ...post,
+      quotedPostId: 7,
+      quotedPost: quoted,
+    });
+    const quote = await service.getPost(12);
+    expect(quote.kind).toBe('quote');
+    expect(quote.quotedPost).toMatchObject({ id: 7, text: 'Original' });
+    expect(JSON.stringify(quote)).not.toMatch(/secret/);
+    builder.getOne.mockResolvedValue({
+      ...post,
+      text: '',
+      quotedPostId: 7,
+      quotedPost: quoted,
+    });
+    expect((await service.getPost(12)).kind).toBe('repost');
+  });
+
+  it('requires a movie for ratings and rejects editing reposts', async () => {
+    await expect(
+      service.createPost({ text: 'Hi', rating: 8 }, 2),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    builder.getOne.mockResolvedValue({ ...post, movieId: null });
+    await expect(
+      service.updatePost(12, { rating: 9 }, 1),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    builder.getOne.mockResolvedValue({ ...post, text: '', quotedPostId: 7 });
+    await expect(
+      service.updatePost(12, { text: 'Edit' }, 1),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('creates general posts and quotes without a movie', async () => {
+    builder.getOne.mockResolvedValue({ ...post });
+    await service.createPost({ text: 'Cannot wait for the new film' }, 1);
+    expect(posts.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        movieId: null,
+        rating: null,
+        quotedPostId: null,
+      }),
+    );
+    await service.createPost({ text: 'Agreed', quotedPostId: 12 }, 1);
+    expect(posts.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ quotedPostId: 12, roomId: null }),
+    );
+  });
+
+  it('keeps quotes and reposts of private room posts inside that room', async () => {
+    const privatePost = {
+      ...post,
+      roomId: 7,
+      room: { id: 7, name: 'Secret', isPublic: false },
+    };
+    builder.getOne.mockResolvedValue(privatePost);
+    access.canRead.mockResolvedValue(true);
+    access.checkUserRoomAccess.mockResolvedValue(true);
+    await expect(
+      service.createPost({ text: 'Leak', quotedPostId: 12, roomId: 8 }, 2),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await service.createPost({ text: 'Quote', quotedPostId: 12 }, 2);
+    expect(posts.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ quotedPostId: 12, roomId: 7 }),
+    );
+    await service.repost(12, 2);
+    expect(posts.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ text: '', quotedPostId: 12, roomId: 7 }),
+    );
+    access.checkUserRoomAccess.mockResolvedValue(false);
+    await expect(service.repost(12, 3)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
+  it('reposts once, points reposts of reposts at the original, and undoes', async () => {
+    posts.findOneBy.mockResolvedValue({ id: 50 });
+    builder.getOne.mockResolvedValue({ ...post, id: 50 });
+    await service.repost(12, 2);
+    expect(posts.save).not.toHaveBeenCalled();
+    posts.findOneBy.mockResolvedValue(null);
+    builder.getOne
+      .mockResolvedValueOnce({ ...post, id: 20, text: '', quotedPostId: 12 })
+      .mockResolvedValueOnce({ ...post })
+      .mockResolvedValue({ ...post, id: 99 });
+    await service.repost(20, 2);
+    expect(posts.create).toHaveBeenCalledWith(
+      expect.objectContaining({ quotedPostId: 12, text: '' }),
+    );
+    await service.undoRepost(12, 2);
+    expect(posts.delete).toHaveBeenCalledWith({
+      authorId: 2,
+      quotedPostId: 12,
+      text: '',
+    });
+  });
+
+  it('removes reposts when the original is deleted', async () => {
+    await service.deletePost(12, 1);
+    expect(posts.delete).toHaveBeenCalledWith({ quotedPostId: 12, text: '' });
+    expect(posts.delete).toHaveBeenCalledWith(12);
+  });
+
+  it('stores one reaction per user and requires room membership', async () => {
+    await service.react(12, -1, 2);
+    expect(reactions.upsert).toHaveBeenCalledWith(
+      { postId: 12, userId: 2, value: -1 },
+      ['postId', 'userId'],
+    );
+    await service.removeReaction(12, 2);
+    expect(reactions.delete).toHaveBeenCalledWith({ postId: 12, userId: 2 });
+    builder.getOne.mockResolvedValue({ ...post, roomId: 7 });
+    access.canRead.mockResolvedValue(true);
+    await expect(service.react(12, 1, 3)).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
+  });
+
   it('prevents self follows and makes repeated follows conflict safe', async () => {
     await expect(service.follow(1, 1)).rejects.toBeInstanceOf(
       BadRequestException,
@@ -270,6 +446,33 @@ describe('Community input validation', () => {
           { type: 'body', metatype: CreateCommunityPostDto },
         ),
       ).rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('accepts general posts and rejects invalid reactions', async () => {
+    expect(
+      await pipe.transform(
+        { text: 'No movie yet', quotedPostId: 4 },
+        { type: 'body', metatype: CreateCommunityPostDto },
+      ),
+    ).toMatchObject({ text: 'No movie yet', quotedPostId: 4 });
+    await expect(
+      pipe.transform(
+        { text: 'x', quotedPostId: 0 },
+        { type: 'body', metatype: CreateCommunityPostDto },
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    for (const bad of [{ value: 0 }, { value: 2 }, { value: '1' }, {}])
+      await expect(
+        pipe.transform(bad, {
+          type: 'body',
+          metatype: CommunityReactionDto,
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    expect(
+      await pipe.transform(
+        { value: -1 },
+        { type: 'body', metatype: CommunityReactionDto },
+      ),
+    ).toMatchObject({ value: -1 });
   });
   it('rejects changing scope, null edits and blank comments', async () => {
     for (const bad of [{ roomId: 7 }, { text: null }, { rating: null }])

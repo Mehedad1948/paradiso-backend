@@ -18,6 +18,9 @@ const {
 const {
   DecimalRatings1792454400000,
 } = require('../dist/ratings/migrations/1792454400000-decimal-ratings');
+const {
+  PostReactionsReposts1792540800000,
+} = require('../dist/community/migrations/1792540800000-post-reactions-reposts');
 
 const migrations = [
   Community1790985600000,
@@ -25,6 +28,7 @@ const migrations = [
   CustomMovies1792281600000,
   RoomChat1792368000000,
   DecimalRatings1792454400000,
+  PostReactionsReposts1792540800000,
 ];
 
 async function main() {

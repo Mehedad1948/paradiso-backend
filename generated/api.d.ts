@@ -743,6 +743,42 @@ export interface paths {
         patch: operations["Community_updatePost"];
         trace?: never;
     };
+    "/community/posts/{postId}/repost": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Repost a post as-is. Reposting twice returns the same repost. */
+        post: operations["Community_repost"];
+        /** undo Repost */
+        delete: operations["Community_undoRepost"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/community/posts/{postId}/reaction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Like (1) or dislike (-1) a post, replacing any earlier reaction. */
+        put: operations["Community_react"];
+        post?: never;
+        /** remove Reaction */
+        delete: operations["Community_removeReaction"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/community/posts/{postId}/comments": {
         parameters: {
             query?: never;
@@ -1204,13 +1240,18 @@ export interface components {
             avatar?: string;
         };
         CreateCommunityPostDto: {
-            /** Format: uuid */
-            movieId: string;
+            /**
+             * Format: uuid
+             * @description Movie the post is about. Optional: posts can be general or about an unreleased film.
+             */
+            movieId?: string;
             text: string;
-            /** @description Personal movie rating out of 10. */
-            rating: number;
+            /** @description Optional personal rating out of 10. Requires movieId. */
+            rating?: number;
             /** @description HTTPS image URL from /uploads/file; defaults to movie poster. */
             imageUrl?: string;
+            /** @description Quote another post: your text is shown with the original embedded. */
+            quotedPostId?: number;
             /** @description Scope the post to a room. Requires membership. */
             roomId?: number;
             /**
@@ -1221,10 +1262,17 @@ export interface components {
         };
         UpdateCommunityPostDto: {
             text?: string;
-            /** @description Personal movie rating out of 10. */
+            /** @description Optional personal rating out of 10. Requires movieId. */
             rating?: number;
             /** @description HTTPS image URL from /uploads/file; defaults to movie poster. */
             imageUrl?: string;
+        };
+        CommunityReactionDto: {
+            /**
+             * @description 1 = like, -1 = dislike.
+             * @enum {number}
+             */
+            value: 1 | -1;
         };
         CommunityCommentDto: {
             text: string;
@@ -1289,8 +1337,10 @@ export interface components {
         };
         CommunityPost: {
             id: number;
+            /** @enum {string} */
+            kind: "post" | "quote" | "repost";
             text: string;
-            rating: number;
+            rating: number | null;
             imageUrl: string | null;
             /** Format: date-time */
             createdAt: string;
@@ -1303,10 +1353,27 @@ export interface components {
                 dbId: number | null;
                 title: string;
                 poster_path: string | null;
-            };
+            } | null;
             room: {
                 id: number;
                 name: string;
+            } | null;
+            quotedPostId: number | null;
+            quotedPost: {
+                id: number;
+                text: string;
+                rating: number | null;
+                imageUrl: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                author: components["schemas"]["PublicUser"];
+                movie: {
+                    /** Format: uuid */
+                    id: string;
+                    dbId: number | null;
+                    title: string;
+                    poster_path: string | null;
+                } | null;
             } | null;
             promotion: {
                 room: {
@@ -1319,6 +1386,26 @@ export interface components {
                 token: string | null;
             } | null;
             commentCount: number;
+            likeCount: number;
+            dislikeCount: number;
+            repostCount: number;
+            quoteCount: number;
+            /** @enum {integer|null} */
+            myReaction: 1 | -1 | null;
+            reposted: boolean;
+        };
+        CommunityReaction: {
+            likeCount: number;
+            dislikeCount: number;
+            /** @enum {integer|null} */
+            myReaction: 1 | -1 | null;
+        };
+        CommunityReactionResponse: {
+            likeCount: number;
+            dislikeCount: number;
+            /** @enum {integer|null} */
+            myReaction: 1 | -1 | null;
+            apiVersion: string;
         };
         CommunityComment: {
             id: number;
@@ -1332,8 +1419,10 @@ export interface components {
         };
         CommunityPostResponse: {
             id: number;
+            /** @enum {string} */
+            kind: "post" | "quote" | "repost";
             text: string;
-            rating: number;
+            rating: number | null;
             imageUrl: string | null;
             /** Format: date-time */
             createdAt: string;
@@ -1346,10 +1435,27 @@ export interface components {
                 dbId: number | null;
                 title: string;
                 poster_path: string | null;
-            };
+            } | null;
             room: {
                 id: number;
                 name: string;
+            } | null;
+            quotedPostId: number | null;
+            quotedPost: {
+                id: number;
+                text: string;
+                rating: number | null;
+                imageUrl: string | null;
+                /** Format: date-time */
+                createdAt: string;
+                author: components["schemas"]["PublicUser"];
+                movie: {
+                    /** Format: uuid */
+                    id: string;
+                    dbId: number | null;
+                    title: string;
+                    poster_path: string | null;
+                } | null;
             } | null;
             promotion: {
                 room: {
@@ -1362,6 +1468,13 @@ export interface components {
                 token: string | null;
             } | null;
             commentCount: number;
+            likeCount: number;
+            dislikeCount: number;
+            repostCount: number;
+            quoteCount: number;
+            /** @enum {integer|null} */
+            myReaction: 1 | -1 | null;
+            reposted: boolean;
             apiVersion: string;
         };
         CommunityPostPageResponse: {
@@ -3887,6 +4000,134 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CommunityPostResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Community_repost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityPostResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Community_undoRepost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Community_react: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommunityReactionDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityReactionResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Community_removeReaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityReactionResponse"];
                 };
             };
             /** @description Error response */
