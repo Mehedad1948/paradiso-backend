@@ -1,2 +1,12 @@
-<p>Dear <%= name %></p>
-<div>Email <%= email %></div>
+<%- include('partials/header', { title: 'Welcome to Paradiso', preheader: 'Welcome to Paradiso, ' + name, headerImageUrl: locals.headerImageUrl }) %>
+                <p style="margin:0 0 6px;font-size:14px;letter-spacing:3px;text-transform:uppercase;color:#b08d57;text-align:center;">Welcome</p>
+                <h1 style="margin:0 0 24px;font-weight:600;font-size:28px;line-height:1.3;color:#141a2b;text-align:center;">Your seat awaits, <%= name %></h1>
+                <p style="margin:0 0 16px;">Dear <%= name %>,</p>
+                <p style="margin:0 0 16px;">
+                  Welcome to Paradiso &mdash; a place to watch, discuss and share the
+                  films you love, together.
+                </p>
+                <p style="margin:0 0 16px;">
+                  Your account is ready. Dim the lights, pick a film, and enjoy the show.
+                </p>
+<%- include('partials/footer', { email: email }) %>

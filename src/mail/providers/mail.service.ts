@@ -24,7 +24,10 @@ export class MailService {
 
     const htmlContent = await renderFile(
       join(__dirname, '..', 'templates', template),
-      context,
+      {
+        headerImageUrl: this.config.get<string>('appConfig.mailHeaderImageUrl'),
+        ...context,
+      },
     );
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',

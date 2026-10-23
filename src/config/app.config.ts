@@ -18,6 +18,7 @@ export default registerAs('appConfig', () => ({
   r2PublicUrl: process.env.R2_PUBLIC_URL,
   brevoApiKey: process.env.BRAVO_API_KEY,
   brevoSenderEmail: process.env.BREVO_SENDER_EMAIL,
+  mailHeaderImageUrl: process.env.MAIL_HEADER_IMAGE_URL,
   tmdbApiKey: process.env.TMDB_API_KEY,
   baseUrl: process.env.TMDB_BASE_URL,
   productBaseUrl: process.env.PRODUCT_BASE_URL,
