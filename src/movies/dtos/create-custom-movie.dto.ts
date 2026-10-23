@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -67,4 +68,9 @@ export class CreateCustomMovieDto {
   @IsString()
   @MaxLength(2000)
   overview?: string;
+
+  @ApiPropertyOptional({ type: Boolean, nullable: true })
+  @IsOptional()
+  @IsBoolean()
+  isWatchedTogether?: boolean;
 }

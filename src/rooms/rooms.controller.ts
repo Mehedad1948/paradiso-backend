@@ -73,7 +73,11 @@ export class RoomsController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AddRoomMovieDto,
   ) {
-    return await this.roomsService.addMovieToRoom(id, dto.dbId);
+    return await this.roomsService.addMovieToRoom(
+      id,
+      dto.dbId,
+      dto.isWatchedTogether ?? false,
+    );
   }
 
   // For movies missing from TMDb: only title and year are required.

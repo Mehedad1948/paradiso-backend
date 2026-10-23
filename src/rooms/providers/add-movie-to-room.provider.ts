@@ -21,7 +21,7 @@ export class AddMovieToRoomProvider {
     private readonly movieDbService: MovieDbService,
     @InjectRepository(Room) private readonly roomRepository: Repository<Room>,
   ) {}
-  async addMovieToRoom(roomId: number, dbId: number) {
+  async addMovieToRoom(roomId: number, dbId: number, isWatchedTogether = false) {
     let movie = await this.movieService.getMovieWithMovieDbId(dbId);
     if (!movie) {
       const details = await this.movieDbService.getMovieDetails(dbId);
@@ -29,6 +29,7 @@ export class AddMovieToRoomProvider {
         movie = await this.movieService.createMovie({
           ...details,
           dbId: details.id,
+          isWatchedTogether,
         });
       } catch (error) {
         // Another room may import the same catalogue movie concurrently.
@@ -44,6 +45,12 @@ export class AddMovieToRoomProvider {
         .getRepository(Room)
         .exists({ where: { id: roomId, movies: { id: movieId } } });
       if (exists) throw new ConflictException('Movie is already in the room');
+      // Catalogue movies are shared rows; flag one imported earlier by another room.
+      if (isWatchedTogether && !movie.isWatchedTogether) {
+        await manager
+          .getRepository(Movie)
+          .update(movieId, { isWatchedTogether: true });
+      }
       await manager
         .createQueryBuilder()
         .relation(Room, 'movies')
@@ -80,6 +87,7 @@ export class AddMovieToRoomProvider {
           release_date: year,
           imdbLink: dto.imdbLink,
           overview: dto.overview,
+          isWatchedTogether: dto.isWatchedTogether ?? false,
           addedBy: { id: userId },
           genres: [],
         }),

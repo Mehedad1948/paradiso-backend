@@ -1232,6 +1232,7 @@ export interface components {
         AddRoomMovieDto: {
             /** Format: int32 */
             dbId: number;
+            isWatchedTogether?: boolean | null;
         };
         CreateCustomMovieDto: {
             title: string;
@@ -1243,6 +1244,7 @@ export interface components {
              */
             imdbLink?: string | null;
             overview?: string | null;
+            isWatchedTogether?: boolean | null;
         };
         RemoveRoomMovieDto: {
             /** Format: uuid */

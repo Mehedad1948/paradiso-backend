@@ -5133,6 +5133,10 @@
             "type": "integer",
             "format": "int32",
             "minimum": 1
+          },
+          "isWatchedTogether": {
+            "type": "boolean",
+            "nullable": true
           }
         },
         "required": [
@@ -5163,6 +5167,10 @@
           "overview": {
             "type": "string",
             "maxLength": 2000,
+            "nullable": true
+          },
+          "isWatchedTogether": {
+            "type": "boolean",
             "nullable": true
           }
         },

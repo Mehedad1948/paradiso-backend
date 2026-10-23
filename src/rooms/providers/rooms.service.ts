@@ -43,8 +43,16 @@ export class RoomsService {
     return await this.joinRoomProvider.joinToRoom(userId, roomId);
   }
 
-  async addMovieToRoom(roomId: number, movieId: number) {
-    return await this.addMovieToRoomProvider.addMovieToRoom(roomId, movieId);
+  async addMovieToRoom(
+    roomId: number,
+    movieId: number,
+    isWatchedTogether = false,
+  ) {
+    return await this.addMovieToRoomProvider.addMovieToRoom(
+      roomId,
+      movieId,
+      isWatchedTogether,
+    );
   }
 
   async addCustomMovieToRoom(
