@@ -161,6 +161,17 @@ export class GetRoomProvider {
     }
   }
 
+  async getUnratedSummary(roomId: number) {
+    try {
+      return await this.movieService.getRoomUnratedSummary(roomId);
+    } catch (error) {
+      console.error('❌ Failed to get unrated summary:', error);
+      throw new InternalServerErrorException(
+        'Failed to fetch unrated movie summary',
+      );
+    }
+  }
+
   async getRoomUsers(roomId: number) {
     const userPayload = this.request[REQUEST_USER_KEY];
     const userId = userPayload?.sub;

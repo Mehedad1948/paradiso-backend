@@ -107,4 +107,12 @@ export class RoomsController {
   ) {
     return this.roomsService.getRoomRating(query, roomId);
   }
+
+  // Unfiltered counts for the logged-in user, independent of table filters.
+  @Auth(AuthType.Bearer)
+  @UseGuards(RoomReadGuard)
+  @Get(':roomId/rating/summary')
+  public getRoomRatingSummary(@Param('roomId', ParseIntPipe) roomId: number) {
+    return this.roomsService.getRoomUnratedSummary(roomId);
+  }
 }

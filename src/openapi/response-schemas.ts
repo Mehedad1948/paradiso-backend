@@ -401,6 +401,9 @@ export const responseSchemas: Record<string, SchemaObject> = {
     hasVoted: boolean,
   }),
   RoomRatingsResponse: envelope(page(ref('RoomRating'))),
+  RoomRatingSummaryResponse: envelope(
+    object({ unrated: integer, unratedWatchedTogether: integer }),
+  ),
   MessageResponse: envelope(object({ message: string })),
   AddedRoomMovieResponse: envelope(object({ message: string, movieId: uuid })),
   InvitationCreatedResponse: envelope(object({ message: string, id: integer })),
@@ -603,6 +606,7 @@ export const operationResponses: Record<string, string> = {
   Rooms_addCustomMovieToRoom: 'AddedRoomMovieResponse',
   Rooms_removeMovieFromRoom: 'MessageResponse',
   Rooms_getRoomRatings: 'RoomRatingsResponse',
+  Rooms_getRoomRatingSummary: 'RoomRatingSummaryResponse',
   Ratings_addRating: 'AddedRatingResponse',
   Ratings_getRatings: 'RatingsResponse',
   Ratings_getOneRating: 'RatedMovieResponse',

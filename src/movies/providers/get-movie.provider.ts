@@ -23,6 +23,7 @@ import { Rating } from '../../ratings/rating.entity';
 import { Repository, SelectQueryBuilder } from 'typeorm';
 import { GetMovieDto } from '../dtos/get-movie.dto';
 import { Movie } from '../movie.entity';
+import { GetRoomRatingDto } from '../../rooms/dtos/get-room-ratings';
 
 interface RoomMovieRow {
   id: string;
@@ -210,7 +211,48 @@ export class GetMovieProvider {
     return movie;
   }
 
-  async getMoviesRatingORoom(filters: GetRatingDto, roomId: number) {
+  // Movies in the room the viewer has (or hasn't) rated.
+  private votedByViewer(
+    query: SelectQueryBuilder<Movie>,
+    hasVoted: boolean,
+    roomId: number,
+    userId: number,
+  ) {
+    const voted = query
+      .subQuery()
+      .select('1')
+      .from(Rating, 'viewerRating')
+      .where('viewerRating.movie = movie.id')
+      .andWhere('viewerRating.room = :roomId')
+      .andWhere('viewerRating.user = :viewerRatingUserId')
+      .getQuery();
+    query
+      .andWhere((hasVoted ? 'EXISTS ' : 'NOT EXISTS ') + voted)
+      .setParameters({ roomId, viewerRatingUserId: userId });
+  }
+
+  // Unfiltered counts of movies the viewer hasn't rated yet, for the banner.
+  async getRoomUnratedSummary(roomId: number) {
+    const userId = this.request[REQUEST_USER_KEY].sub;
+    const query = this.movieRepository
+      .createQueryBuilder('movie')
+      .innerJoin('movie.rooms', 'room')
+      .where('room.id = :roomId', { roomId });
+    this.votedByViewer(query, false, roomId, userId);
+    const row = await query
+      .select('COUNT(*)', 'unrated')
+      .addSelect(
+        'COUNT(*) FILTER (WHERE movie.isWatchedTogether = true)',
+        'unratedWatchedTogether',
+      )
+      .getRawOne<{ unrated: string; unratedWatchedTogether: string }>();
+    return {
+      unrated: Number(row?.unrated ?? 0),
+      unratedWatchedTogether: Number(row?.unratedWatchedTogether ?? 0),
+    };
+  }
+
+  async getMoviesRatingORoom(filters: GetRoomRatingDto, roomId: number) {
     const userId = this.request[REQUEST_USER_KEY].sub;
     const users = await this.roomService.getRoomUsers(roomId);
     const query = this.movieRepository
@@ -251,6 +293,10 @@ export class GetMovieProvider {
       .innerJoin('movie.rooms', 'room')
       .where('room.id = :roomId', { roomId });
     this.filters(count, filters);
+    if (filters.hasVoted !== undefined) {
+      this.votedByViewer(query, filters.hasVoted, roomId, userId);
+      this.votedByViewer(count, filters.hasVoted, roomId, userId);
+    }
     const limit = filters.limit ?? 10;
     const page = filters.page ?? 1;
     const [totalItems, rows] = await Promise.all([

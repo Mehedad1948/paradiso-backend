@@ -70,6 +70,10 @@ export class RoomsService {
     );
   }
 
+  async getRoomUnratedSummary(roomId: number) {
+    return await this.getRoomProvider.getUnratedSummary(roomId);
+  }
+
   async getRoomUsers(roomId: number) {
     return await this.getRoomProvider.getRoomUsers(roomId);
   }

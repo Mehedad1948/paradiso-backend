@@ -604,6 +604,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rooms/{roomId}/rating/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** get Room Rating Summary */
+        get: operations["Rooms_getRoomRatingSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/uploads/file": {
         parameters: {
             query?: never;
@@ -1986,6 +2003,11 @@ export interface components {
             data: components["schemas"]["RoomRating"][];
             meta: components["schemas"]["PaginationMeta"];
             links: components["schemas"]["PaginationLinks"];
+            apiVersion: string;
+        };
+        RoomRatingSummaryResponse: {
+            unrated: number;
+            unratedWatchedTogether: number;
             apiVersion: string;
         };
         MessageResponse: {
@@ -3635,6 +3657,7 @@ export interface operations {
                 endDate?: string | null;
                 search?: string | null;
                 isWatchTogether?: boolean | null;
+                hasVoted?: boolean | null;
                 sortBy?: "rate" | "userRate" | null;
                 sortOrder?: "asc" | "desc" | null;
                 sortByUserId?: number | null;
@@ -3656,6 +3679,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoomRatingsResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Rooms_getRoomRatingSummary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomRatingSummaryResponse"];
                 };
             };
             /** @description Error response */

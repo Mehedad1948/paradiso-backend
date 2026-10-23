@@ -2306,6 +2306,15 @@
             }
           },
           {
+            "name": "hasVoted",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "nullable": true,
+              "type": "boolean"
+            }
+          },
+          {
             "name": "sortBy",
             "required": false,
             "in": "query",
@@ -2400,6 +2409,53 @@
           }
         ],
         "summary": "get Room Ratings"
+      }
+    },
+    "/rooms/{roomId}/rating/summary": {
+      "get": {
+        "operationId": "Rooms_getRoomRatingSummary",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomRatingSummaryResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rooms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "get Room Rating Summary"
       }
     },
     "/uploads/file": {
@@ -8085,6 +8141,25 @@
           "data",
           "meta",
           "links",
+          "apiVersion"
+        ]
+      },
+      "RoomRatingSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "unrated": {
+            "type": "integer"
+          },
+          "unratedWatchedTogether": {
+            "type": "integer"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "unrated",
+          "unratedWatchedTogether",
           "apiVersion"
         ]
       },

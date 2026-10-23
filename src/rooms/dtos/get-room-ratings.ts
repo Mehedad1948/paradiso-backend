@@ -42,6 +42,13 @@ class GetRoomRatingsBaseDto {
   @Transform(queryBoolean)
   isWatchTogether?: boolean;
 
+  // Scoped to the logged-in user: false returns only movies they haven't rated.
+  @ApiPropertyOptional({ type: Boolean, nullable: true })
+  @IsOptional()
+  @IsBoolean()
+  @Transform(queryBoolean)
+  hasVoted?: boolean;
+
   @ApiPropertyOptional({ enum: MovieSortOption, nullable: true })
   @IsOptional()
   @IsEnum(MovieSortOption)

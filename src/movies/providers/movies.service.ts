@@ -9,6 +9,7 @@ import { MovieResponseDto } from '../dtos/movie-response.dto';
 import { GetMovieDto } from '../dtos/get-movie.dto';
 import { Paginated } from '../../common/pagination/interfaces/paginated.interface';
 import { GetRatingDto } from '../../ratings/dtos/get-rating.dto';
+import { GetRoomRatingDto } from '../../rooms/dtos/get-room-ratings';
 
 @Injectable()
 export class MoviesService {
@@ -51,8 +52,12 @@ export class MoviesService {
     return await this.getMovieProvider.getOneWithRating(id);
   }
 
+  public async getRoomUnratedSummary(roomId: number) {
+    return await this.getMovieProvider.getRoomUnratedSummary(roomId);
+  }
+
   public async getMoviesRatingORoom(
-    getRatingDto: GetRatingDto,
+    getRatingDto: GetRoomRatingDto,
     roomId: number,
   ) {
     return await this.getMovieProvider.getMoviesRatingORoom(
