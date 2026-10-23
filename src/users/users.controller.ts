@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   ParseIntPipe,
   Post,
   Put,
@@ -21,6 +22,12 @@ export class UsersController {
   @Auth(AuthType.Bearer)
   async getCurrentUser() {
     return await this.usersService.getUserByToken();
+  }
+
+  @Patch('me')
+  @Auth(AuthType.Bearer)
+  async updateCurrentUser(@Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.updateCurrentUser(updateUserDto);
   }
 
   @Post()

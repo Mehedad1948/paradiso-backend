@@ -29,7 +29,7 @@ export class GetUserProvider {
       }
       const user = await this.userRepository.findOne({
         where: { id: payload.sub },
-        relations: ['role'],
+        relations: ['role', 'genres'],
       });
       if (!user) {
         throw new UnauthorizedException('User not found');

@@ -187,7 +187,7 @@ export class GetMovieProvider {
     const movies = await this.paginationProvider.paginateQuery(filters, query);
     const users = new Map<
       number,
-      { id: number; username: string; avatar?: string }
+      { id: number; username: string; avatar?: string | null }
     >();
     for (const movie of movies.data) {
       for (const rating of movie.ratings ?? []) {

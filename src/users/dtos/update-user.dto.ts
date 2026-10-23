@@ -1,6 +1,19 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 // create-user.dto.ts
-import { IsString, MinLength, MaxLength, ValidateIf } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayUnique,
+  Equals,
+  IsArray,
+  IsString,
+  IsUUID,
+  MinLength,
+  MaxLength,
+  ValidateIf,
+} from 'class-validator';
+import { AVATAR_URL_MAX_LENGTH } from '../avatar-url';
+
+export const MAX_FAVORITE_GENRES = 10;
 
 export class UpdateUserDto {
   // @IsEmail()
@@ -19,9 +32,43 @@ export class UpdateUserDto {
   @MaxLength(100)
   username?: string;
 
-  @ApiPropertyOptional({ type: String, maxLength: 255 })
-  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @ApiPropertyOptional({
+    type: String,
+    format: 'uri',
+    maxLength: AVATAR_URL_MAX_LENGTH,
+    nullable: true,
+    description:
+      'HTTPS URL returned by POST /uploads/file with folder=avatars. null removes the avatar; omit to leave it unchanged.',
+  })
+  @ValidateIf(
+    (_object, value: unknown) => value !== undefined && value !== null,
+  )
   @IsString()
-  @MaxLength(255)
-  avatar?: string;
+  @MaxLength(AVATAR_URL_MAX_LENGTH)
+  avatar?: string | null;
+
+  @ApiPropertyOptional({
+    type: [String],
+    format: 'uuid',
+    maxItems: MAX_FAVORITE_GENRES,
+    uniqueItems: true,
+    description:
+      'Genre IDs from GET /genres. Replaces the whole favorite set; [] clears it; omit to leave it unchanged.',
+  })
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsArray()
+  @ArrayMaxSize(MAX_FAVORITE_GENRES)
+  @ArrayUnique()
+  @IsUUID(undefined, { each: true })
+  genreIds?: string[];
+
+  @ApiPropertyOptional({
+    type: 'boolean',
+    example: true,
+    description:
+      'Send true to mark onboarding finished or skipped. Idempotent; it cannot be unset.',
+  })
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @Equals(true, { message: 'onboarded can only be set to true' })
+  onboarded?: true;
 }
