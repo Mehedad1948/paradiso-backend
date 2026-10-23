@@ -2404,6 +2404,7 @@
     },
     "/uploads/file": {
       "post": {
+        "description": "Requires a signed-in session. The real file type is checked: JPEG, PNG, WebP (and GIF outside folder=avatars). With folder=avatars the file must be at most 2 MB; metadata is stripped and the image is resized to fit 512x512. Errors: 400 unreadable/missing file, 413 too large, 415 unsupported type.",
         "operationId": "Uploads_uploadFile",
         "parameters": [],
         "requestBody": {
@@ -2472,7 +2473,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/CurrentUserResponse"
                 }
               }
             }
@@ -2497,6 +2498,51 @@
           }
         ],
         "summary": "get Current User"
+      },
+      "patch": {
+        "operationId": "Users_updateCurrentUser",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentUserResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "update Current User"
       }
     },
     "/users": {
@@ -2572,7 +2618,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
+                  "$ref": "#/components/schemas/CurrentUserResponse"
                 }
               }
             }
@@ -5083,6 +5129,44 @@
         ],
         "additionalProperties": false
       },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "writeOnly": true
+          },
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "avatar": {
+            "type": "string",
+            "format": "uri",
+            "maxLength": 255,
+            "nullable": true,
+            "description": "HTTPS URL returned by POST /uploads/file with folder=avatars. null removes the avatar; omit to leave it unchanged."
+          },
+          "genreIds": {
+            "maxItems": 10,
+            "uniqueItems": true,
+            "description": "Genre IDs from GET /genres. Replaces the whole favorite set; [] clears it; omit to leave it unchanged.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "onboarded": {
+            "type": "boolean",
+            "example": true,
+            "description": "Send true to mark onboarding finished or skipped. Idempotent; it cannot be unset."
+          }
+        },
+        "additionalProperties": false
+      },
       "CreateUserDto": {
         "type": "object",
         "properties": {
@@ -5108,26 +5192,6 @@
           "password",
           "username"
         ],
-        "additionalProperties": false
-      },
-      "UpdateUserDto": {
-        "type": "object",
-        "properties": {
-          "password": {
-            "type": "string",
-            "minLength": 6,
-            "writeOnly": true
-          },
-          "username": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100
-          },
-          "avatar": {
-            "type": "string",
-            "maxLength": 255
-          }
-        },
         "additionalProperties": false
       },
       "CreateCommunityPostDto": {
@@ -6704,6 +6768,52 @@
           "id",
           "email",
           "username",
+          "apiVersion"
+        ]
+      },
+      "CurrentUserResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "username": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          },
+          "role": {
+            "type": "string"
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Genre"
+            }
+          },
+          "onboardedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "username",
+          "avatar",
+          "genres",
+          "onboardedAt",
           "apiVersion"
         ]
       },

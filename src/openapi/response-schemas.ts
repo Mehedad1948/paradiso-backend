@@ -100,6 +100,15 @@ const user = object(
   },
   ['id', 'email', 'username'],
 );
+const currentUser = object(
+  {
+    ...user.properties,
+    avatar: nullable({ type: 'string', format: 'uri' }),
+    genres: array(ref('Genre')),
+    onboardedAt: nullable(date),
+  },
+  ['id', 'email', 'username', 'avatar', 'genres', 'onboardedAt'],
+);
 const updatedMovie = object({
   id: uuid,
   dbId: nullable(integer),
@@ -290,6 +299,7 @@ export const responseSchemas: Record<string, SchemaObject> = {
   ),
   PublicUser: publicUser,
   UserResponse: envelope(user),
+  CurrentUserResponse: envelope(currentUser),
   Genre: genre,
   GenreResponse: envelope(genre),
   GenreListResponse: data(array(ref('Genre'))),
@@ -605,9 +615,10 @@ export const operationResponses: Record<string, string> = {
   RoomInviteLinks_remove: 'RemovedInviteLinkResponse',
   PublicInviteLinks_getOneByToken: 'InvitePreviewResponse',
   PublicInviteLinks_verify: 'InviteJoinedResponse',
-  Users_getCurrentUser: 'UserResponse',
+  Users_getCurrentUser: 'CurrentUserResponse',
+  Users_updateCurrentUser: 'CurrentUserResponse',
   Users_createUser: 'UserResponse',
-  Users_updateUser: 'UserResponse',
+  Users_updateUser: 'CurrentUserResponse',
   Genres_create: 'GenreListResponse',
   Genres_findAll: 'GenreListResponse',
   Genres_findOne: 'GenreResponse',

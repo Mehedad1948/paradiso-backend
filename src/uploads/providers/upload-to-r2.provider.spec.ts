@@ -21,8 +21,11 @@ describe('Cloudflare R2 image uploads', () => {
   const file = {
     originalname: 'پوستر #1.png',
     mimetype: 'image/png',
-    buffer: Buffer.from('test-image'),
-    size: 10,
+    buffer: Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    ),
+    size: 70,
   } as Express.Multer.File;
 
   afterEach(() => jest.restoreAllMocks());
@@ -54,7 +57,7 @@ describe('Cloudflare R2 image uploads', () => {
     const repository = { create, save } as unknown as Repository<Upload>;
     const service = new UploadsService(provider, repository);
 
-    const result = await service.uploadFile(file, 'avatars/../');
+    const result = await service.uploadFile(file, 'posters/../');
     const command = send.mock.calls[0][0] as PutObjectCommand;
     expect(command).toBeInstanceOf(PutObjectCommand);
     expect(command.input).toMatchObject({
@@ -63,7 +66,7 @@ describe('Cloudflare R2 image uploads', () => {
       ContentType: 'image/png',
     });
     expect(command.input.Key).toMatch(
-      /^paradiso\/avatars\/\/\/پوستر#1-\d+-[a-f0-9-]+\.png$/,
+      /^paradiso\/posters\/\/\/پوستر#1-\d+-[a-f0-9-]+\.png$/,
     );
     expect(result).toMatchObject({
       id: 1,

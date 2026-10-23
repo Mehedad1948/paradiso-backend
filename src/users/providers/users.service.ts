@@ -94,6 +94,10 @@ export class UsersService {
     return await this.updateUserProvider.update(email, data);
   }
 
+  public async updateCurrentUser(data: UpdateUserDto) {
+    return await this.updateUserProvider.updateCurrent(data);
+  }
+
   public async updateById(id: number, data: UpdateUserDto) {
     return await this.updateUserProvider.updateById(id, data);
   }

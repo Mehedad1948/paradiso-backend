@@ -613,7 +613,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Upload a new image to server. */
+        /**
+         * Upload a new image to server.
+         * @description Requires a signed-in session. The real file type is checked: JPEG, PNG, WebP (and GIF outside folder=avatars). With folder=avatars the file must be at most 2 MB; metadata is stripped and the image is resized to fit 512x512. Errors: 400 unreadable/missing file, 413 too large, 415 unsupported type.
+         */
         post: operations["Uploads_uploadFile"];
         delete?: never;
         options?: never;
@@ -635,7 +638,8 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /** update Current User */
+        patch: operations["Users_updateCurrentUser"];
         trace?: never;
     };
     "/users": {
@@ -1227,17 +1231,28 @@ export interface components {
             /** Format: uuid */
             movieId: string;
         };
+        UpdateUserDto: {
+            password?: string;
+            username?: string;
+            /**
+             * Format: uri
+             * @description HTTPS URL returned by POST /uploads/file with folder=avatars. null removes the avatar; omit to leave it unchanged.
+             */
+            avatar?: string | null;
+            /** @description Genre IDs from GET /genres. Replaces the whole favorite set; [] clears it; omit to leave it unchanged. */
+            genreIds?: string[];
+            /**
+             * @description Send true to mark onboarding finished or skipped. Idempotent; it cannot be unset.
+             * @example true
+             */
+            onboarded?: boolean;
+        };
         CreateUserDto: {
             /** Format: email */
             email: string;
             password: string;
             username: string;
             avatar?: string | null;
-        };
-        UpdateUserDto: {
-            password?: string;
-            username?: string;
-            avatar?: string;
         };
         CreateCommunityPostDto: {
             /**
@@ -1661,6 +1676,19 @@ export interface components {
             username: string;
             avatar?: string | null;
             role?: string;
+            apiVersion: string;
+        };
+        CurrentUserResponse: {
+            id: number;
+            /** Format: email */
+            email: string;
+            username: string;
+            /** Format: uri */
+            avatar: string | null;
+            role?: string;
+            genres: components["schemas"]["Genre"][];
+            /** Format: date-time */
+            onboardedAt: string | null;
             apiVersion: string;
         };
         Genre: {
@@ -3694,7 +3722,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserResponse"];
+                    "application/json": components["schemas"]["CurrentUserResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Users_updateCurrentUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CurrentUserResponse"];
                 };
             };
             /** @description Error response */
@@ -3762,7 +3823,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UserResponse"];
+                    "application/json": components["schemas"]["CurrentUserResponse"];
                 };
             };
             /** @description Error response */
