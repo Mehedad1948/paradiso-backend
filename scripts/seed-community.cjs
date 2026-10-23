@@ -94,13 +94,73 @@ const posts = [
   ]],
 ];
 
+// General posts with no movie or rating: [authorSlot, hoursAgo, text, comments]
+const generalPosts = [
+  [1, 140, 'Slow-burn sci-fi is having a moment. Which upcoming release are you most excited to see on opening weekend?', [
+    [0, 'Anything with a long, patient first act. Bring it on.'],
+    [2, 'Opening night with a full theatre beats any streaming release.'],
+  ]],
+  [0, 55, 'Hot take: the best way to watch a film is knowing nothing going in. No trailers, no reviews. Who else avoids trailers?', [
+    [1, 'Guilty. I look away the second a trailer starts.'],
+  ]],
+  [2, 33, 'Looking for recommendations: quiet, character-driven dramas from the 1950s to the 70s. Go!', [
+    [0, 'Start with Ozu. Tokyo Story, then Late Spring.'],
+    [1, 'Paris, Texas fits right in if you have not seen it yet.'],
+  ]],
+];
+
+// Quote posts: [quotedTmdbId, authorSlot, hoursAgo, text]
+const quotePosts = [
+  [77, 1, 95, 'Memento and Arrival would make a perfect double feature about time and memory.'],
+  [238, 0, 200, 'The Godfather and Cinema Paradiso: two films that understand what family means. Rewatching both this month.'],
+  [389, 2, 160, '12 Angry Men is the reason I think every film school should teach one-location filmmaking.'],
+  [1585, 1, 120, 'Every December thread should start with this one. Follow it with Stalag 17 if you want something more cynical afterwards.'],
+];
+
+// Plain reposts: [tmdbId, authorSlot, hoursAgo]
+const reposts = [
+  [11216, 1, 300],
+  [238, 0, 220],
+  [37165, 2, 140],
+  [329865, 0, 75],
+];
+
+// Likes and dislikes: [tmdbId or 'g<index>' for general posts, likeSlots, dislikeSlots]
+const reactionSeeds = [
+  [11216, [0, 1], []],
+  [60243, [0, 2], []],
+  [496243, [1, 2], []],
+  [655, [0, 1], []],
+  [2013, [0, 2], []],
+  [632, [1], [2]],
+  [238, [0, 1], []],
+  [157336, [2], [1]],
+  [244786, [1], [0]],
+  [27205, [1, 2], []],
+  [313369, [0], [2]],
+  [77, [0, 1], []],
+  [872585, [0, 2], []],
+  [278, [0, 1], []],
+  [37165, [1, 2], []],
+  [152601, [0], [1]],
+  [194, [0, 2], []],
+  ['g0', [0, 2], []],
+  ['g1', [1], [2]],
+  ['g2', [0, 1], []],
+];
+
 // Posts scoped to the first room, by its owner: [tmdbId, hoursAgo, rating, text]
 const roomPosts = [
   [11216, 20, 9.5, 'Proposal for our next group watch: Cinema Paradiso. Fitting for a room with this name.'],
   [60243, 6, 9.0, 'If we do an Iranian cinema night, A Separation should open it. Then maybe Kiarostami?'],
 ];
 
-const seedTexts = [...posts.map((p) => p[4]), ...roomPosts.map((p) => p[3])];
+const seedTexts = [
+  ...posts.map((p) => p[4]),
+  ...generalPosts.map((p) => p[2]),
+  ...quotePosts.map((p) => p[3]),
+  ...roomPosts.map((p) => p[3]),
+];
 
 function loadEnv() {
   for (const file of [
@@ -158,30 +218,38 @@ async function seed(db) {
   // Insert oldest first so post IDs (the feed order) follow creation time.
   const queue = [
     ...posts.map(([tmdbId, slot, hoursAgo, rating, text, comments]) => ({
-      tmdbId, authorId: user(slot), hoursAgo, rating, text, comments, roomId: null,
+      key: tmdbId, tmdbId, authorId: user(slot), hoursAgo, rating, text, comments, roomId: null,
+    })),
+    ...generalPosts.map(([slot, hoursAgo, text, comments], index) => ({
+      key: `g${index}`, tmdbId: null, authorId: user(slot), hoursAgo, rating: null, text, comments, roomId: null,
     })),
     ...(room?.ownerId
       ? roomPosts.map(([tmdbId, hoursAgo, rating, text]) => ({
-          tmdbId, authorId: room.ownerId, hoursAgo, rating, text, comments: [], roomId: room.id,
+          key: null, tmdbId, authorId: room.ownerId, hoursAgo, rating, text, comments: [], roomId: room.id,
         }))
       : []),
   ].sort((a, b) => b.hoursAgo - a.hoursAgo);
 
   let postsAdded = 0;
   let commentsAdded = 0;
+  const postIds = new Map();
   for (const post of queue) {
     const exists = await db.query(
-      'SELECT 1 FROM community_post WHERE "authorId" = $1 AND text = $2',
+      'SELECT id FROM community_post WHERE "authorId" = $1 AND text = $2',
       [post.authorId, post.text],
     );
-    if (exists.rowCount) continue;
+    if (exists.rowCount) {
+      if (post.key !== null) postIds.set(post.key, exists.rows[0].id);
+      continue;
+    }
     const { rows } = await db.query(
       `INSERT INTO community_post ("authorId", "movieId", text, rating, "roomId", "createdAt", "updatedAt")
        VALUES ($1, $2, $3, $4, $5, now() - make_interval(hours => $6), now() - make_interval(hours => $6))
        RETURNING id`,
-      [post.authorId, movieIds.get(post.tmdbId), post.text, post.rating, post.roomId, post.hoursAgo],
+      [post.authorId, post.tmdbId ? movieIds.get(post.tmdbId) : null, post.text, post.rating, post.roomId, post.hoursAgo],
     );
     postsAdded++;
+    if (post.key !== null) postIds.set(post.key, rows[0].id);
     for (const [index, [slot, text]] of post.comments.entries()) {
       // Comments trail the post by a couple of hours each.
       const hoursAgo = Math.max(post.hoursAgo - 2 * (index + 1), 0.5);
@@ -192,6 +260,45 @@ async function seed(db) {
       );
       commentsAdded++;
     }
+  }
+
+  // Quotes and reposts come after their originals so feed order stays sensible.
+  let quotesAdded = 0;
+  let repostsAdded = 0;
+  const shares = [
+    ...quotePosts.map(([tmdbId, slot, hoursAgo, text]) => ({ tmdbId, slot, hoursAgo, text })),
+    ...reposts.map(([tmdbId, slot, hoursAgo]) => ({ tmdbId, slot, hoursAgo, text: '' })),
+  ].sort((a, b) => b.hoursAgo - a.hoursAgo);
+  for (const share of shares) {
+    const quotedId = postIds.get(share.tmdbId);
+    if (!quotedId) continue;
+    const exists = await db.query(
+      'SELECT 1 FROM community_post WHERE "authorId" = $1 AND "quotedPostId" = $2 AND text = $3',
+      [user(share.slot), quotedId, share.text],
+    );
+    if (exists.rowCount) continue;
+    await db.query(
+      `INSERT INTO community_post ("authorId", "quotedPostId", text, "createdAt", "updatedAt")
+       VALUES ($1, $2, $3, now() - make_interval(hours => $4), now() - make_interval(hours => $4))`,
+      [user(share.slot), quotedId, share.text, share.hoursAgo],
+    );
+    if (share.text) quotesAdded++;
+    else repostsAdded++;
+  }
+
+  let reactionsAdded = 0;
+  for (const [key, likes, dislikes] of reactionSeeds) {
+    const postId = postIds.get(key);
+    if (!postId) continue;
+    for (const [value, slots] of [[1, likes], [-1, dislikes]])
+      for (const slot of slots)
+        reactionsAdded += (
+          await db.query(
+            `INSERT INTO community_post_reaction ("postId", "userId", value) VALUES ($1, $2, $3)
+             ON CONFLICT DO NOTHING`,
+            [postId, user(slot), value],
+          )
+        ).rowCount;
   }
 
   let followsAdded = 0;
@@ -209,11 +316,18 @@ async function seed(db) {
 
   console.log(
     `Users ${distinct.join(', ')}${room ? `; room ${room.id}` : '; no room'}.`,
-    `Added ${moviesAdded} movies, ${postsAdded} posts, ${commentsAdded} comments, ${followsAdded} follows.`,
+    `Added ${moviesAdded} movies, ${postsAdded} posts, ${commentsAdded} comments,`,
+    `${quotesAdded} quotes, ${repostsAdded} reposts, ${reactionsAdded} reactions, ${followsAdded} follows.`,
   );
 }
 
 async function remove(db) {
+  // Plain reposts of seed posts would be left empty, so remove them first.
+  await db.query(
+    `DELETE FROM community_post WHERE text = '' AND "quotedPostId" IN
+       (SELECT id FROM community_post WHERE text = ANY($1))`,
+    [seedTexts],
+  );
   const deletedPosts = await db.query(
     'DELETE FROM community_post WHERE text = ANY($1)',
     [seedTexts],
