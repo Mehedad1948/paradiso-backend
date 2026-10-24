@@ -587,6 +587,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rooms/{id}/members/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** kick User */
+        delete: operations["Rooms_kickUser"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{id}/bans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** get Room Bans */
+        get: operations["Rooms_getRoomBans"];
+        put?: never;
+        /** ban User */
+        post: operations["Rooms_banUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/{id}/bans/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** unban User */
+        delete: operations["Rooms_unbanUser"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rooms/{roomId}/rating": {
         parameters: {
             query?: never;
@@ -1249,6 +1301,11 @@ export interface components {
         RemoveRoomMovieDto: {
             /** Format: uuid */
             movieId: string;
+        };
+        BanRoomUserDto: {
+            /** Format: int32 */
+            userId: number;
+            reason?: string;
         };
         UpdateUserDto: {
             password?: string;
@@ -2014,6 +2071,24 @@ export interface components {
         };
         MessageResponse: {
             message: string;
+            apiVersion: string;
+        };
+        RoomBan: {
+            id: number;
+            user: {
+                id: number;
+                username: string;
+            };
+            bannedBy: {
+                id: number;
+                username: string;
+            } | null;
+            reason: string | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        RoomBanListResponse: {
+            data: components["schemas"]["RoomBan"][];
             apiVersion: string;
         };
         AddedRoomMovieResponse: {
@@ -3631,6 +3706,136 @@ export interface operations {
                 "application/json": components["schemas"]["RemoveRoomMovieDto"];
             };
         };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Rooms_kickUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Rooms_getRoomBans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomBanListResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Rooms_banUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BanRoomUserDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Rooms_unbanUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful response */
             200: {

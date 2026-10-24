@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Room } from '../room.entity';
+import { assertNotBanned } from './room-moderation.provider';
 import { lockRoom } from './room-transaction';
 
 @Injectable()
@@ -22,6 +23,7 @@ export class JoinRoomProvider {
         throw new ForbiddenException(
           'An invitation is required to join this room',
         );
+      await assertNotBanned(manager, roomId, userId);
       const joined = await manager
         .getRepository(Room)
         .exists({ where: { id: roomId, users: { id: userId } } });

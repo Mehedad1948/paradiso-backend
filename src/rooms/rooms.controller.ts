@@ -23,6 +23,7 @@ import { ActiveUserData } from '../auth/interfaces/active-user-data.interface';
 import { RoomReadGuard } from './guards/room-read.guard';
 import { AddRoomMovieDto, RemoveRoomMovieDto } from './dtos/room-movie.dto';
 import { UpdateRoomDto } from './dtos/update-room.dto';
+import { BanRoomUserDto } from './dtos/ban-room-user.dto';
 import { CreateCustomMovieDto } from '../movies/dtos/create-custom-movie.dto';
 
 @Controller('rooms')
@@ -100,6 +101,51 @@ export class RoomsController {
     @Body() dto: RemoveRoomMovieDto,
   ) {
     return await this.roomsService.deleteMovieFromRoom(id, dto.movieId);
+  }
+
+  // Moderation endpoints are owner-only; the provider enforces ownership.
+  @Auth(AuthType.Bearer)
+  @Delete(':id/members/:userId')
+  async kickUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('userId', ParseIntPipe) userId: number,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return await this.roomsService.kickUser(id, user.sub, userId);
+  }
+
+  @Auth(AuthType.Bearer)
+  @Get(':id/bans')
+  async getRoomBans(
+    @Param('id', ParseIntPipe) id: number,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return await this.roomsService.getRoomBans(id, user.sub);
+  }
+
+  @Auth(AuthType.Bearer)
+  @Post(':id/bans')
+  async banUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: BanRoomUserDto,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return await this.roomsService.banUser(
+      id,
+      user.sub,
+      dto.userId,
+      dto.reason,
+    );
+  }
+
+  @Auth(AuthType.Bearer)
+  @Delete(':id/bans/:userId')
+  async unbanUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('userId', ParseIntPipe) userId: number,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return await this.roomsService.unbanUser(id, user.sub, userId);
   }
 
   @Auth(AuthType.Bearer)

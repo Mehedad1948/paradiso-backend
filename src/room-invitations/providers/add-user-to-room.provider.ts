@@ -13,6 +13,7 @@ import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
 import { AuthService } from '../../auth/providers/auth.service';
 import { MailService } from '../../mail/providers/mail.service';
 import { Room } from '../../rooms/room.entity';
+import { assertNotBanned } from '../../rooms/providers/room-moderation.provider';
 import { lockRoom } from '../../rooms/providers/room-transaction';
 import { UsersService } from '../../users/providers/users.service';
 import { Repository } from 'typeorm';
@@ -54,6 +55,7 @@ export class AddUserToRoomProvider {
         ) {
           throw new ConflictException('User is already a room member');
         }
+        if (invitedUser) await assertNotBanned(manager, roomId, invitedUser.id);
         const repo = manager.getRepository(RoomInvitation);
         const existing = await repo.findOne({
           where: { email, room: { id: roomId } },

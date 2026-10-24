@@ -2253,6 +2253,218 @@
         "summary": "remove Movie From Room"
       }
     },
+    "/rooms/{id}/members/{userId}": {
+      "delete": {
+        "operationId": "Rooms_kickUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rooms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "kick User"
+      }
+    },
+    "/rooms/{id}/bans": {
+      "get": {
+        "operationId": "Rooms_getRoomBans",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomBanListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rooms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "get Room Bans"
+      },
+      "post": {
+        "operationId": "Rooms_banUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BanRoomUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rooms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "ban User"
+      }
+    },
+    "/rooms/{id}/bans/{userId}": {
+      "delete": {
+        "operationId": "Rooms_unbanUser",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rooms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "unban User"
+      }
+    },
     "/rooms/{roomId}/rating": {
       "get": {
         "operationId": "Rooms_getRoomRatings",
@@ -5190,6 +5402,24 @@
         },
         "required": [
           "movieId"
+        ],
+        "additionalProperties": false
+      },
+      "BanRoomUserDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "userId"
         ],
         "additionalProperties": false
       },
@@ -8183,6 +8413,78 @@
         },
         "required": [
           "message",
+          "apiVersion"
+        ]
+      },
+      "RoomBan": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "username": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "username"
+            ]
+          },
+          "bannedBy": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "username": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "username"
+            ],
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "user",
+          "bannedBy",
+          "reason",
+          "createdAt"
+        ]
+      },
+      "RoomBanListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoomBan"
+            }
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
           "apiVersion"
         ]
       },

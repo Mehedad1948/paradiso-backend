@@ -24,6 +24,9 @@ const {
 const {
   OnboardingGenres1792627200000,
 } = require('../dist/users/migrations/1792627200000-onboarding-genres');
+const {
+  RoomBans1792713600000,
+} = require('../dist/rooms/migrations/1792713600000-room-bans');
 
 const migrations = [
   Community1790985600000,
@@ -33,6 +36,7 @@ const migrations = [
   DecimalRatings1792454400000,
   PostReactionsReposts1792540800000,
   OnboardingGenres1792627200000,
+  RoomBans1792713600000,
 ];
 
 async function main() {

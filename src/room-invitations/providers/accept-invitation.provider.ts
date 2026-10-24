@@ -11,6 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigType } from '@nestjs/config';
 import jwtConfig from '../../auth/config/jwt.config';
+import { assertNotBanned } from '../../rooms/providers/room-moderation.provider';
 import { lockRoom } from '../../rooms/providers/room-transaction';
 import { Room } from '../../rooms/room.entity';
 import { Repository } from 'typeorm';
@@ -87,6 +88,7 @@ export class AcceptInvitationProvider {
       ) {
         throw new ConflictException('Invitation is no longer active');
       }
+      if (!joined) await assertNotBanned(manager, claims.roomId, user.sub);
       if (!joined)
         await manager
           .createQueryBuilder()

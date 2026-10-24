@@ -7,11 +7,13 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Room } from '../room.entity';
+import { RoomBan } from '../room-ban.entity';
 
 @Injectable()
 export class RoomAccessService {
   constructor(
     @InjectRepository(Room) private readonly rooms: Repository<Room>,
+    @InjectRepository(RoomBan) private readonly bans: Repository<RoomBan>,
   ) {}
 
   private async access(roomId: number, userId: number) {
@@ -32,7 +34,14 @@ export class RoomAccessService {
 
   async canRead(roomId: number, userId: number): Promise<boolean> {
     const { room, member } = await this.access(roomId, userId);
-    return !!room.isPublic || member;
+    if (member) return true;
+    // Banned users lose read access even to public rooms.
+    return (
+      !!room.isPublic &&
+      !(await this.bans.exists({
+        where: { room: { id: roomId }, user: { id: userId } },
+      }))
+    );
   }
 
   async requireOwner(

@@ -18,6 +18,8 @@ import { RatingsModule } from '../ratings/ratings.module';
 import { DeleteMovieFromRoomProvider } from './providers/delete-movie-from-room.provider';
 import { RoomReadGuard } from './guards/room-read.guard';
 import { UpdateRoomProvider } from './providers/update-room.provider';
+import { RoomModerationProvider } from './providers/room-moderation.provider';
+import { RoomBan } from './room-ban.entity';
 
 @Module({
   providers: [
@@ -31,10 +33,11 @@ import { UpdateRoomProvider } from './providers/update-room.provider';
     AddMovieToRoomProvider,
     DeleteMovieFromRoomProvider,
     UpdateRoomProvider,
+    RoomModerationProvider,
   ],
   exports: [RoomsService, RoomMemberGuard, RoomReadGuard, RoomAccessService],
   imports: [
-    TypeOrmModule.forFeature([Room]),
+    TypeOrmModule.forFeature([Room, RoomBan]),
     UsersModule,
     forwardRef(() => MoviesModule),
     PaginationModule,

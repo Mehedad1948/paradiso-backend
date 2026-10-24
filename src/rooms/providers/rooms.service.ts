@@ -9,6 +9,7 @@ import { DeleteMovieFromRoomProvider } from './delete-movie-from-room.provider';
 import { GetRoomRatingDto } from '../dtos/get-room-ratings';
 import { UpdateRoomDto } from '../dtos/update-room.dto';
 import { UpdateRoomProvider } from './update-room.provider';
+import { RoomModerationProvider } from './room-moderation.provider';
 import { CreateCustomMovieDto } from '../../movies/dtos/create-custom-movie.dto';
 
 @Injectable()
@@ -20,6 +21,7 @@ export class RoomsService {
     private readonly addMovieToRoomProvider: AddMovieToRoomProvider,
     private readonly deleteMovieFromRoomProvider: DeleteMovieFromRoomProvider,
     private readonly updateRoomProvider: UpdateRoomProvider,
+    private readonly roomModerationProvider: RoomModerationProvider,
   ) {}
 
   async createRoom(createRoomDto: CreateRoomDto) {
@@ -80,6 +82,32 @@ export class RoomsService {
 
   async getRoomUnratedSummary(roomId: number) {
     return await this.getRoomProvider.getUnratedSummary(roomId);
+  }
+
+  async kickUser(roomId: number, ownerId: number, userId: number) {
+    return await this.roomModerationProvider.kick(roomId, ownerId, userId);
+  }
+
+  async banUser(
+    roomId: number,
+    ownerId: number,
+    userId: number,
+    reason?: string,
+  ) {
+    return await this.roomModerationProvider.ban(
+      roomId,
+      ownerId,
+      userId,
+      reason,
+    );
+  }
+
+  async unbanUser(roomId: number, ownerId: number, userId: number) {
+    return await this.roomModerationProvider.unban(roomId, ownerId, userId);
+  }
+
+  async getRoomBans(roomId: number, ownerId: number) {
+    return await this.roomModerationProvider.list(roomId, ownerId);
   }
 
   async getRoomUsers(roomId: number) {

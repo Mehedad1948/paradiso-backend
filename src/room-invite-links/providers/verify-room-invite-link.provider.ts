@@ -9,6 +9,7 @@ import {
 import { REQUEST } from '@nestjs/core';
 import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
 import { Room } from '../../rooms/room.entity';
+import { assertNotBanned } from '../../rooms/providers/room-moderation.provider';
 import { lockRoom } from '../../rooms/providers/room-transaction';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -47,6 +48,7 @@ export class VerifyRoomInviteLinkProvider {
         .getRepository(Room)
         .exists({ where: { id: reference.room.id, users: { id: userId } } });
       if (!joined) {
+        await assertNotBanned(manager, reference.room.id, userId);
         if (invite.maxUsage > 0 && invite.uses >= invite.maxUsage)
           throw new GoneException('Invite link already used up');
         await manager

@@ -12,6 +12,7 @@ import { User } from './users/user.entity';
 import { Role } from './roles/role.entity';
 import { Movie } from './movies/movie.entity';
 import { Room } from './rooms/room.entity';
+import { RoomBan } from './rooms/room-ban.entity';
 import { Genre } from './genres/genre.entity';
 import { Rating } from './ratings/rating.entity';
 import { Upload } from './uploads/upload.entity';
@@ -79,6 +80,7 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         Role,
         Movie,
         Room,
+        RoomBan,
         Genre,
         Rating,
         Upload,
