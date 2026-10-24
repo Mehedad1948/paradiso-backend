@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { WatchlistModule } from './watchlist/watchlist.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -64,6 +65,7 @@ const ENV = process.env.NODE_ENV || 'development';
     RoomInviteLinksModule,
     CommunityModule,
     RoomChatModule,
+    WatchlistModule,
   ],
   controllers: [AppController],
   providers: [

@@ -4844,6 +4844,207 @@
         ],
         "summary": "unpin Message"
       }
+    },
+    "/watchlist": {
+      "get": {
+        "operationId": "Watchlist_list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "format": "int32",
+              "nullable": true,
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 1000000,
+              "format": "int32",
+              "nullable": true,
+              "default": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The current user's watchlist, newest first.",
+        "tags": [
+          "Watchlist"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/watchlist/{movieId}": {
+      "get": {
+        "operationId": "Watchlist_has",
+        "parameters": [
+          {
+            "name": "movieId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchlistStatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Watchlist"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "has"
+      },
+      "put": {
+        "operationId": "Watchlist_add",
+        "parameters": [
+          {
+            "name": "movieId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Add a movie to the watchlist. Adding it twice is a no-op.",
+        "tags": [
+          "Watchlist"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "Watchlist_remove",
+        "parameters": [
+          {
+            "name": "movieId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Watchlist"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "remove"
+      }
     }
   },
   "info": {
@@ -8468,6 +8669,63 @@
           "bannedBy",
           "reason",
           "createdAt"
+        ]
+      },
+      "WatchlistItem": {
+        "type": "object",
+        "properties": {
+          "addedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "movie": {
+            "$ref": "#/components/schemas/Movie"
+          }
+        },
+        "required": [
+          "addedAt",
+          "movie"
+        ]
+      },
+      "WatchlistResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WatchlistItem"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          },
+          "links": {
+            "$ref": "#/components/schemas/PaginationLinks"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "links",
+          "apiVersion"
+        ]
+      },
+      "WatchlistStatusResponse": {
+        "type": "object",
+        "properties": {
+          "inWatchlist": {
+            "type": "boolean"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "inWatchlist",
+          "apiVersion"
         ]
       },
       "RoomBanListResponse": {

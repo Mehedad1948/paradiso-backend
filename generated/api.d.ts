@@ -1134,6 +1134,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/watchlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The current user's watchlist, newest first. */
+        get: operations["Watchlist_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/watchlist/{movieId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** has */
+        get: operations["Watchlist_has"];
+        /** Add a movie to the watchlist. Adding it twice is a no-op. */
+        put: operations["Watchlist_add"];
+        post?: never;
+        /** remove */
+        delete: operations["Watchlist_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2086,6 +2122,21 @@ export interface components {
             reason: string | null;
             /** Format: date-time */
             createdAt: string;
+        };
+        WatchlistItem: {
+            /** Format: date-time */
+            addedAt: string;
+            movie: components["schemas"]["Movie"];
+        };
+        WatchlistResponse: {
+            data: components["schemas"]["WatchlistItem"][];
+            meta: components["schemas"]["PaginationMeta"];
+            links: components["schemas"]["PaginationLinks"];
+            apiVersion: string;
+        };
+        WatchlistStatusResponse: {
+            inWatchlist: boolean;
+            apiVersion: string;
         };
         RoomBanListResponse: {
             data: components["schemas"]["RoomBan"][];
@@ -5221,6 +5272,131 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChatMessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Watchlist_list: {
+        parameters: {
+            query?: {
+                limit?: number | null;
+                page?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Watchlist_has: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movieId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchlistStatusResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Watchlist_add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movieId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Watchlist_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movieId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
                 };
             };
             /** @description Error response */

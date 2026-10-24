@@ -27,6 +27,9 @@ const {
 const {
   RoomBans1792713600000,
 } = require('../dist/rooms/migrations/1792713600000-room-bans');
+const {
+  Watchlist1792800000000,
+} = require('../dist/watchlist/migrations/1792800000000-watchlist');
 
 const migrations = [
   Community1790985600000,
@@ -37,6 +40,7 @@ const migrations = [
   PostReactionsReposts1792540800000,
   OnboardingGenres1792627200000,
   RoomBans1792713600000,
+  Watchlist1792800000000,
 ];
 
 async function main() {

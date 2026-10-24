@@ -12,6 +12,7 @@ import { User } from './users/user.entity';
 import { Role } from './roles/role.entity';
 import { Movie } from './movies/movie.entity';
 import { Room } from './rooms/room.entity';
+import { WatchlistItem } from './watchlist/watchlist-item.entity';
 import { RoomBan } from './rooms/room-ban.entity';
 import { Genre } from './genres/genre.entity';
 import { Rating } from './ratings/rating.entity';
@@ -81,6 +82,7 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         Movie,
         Room,
         RoomBan,
+        WatchlistItem,
         Genre,
         Rating,
         Upload,
