@@ -10,6 +10,7 @@ import { GetRoomRatingDto } from '../dtos/get-room-ratings';
 import { UpdateRoomDto } from '../dtos/update-room.dto';
 import { UpdateRoomProvider } from './update-room.provider';
 import { RoomModerationProvider } from './room-moderation.provider';
+import { LeaveRoomProvider } from './leave-room.provider';
 import { CreateCustomMovieDto } from '../../movies/dtos/create-custom-movie.dto';
 
 @Injectable()
@@ -22,6 +23,7 @@ export class RoomsService {
     private readonly deleteMovieFromRoomProvider: DeleteMovieFromRoomProvider,
     private readonly updateRoomProvider: UpdateRoomProvider,
     private readonly roomModerationProvider: RoomModerationProvider,
+    private readonly leaveRoomProvider: LeaveRoomProvider,
   ) {}
 
   async createRoom(createRoomDto: CreateRoomDto) {
@@ -108,6 +110,10 @@ export class RoomsService {
 
   async getRoomBans(roomId: number, ownerId: number) {
     return await this.roomModerationProvider.list(roomId, ownerId);
+  }
+
+  async leaveRoom(roomId: number, userId: number, clearVotes = false) {
+    return await this.leaveRoomProvider.leave(roomId, userId, clearVotes);
   }
 
   async getRoomUsers(roomId: number) {

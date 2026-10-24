@@ -20,6 +20,7 @@ import { RoomReadGuard } from './guards/room-read.guard';
 import { UpdateRoomProvider } from './providers/update-room.provider';
 import { RoomModerationProvider } from './providers/room-moderation.provider';
 import { RoomBan } from './room-ban.entity';
+import { LeaveRoomProvider } from './providers/leave-room.provider';
 
 @Module({
   providers: [
@@ -34,6 +35,7 @@ import { RoomBan } from './room-ban.entity';
     DeleteMovieFromRoomProvider,
     UpdateRoomProvider,
     RoomModerationProvider,
+    LeaveRoomProvider,
   ],
   exports: [RoomsService, RoomMemberGuard, RoomReadGuard, RoomAccessService],
   imports: [

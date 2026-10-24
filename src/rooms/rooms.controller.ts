@@ -24,6 +24,7 @@ import { RoomReadGuard } from './guards/room-read.guard';
 import { AddRoomMovieDto, RemoveRoomMovieDto } from './dtos/room-movie.dto';
 import { UpdateRoomDto } from './dtos/update-room.dto';
 import { BanRoomUserDto } from './dtos/ban-room-user.dto';
+import { LeaveRoomDto } from './dtos/leave-room.dto';
 import { CreateCustomMovieDto } from '../movies/dtos/create-custom-movie.dto';
 
 @Controller('rooms')
@@ -101,6 +102,16 @@ export class RoomsController {
     @Body() dto: RemoveRoomMovieDto,
   ) {
     return await this.roomsService.deleteMovieFromRoom(id, dto.movieId);
+  }
+
+  @Auth(AuthType.Bearer)
+  @Post(':id/leave')
+  async leaveRoom(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: LeaveRoomDto,
+    @ActiveUser() user: ActiveUserData,
+  ) {
+    return await this.roomsService.leaveRoom(id, user.sub, dto.clearVotes);
   }
 
   // Moderation endpoints are owner-only; the provider enforces ownership.
