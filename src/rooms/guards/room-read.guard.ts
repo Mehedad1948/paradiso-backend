@@ -2,7 +2,6 @@ import {
   BadRequestException,
   CanActivate,
   ExecutionContext,
-  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -21,7 +20,11 @@ export class RoomReadGuard implements CanActivate {
     if (!Number.isSafeInteger(roomId) || roomId < 1)
       throw new BadRequestException('Invalid room ID');
     if (!(await this.access.canRead(roomId, userId)))
-      throw new ForbiddenException('You cannot access this room');
+      await this.access.denyAccess(
+        roomId,
+        userId,
+        'You cannot access this room',
+      );
     return true;
   }
 }

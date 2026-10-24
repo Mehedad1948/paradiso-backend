@@ -22,7 +22,12 @@ export async function assertNotBanned(
     .getRepository(RoomBan)
     .exists({ where: { room: { id: roomId }, user: { id: userId } } });
   if (banned)
-    throw new ConflictException('You have been banned from this room');
+    throw new ConflictException({
+      statusCode: 409,
+      error: 'Conflict',
+      message: 'You have been banned from this room',
+      code: 'ROOM_BANNED',
+    });
 }
 
 @Injectable()

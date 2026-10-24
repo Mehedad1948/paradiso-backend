@@ -3,7 +3,6 @@ import {
   ExecutionContext,
   Injectable,
   UnauthorizedException,
-  ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
 import { REQUEST_USER_KEY } from '../../../auth/constants/auth.constants';
@@ -35,6 +34,10 @@ export class RoomMemberGuard implements CanActivate {
       return true;
     }
 
-    throw new ForbiddenException('You are not authorized to access this room.');
+    return this.roomAccessService.denyAccess(
+      roomId,
+      userId,
+      'You are not authorized to access this room.',
+    );
   }
 }

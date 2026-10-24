@@ -19,11 +19,11 @@ export class JoinRoomProvider {
   async joinToRoom(userId: number, roomId: number) {
     return this.roomRepository.manager.transaction(async (manager) => {
       const room = await lockRoom(manager, roomId);
+      await assertNotBanned(manager, roomId, userId);
       if (!room.isPublic)
         throw new ForbiddenException(
           'An invitation is required to join this room',
         );
-      await assertNotBanned(manager, roomId, userId);
       const joined = await manager
         .getRepository(Room)
         .exists({ where: { id: roomId, users: { id: userId } } });

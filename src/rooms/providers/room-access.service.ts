@@ -36,12 +36,29 @@ export class RoomAccessService {
     const { room, member } = await this.access(roomId, userId);
     if (member) return true;
     // Banned users lose read access even to public rooms.
-    return (
-      !!room.isPublic &&
-      !(await this.bans.exists({
-        where: { room: { id: roomId }, user: { id: userId } },
-      }))
-    );
+    return !!room.isPublic && !(await this.isBanned(roomId, userId));
+  }
+
+  async isBanned(roomId: number, userId: number): Promise<boolean> {
+    return this.bans.exists({
+      where: { room: { id: roomId }, user: { id: userId } },
+    });
+  }
+
+  // Lets clients tell a ban apart from a plain lack of access.
+  async denyAccess(
+    roomId: number,
+    userId: number,
+    message: string,
+  ): Promise<never> {
+    if (await this.isBanned(roomId, userId))
+      throw new ForbiddenException({
+        statusCode: 403,
+        error: 'Forbidden',
+        message: 'You have been banned from this room',
+        code: 'ROOM_BANNED',
+      });
+    throw new ForbiddenException(message);
   }
 
   async requireOwner(
