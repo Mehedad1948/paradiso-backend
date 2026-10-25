@@ -167,6 +167,19 @@ export class CommunityController {
     return this.community.profile(id);
   }
 
+  @Get('users/:userId/recommendations')
+  @Auth(AuthType.none)
+  @ApiOperation({
+    summary:
+      'Movies the user recommends: their public posts rated 8 or higher, latest post per movie.',
+  })
+  recommendations(
+    @Param('userId', ParseIntPipe) id: number,
+    @Query() query: CommunityPageDto,
+  ) {
+    return this.community.recommendations(id, query);
+  }
+
   @Put('users/:userId/follow')
   follow(
     @Param('userId', ParseIntPipe) id: number,

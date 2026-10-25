@@ -31,6 +31,10 @@ const {
   Watchlist1792800000000,
 } = require('../dist/watchlist/migrations/1792800000000-watchlist');
 
+const {
+  FavoriteMovies1792886400000,
+} = require('../dist/favorites/migrations/1792886400000-favorite-movies');
+
 const migrations = [
   Community1790985600000,
   RoomThemeColor1791676800000,
@@ -41,6 +45,7 @@ const migrations = [
   OnboardingGenres1792627200000,
   RoomBans1792713600000,
   Watchlist1792800000000,
+  FavoriteMovies1792886400000,
 ];
 
 async function main() {

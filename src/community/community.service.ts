@@ -22,6 +22,9 @@ import {
   UpdateCommunityPostDto,
 } from './community.dto';
 
+// A post rating at or above this counts as the author recommending the movie.
+export const RECOMMENDATION_MIN_RATING = 8;
+
 interface PostEngagement {
   likeCount: number;
   dislikeCount: number;
@@ -558,6 +561,47 @@ export class CommunityService {
       .getMany();
     return this.page(
       rows.map((row) => this.publicUser(row[relation])),
+      query.limit,
+    );
+  }
+
+  // Derived from the user's own highly rated public posts, one entry per movie
+  // (its latest post), so it stays in sync as posts are edited or deleted.
+  async recommendations(id: number, query: CommunityPageDto) {
+    await this.requireUser(id);
+    const latestPerMovie = this.posts
+      .createQueryBuilder('p')
+      .leftJoin('p.room', 'r')
+      .select('p.id')
+      .distinctOn(['p.movieId'])
+      .where('p.authorId = :id')
+      .andWhere('p.movieId IS NOT NULL')
+      .andWhere('p.rating >= :minRating')
+      .andWhere('(p.roomId IS NULL OR r.isPublic = true)')
+      .orderBy('p.movieId')
+      .addOrderBy('p.id', 'DESC');
+    const builder = this.posts
+      .createQueryBuilder('post')
+      .innerJoinAndSelect('post.movie', 'movie')
+      .leftJoinAndSelect('movie.genres', 'genre')
+      .leftJoin('movie.addedBy', 'addedBy')
+      .addSelect(['addedBy.id', 'addedBy.username', 'addedBy.avatar'])
+      .where(`post.id IN (${latestPerMovie.getQuery()})`)
+      .setParameters({ id, minRating: RECOMMENDATION_MIN_RATING });
+    if (query.before)
+      builder.andWhere('post.id < :before', { before: query.before });
+    const posts = await builder
+      .orderBy('post.id', 'DESC')
+      .take(query.limit + 1)
+      .getMany();
+    return this.page(
+      posts.map((post) => ({
+        id: post.id,
+        rating: post.rating!,
+        text: post.text,
+        recommendedAt: post.createdAt,
+        movie: { ...post.movie!, addedBy: post.movie!.addedBy ?? null },
+      })),
       query.limit,
     );
   }

@@ -13,6 +13,7 @@ import { Role } from './roles/role.entity';
 import { Movie } from './movies/movie.entity';
 import { Room } from './rooms/room.entity';
 import { WatchlistItem } from './watchlist/watchlist-item.entity';
+import { FavoriteMovie } from './favorites/favorite-movie.entity';
 import { RoomBan } from './rooms/room-ban.entity';
 import { Genre } from './genres/genre.entity';
 import { Rating } from './ratings/rating.entity';
@@ -83,6 +84,7 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         Room,
         RoomBan,
         WatchlistItem,
+        FavoriteMovie,
         Genre,
         Rating,
         Upload,
@@ -287,6 +289,113 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     expect(
       await database.getRepository(CommunityComment).countBy({ postId }),
     ).toBe(0);
+  });
+
+  it('keeps ordered profile favorites and derives recommendations from rated posts', async () => {
+    const server = app.getHttpServer();
+    const document = createOpenApiDocument(app);
+    const userId = users[3].id;
+    const otherMovieId = (
+      await request(server)
+        .post('/movies')
+        .auth(access[3], { type: 'bearer' })
+        .send({ dbId: 4567, title: 'Second favorite' })
+        .expect(201)
+    ).body.id as string;
+    await request(server)
+      .put('/favorites/' + movieId)
+      .expect(401);
+    for (const id of [movieId, movieId, otherMovieId])
+      await request(server)
+        .put('/favorites/' + id)
+        .auth(access[3], { type: 'bearer' })
+        .expect(200);
+    const added = await request(server)
+      .get('/favorites/users/' + userId)
+      .expect(200);
+    assertOpenApiResponse(document, 'Favorites_listForUser', added.body);
+    expect(
+      added.body.data.map((item: { movie: { id: string } }) => item.movie.id),
+    ).toEqual([movieId, otherMovieId]);
+    const reordered = await request(server)
+      .put('/favorites')
+      .auth(access[3], { type: 'bearer' })
+      .send({ movieIds: [otherMovieId, movieId] })
+      .expect(200);
+    expect(
+      reordered.body.data.map(
+        (item: { position: number; movie: { id: string } }) => [
+          item.position,
+          item.movie.id,
+        ],
+      ),
+    ).toEqual([
+      [1, otherMovieId],
+      [2, movieId],
+    ]);
+    expect(reordered.body.data[1].addedAt).toBe(added.body.data[0].addedAt);
+    await request(server)
+      .put('/favorites')
+      .auth(access[3], { type: 'bearer' })
+      .send({ movieIds: Array.from({ length: 11 }, () => randomUUID()) })
+      .expect(400);
+    await request(server)
+      .put('/favorites')
+      .auth(access[3], { type: 'bearer' })
+      .send({ movieIds: [randomUUID()] })
+      .expect(404);
+    await request(server)
+      .delete('/favorites/' + otherMovieId)
+      .auth(access[3], { type: 'bearer' })
+      .expect(200);
+    const status = await request(server)
+      .get('/favorites/' + otherMovieId)
+      .auth(access[3], { type: 'bearer' })
+      .expect(200);
+    assertOpenApiResponse(document, 'Favorites_has', status.body);
+    expect(status.body.isFavorite).toBe(false);
+    await request(server).get('/favorites/users/999999').expect(404);
+
+    const posts = database.getRepository(CommunityPost);
+    const older = await posts.save({
+      authorId: userId,
+      movieId,
+      text: 'Loved it',
+      rating: 9,
+    });
+    const latest = await posts.save({
+      authorId: userId,
+      movieId,
+      text: 'Loved it again',
+      rating: 9.5,
+    });
+    await posts.save([
+      { authorId: userId, movieId: otherMovieId, text: 'Meh', rating: 5 },
+      {
+        authorId: userId,
+        movieId: otherMovieId,
+        text: 'Room secret',
+        rating: 10,
+        roomId: privateRoom,
+      },
+    ]);
+    const recommended = await request(server)
+      .get('/community/users/' + userId + '/recommendations')
+      .expect(200);
+    assertOpenApiResponse(
+      document,
+      'Community_recommendations',
+      recommended.body,
+    );
+    expect(recommended.body.data).toEqual([
+      expect.objectContaining({
+        id: latest.id,
+        rating: 9.5,
+        movie: expect.objectContaining({ id: movieId }),
+      }),
+    ]);
+    expect(recommended.body.nextCursor).toBeNull();
+    expect(older.id).toBeLessThan(latest.id);
   });
 
   it('applies and reverses the community migration in an isolated transactional schema', async () => {

@@ -4,6 +4,7 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WatchlistModule } from './watchlist/watchlist.module';
+import { FavoritesModule } from './favorites/favorites.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -66,6 +67,7 @@ const ENV = process.env.NODE_ENV || 'development';
     CommunityModule,
     RoomChatModule,
     WatchlistModule,
+    FavoritesModule,
   ],
   controllers: [AppController],
   providers: [

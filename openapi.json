@@ -1095,7 +1095,8 @@
               "type": "string",
               "enum": [
                 "rate",
-                "userRate"
+                "userRate",
+                "controversy"
               ]
             }
           },
@@ -2253,6 +2254,63 @@
         "summary": "remove Movie From Room"
       }
     },
+    "/rooms/{id}/leave": {
+      "post": {
+        "operationId": "Rooms_leaveRoom",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeaveRoomDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeftRoomResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Rooms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "leave Room"
+      }
+    },
     "/rooms/{id}/members/{userId}": {
       "delete": {
         "operationId": "Rooms_kickUser",
@@ -2535,7 +2593,8 @@
               "type": "string",
               "enum": [
                 "rate",
-                "userRate"
+                "userRate",
+                "controversy"
               ]
             }
           },
@@ -3744,6 +3803,70 @@
         ],
         "security": [],
         "summary": "profile"
+      }
+    },
+    "/community/users/{userId}/recommendations": {
+      "get": {
+        "operationId": "Community_recommendations",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Return IDs older than this cursor.",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityRecommendationPageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Movies the user recommends: their public posts rated 8 or higher, latest post per movie.",
+        "tags": [
+          "Community"
+        ],
+        "security": []
       }
     },
     "/community/users/{userId}/follow": {
@@ -5045,6 +5168,267 @@
         ],
         "summary": "remove"
       }
+    },
+    "/favorites": {
+      "get": {
+        "operationId": "Favorites_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoritesResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The current user's favorite movies, in order.",
+        "tags": [
+          "Favorites"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      },
+      "put": {
+        "operationId": "Favorites_set",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetFavoritesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoritesResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Replace the favorites list. The array order becomes the display order.",
+        "tags": [
+          "Favorites"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/favorites/users/{userId}": {
+      "get": {
+        "operationId": "Favorites_listForUser",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoritesResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "A user's favorite movies, shown on their profile.",
+        "tags": [
+          "Favorites"
+        ],
+        "security": []
+      }
+    },
+    "/favorites/{movieId}": {
+      "get": {
+        "operationId": "Favorites_has",
+        "parameters": [
+          {
+            "name": "movieId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoriteStatusResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Favorites"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "has"
+      },
+      "put": {
+        "operationId": "Favorites_add",
+        "parameters": [
+          {
+            "name": "movieId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Add a movie to the end of the favorites. Adding it twice is a no-op.",
+        "tags": [
+          "Favorites"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "Favorites_remove",
+        "parameters": [
+          {
+            "name": "movieId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Favorites"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "remove"
+      }
     }
   },
   "info": {
@@ -5606,6 +5990,17 @@
         ],
         "additionalProperties": false
       },
+      "LeaveRoomDto": {
+        "type": "object",
+        "properties": {
+          "clearVotes": {
+            "type": "boolean",
+            "default": false,
+            "description": "Also delete your movie ratings and your votes on open polls in this room"
+          }
+        },
+        "additionalProperties": false
+      },
       "BanRoomUserDto": {
         "type": "object",
         "properties": {
@@ -5948,6 +6343,24 @@
         },
         "required": [
           "optionIds"
+        ],
+        "additionalProperties": false
+      },
+      "SetFavoritesDto": {
+        "type": "object",
+        "properties": {
+          "movieIds": {
+            "maxItems": 10,
+            "description": "The full favorites list in display order. Movies left out are removed.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "movieIds"
         ],
         "additionalProperties": false
       },
@@ -8516,6 +8929,10 @@
             "type": "number",
             "nullable": true
           },
+          "rateVariance": {
+            "type": "number",
+            "nullable": true
+          },
           "userSpecificRate": {
             "type": "number",
             "nullable": true
@@ -8552,6 +8969,7 @@
           "createdAt",
           "addedBy",
           "averageRate",
+          "rateVariance",
           "userSpecificRate",
           "ratings",
           "hasVoted"
@@ -8728,6 +9146,110 @@
           "apiVersion"
         ]
       },
+      "FavoriteMovie": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "integer"
+          },
+          "addedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "movie": {
+            "$ref": "#/components/schemas/Movie"
+          }
+        },
+        "required": [
+          "position",
+          "addedAt",
+          "movie"
+        ]
+      },
+      "FavoritesResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FavoriteMovie"
+            }
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "apiVersion"
+        ]
+      },
+      "FavoriteStatusResponse": {
+        "type": "object",
+        "properties": {
+          "isFavorite": {
+            "type": "boolean"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "isFavorite",
+          "apiVersion"
+        ]
+      },
+      "CommunityRecommendation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "rating": {
+            "type": "number"
+          },
+          "text": {
+            "type": "string"
+          },
+          "recommendedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "movie": {
+            "$ref": "#/components/schemas/Movie"
+          }
+        },
+        "required": [
+          "id",
+          "rating",
+          "text",
+          "recommendedAt",
+          "movie"
+        ]
+      },
+      "CommunityRecommendationPageResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommunityRecommendation"
+            }
+          },
+          "nextCursor": {
+            "type": "integer",
+            "nullable": true
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "nextCursor",
+          "apiVersion"
+        ]
+      },
       "RoomBanListResponse": {
         "type": "object",
         "properties": {
@@ -8743,6 +9265,25 @@
         },
         "required": [
           "data",
+          "apiVersion"
+        ]
+      },
+      "LeftRoomResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "votesCleared": {
+            "type": "boolean"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "votesCleared",
           "apiVersion"
         ]
       },

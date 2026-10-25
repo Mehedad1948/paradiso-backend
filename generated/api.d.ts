@@ -587,6 +587,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rooms/{id}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** leave Room */
+        post: operations["Rooms_leaveRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/rooms/{id}/members/{userId}": {
         parameters: {
             query?: never;
@@ -904,6 +921,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/community/users/{userId}/recommendations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Movies the user recommends: their public posts rated 8 or higher, latest post per movie. */
+        get: operations["Community_recommendations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/community/users/{userId}/follow": {
         parameters: {
             query?: never;
@@ -1170,6 +1204,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/favorites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The current user's favorite movies, in order. */
+        get: operations["Favorites_list"];
+        /** Replace the favorites list. The array order becomes the display order. */
+        put: operations["Favorites_set"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/favorites/users/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A user's favorite movies, shown on their profile. */
+        get: operations["Favorites_listForUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/favorites/{movieId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** has */
+        get: operations["Favorites_has"];
+        /** Add a movie to the end of the favorites. Adding it twice is a no-op. */
+        put: operations["Favorites_add"];
+        post?: never;
+        /** remove */
+        delete: operations["Favorites_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1338,6 +1426,13 @@ export interface components {
             /** Format: uuid */
             movieId: string;
         };
+        LeaveRoomDto: {
+            /**
+             * @description Also delete your movie ratings and your votes on open polls in this room
+             * @default false
+             */
+            clearVotes: boolean;
+        };
         BanRoomUserDto: {
             /** Format: int32 */
             userId: number;
@@ -1461,6 +1556,10 @@ export interface components {
         ChatPollVoteDto: {
             /** @description Replaces your votes. An empty array retracts them. */
             optionIds: number[];
+        };
+        SetFavoritesDto: {
+            /** @description The full favorites list in display order. Movies left out are removed. */
+            movieIds: string[];
         };
         CommunityPost: {
             id: number;
@@ -2087,6 +2186,7 @@ export interface components {
             createdAt: string;
             addedBy: components["schemas"]["PublicUser"] | (never | null);
             averageRate: number | null;
+            rateVariance: number | null;
             userSpecificRate: number | null;
             ratings: {
                 user: components["schemas"]["PublicUser"];
@@ -2138,8 +2238,40 @@ export interface components {
             inWatchlist: boolean;
             apiVersion: string;
         };
+        FavoriteMovie: {
+            position: number;
+            /** Format: date-time */
+            addedAt: string;
+            movie: components["schemas"]["Movie"];
+        };
+        FavoritesResponse: {
+            data: components["schemas"]["FavoriteMovie"][];
+            apiVersion: string;
+        };
+        FavoriteStatusResponse: {
+            isFavorite: boolean;
+            apiVersion: string;
+        };
+        CommunityRecommendation: {
+            id: number;
+            rating: number;
+            text: string;
+            /** Format: date-time */
+            recommendedAt: string;
+            movie: components["schemas"]["Movie"];
+        };
+        CommunityRecommendationPageResponse: {
+            data: components["schemas"]["CommunityRecommendation"][];
+            nextCursor: number | null;
+            apiVersion: string;
+        };
         RoomBanListResponse: {
             data: components["schemas"]["RoomBan"][];
+            apiVersion: string;
+        };
+        LeftRoomResponse: {
+            message: string;
+            votesCleared: boolean;
             apiVersion: string;
         };
         AddedRoomMovieResponse: {
@@ -3109,7 +3241,7 @@ export interface operations {
                 endDate?: string | null;
                 search?: string | null;
                 isWatchTogether?: boolean | null;
-                sortBy?: "rate" | "userRate" | null;
+                sortBy?: "rate" | "userRate" | "controversy" | null;
                 sortOrder?: "asc" | "desc" | null;
                 sortByUserId?: number | null;
                 limit?: number | null;
@@ -3778,6 +3910,41 @@ export interface operations {
             };
         };
     };
+    Rooms_leaveRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LeaveRoomDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeftRoomResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     Rooms_kickUser: {
         parameters: {
             query?: never;
@@ -3916,7 +4083,7 @@ export interface operations {
                 search?: string | null;
                 isWatchTogether?: boolean | null;
                 hasVoted?: boolean | null;
-                sortBy?: "rate" | "userRate" | null;
+                sortBy?: "rate" | "userRate" | "controversy" | null;
                 sortOrder?: "asc" | "desc" | null;
                 sortByUserId?: number | null;
                 limit?: number | null;
@@ -4634,6 +4801,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CommunityProfileResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Community_recommendations: {
+        parameters: {
+            query?: {
+                limit?: number;
+                /** @description Return IDs older than this cursor. */
+                before?: number;
+            };
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityRecommendationPageResponse"];
                 };
             };
             /** @description Error response */
@@ -5380,6 +5582,192 @@ export interface operations {
         };
     };
     Watchlist_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movieId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Favorites_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoritesResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Favorites_set: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetFavoritesDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoritesResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Favorites_listForUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoritesResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Favorites_has: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movieId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoriteStatusResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Favorites_add: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movieId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Favorites_remove: {
         parameters: {
             query?: never;
             header?: never;
