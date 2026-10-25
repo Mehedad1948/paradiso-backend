@@ -396,6 +396,7 @@ export const responseSchemas: Record<string, SchemaObject> = {
     createdAt: date,
     addedBy: nullable(ref('PublicUser')),
     averageRate: nullable(number),
+    rateVariance: nullable(number),
     userSpecificRate: nullable(number),
     ratings: array(object({ user: ref('PublicUser'), rate: nullable(number) })),
     hasVoted: boolean,

@@ -17,6 +17,7 @@ import { PaginationQueryDto } from '../../common/pagination/dtos/pagination-quer
 export enum MovieSortOption {
   RATE = 'rate',
   USER_RATE = 'userRate',
+  CONTROVERSY = 'controversy',
 }
 
 export enum SortOrder {

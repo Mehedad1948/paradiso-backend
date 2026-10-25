@@ -36,6 +36,7 @@ interface RoomMovieRow {
   addedByUsername: string | null;
   addedByAvatar: string | null;
   averageRate: string | null;
+  rateVariance: string | null;
   userSpecificRate?: string | null;
 }
 
@@ -272,12 +273,19 @@ export class GetMovieProvider {
       .addSelect('addedBy.username', 'addedByUsername')
       .addSelect('addedBy.avatar', 'addedByAvatar')
       .addSelect('AVG(rating.rate)', 'averageRate')
+      // Null rates are ignored by the aggregates; fewer than 2 ratings has no spread.
+      .addSelect(
+        'CASE WHEN COUNT(rating.rate) >= 2 THEN VAR_POP(rating.rate) END',
+        'rateVariance',
+      )
       .groupBy('movie.id')
       .addGroupBy('addedBy.id');
     this.filters(query, filters);
     const order = filters.sortOrder === SortOrder.ASC ? 'ASC' : 'DESC';
     if (filters.sortBy === MovieSortOption.RATE)
       query.orderBy('"averageRate"', order, 'NULLS LAST');
+    if (filters.sortBy === MovieSortOption.CONTROVERSY)
+      query.orderBy('"rateVariance"', order, 'NULLS LAST');
     if (filters.sortBy === MovieSortOption.USER_RATE) {
       query
         .addSelect(
@@ -333,6 +341,8 @@ export class GetMovieProvider {
             }
           : null,
         averageRate: row.averageRate == null ? null : Number(row.averageRate),
+        rateVariance:
+          row.rateVariance == null ? null : Number(row.rateVariance),
         userSpecificRate:
           row.userSpecificRate == null ? null : Number(row.userSpecificRate),
         ratings: users.map((user) => ({
