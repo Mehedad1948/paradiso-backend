@@ -1035,6 +1035,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/community/users/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Find members by username, case-insensitive: prefix matches first, then contains. Excludes yourself. */
+        get: operations["Community_searchUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/community/users/suggested": {
         parameters: {
             query?: never;
@@ -5348,6 +5365,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Community_searchUsers: {
+        parameters: {
+            query: {
+                limit?: number;
+                /** @description Return IDs older than this cursor. */
+                before?: number;
+                /** @description Case-insensitive text to find in usernames. */
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityUserPageResponse"];
                 };
             };
             /** @description Error response */

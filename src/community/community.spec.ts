@@ -518,6 +518,28 @@ describe('Community permissions and privacy', () => {
     );
   });
 
+  it('searches usernames with prefix matches first and a rank-aware cursor', async () => {
+    for (const method of ['addOrderBy', 'limit', 'setParameter'])
+      builder[method] = jest.fn().mockReturnValue(builder);
+    builder.getMany = jest.fn().mockResolvedValue([
+      { id: 5, username: 'Maple', avatar: null },
+      { id: 4, username: 'Emma', avatar: null },
+    ]);
+    users.createQueryBuilder = jest.fn().mockReturnValue(builder);
+    expect(await service.searchUsers({ q: 'ma_', limit: 1 }, 1)).toEqual({
+      data: [{ id: 5, username: 'Maple', avatar: null }],
+      nextCursor: 5,
+    });
+    expect(builder.where).toHaveBeenCalledWith('u.username ILIKE :contains', {
+      contains: '%ma\\_%',
+    });
+    expect(builder.setParameter).toHaveBeenCalledWith('prefix', 'ma\\_%');
+    expect(builder.andWhere).toHaveBeenCalledWith('u.id <> :viewerId', {
+      viewerId: 1,
+    });
+    expect(builder.limit).toHaveBeenCalledWith(2);
+  });
+
   it('cannot delete a comment belonging to another post', async () => {
     comments.findOneBy.mockResolvedValue(null);
     await expect(service.deleteComment(12, 99, 1)).rejects.toBeInstanceOf(

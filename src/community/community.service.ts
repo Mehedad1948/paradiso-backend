@@ -23,6 +23,7 @@ import {
   CommunityFeedDto,
   CommunityPageDto,
   CommunitySuggestedUsersDto,
+  CommunityUserSearchDto,
   CreateCommunityPostDto,
   UpdateCommunityPostDto,
 } from './community.dto';
@@ -616,6 +617,46 @@ export class CommunityService {
       .getMany();
     return this.page(
       rows.map((row) => this.publicUser(row[relation])),
+      query.limit,
+    );
+  }
+
+  // Username prefix matches rank before contains matches, then highest id
+  // first. The cursor is a user ID: its rank is recomputed from its username so
+  // the keyset (rank, id) stays stable across pages.
+  async searchUsers(query: CommunityUserSearchDto, userId?: number) {
+    const escaped = query.q.replace(/[\\%_]/g, '\\$&');
+    const rank = 'CASE WHEN u.username ILIKE :prefix THEN 0 ELSE 1 END';
+    const builder = this.users
+      .createQueryBuilder('u')
+      .select(['u.id', 'u.username', 'u.avatar'])
+      .where('u.username ILIKE :contains', { contains: `%${escaped}%` })
+      .setParameter('prefix', `${escaped}%`);
+    if (userId !== undefined)
+      builder.andWhere('u.id <> :viewerId', { viewerId: userId });
+    if (query.before) {
+      const cursor = await this.users.findOne({
+        where: { id: query.before },
+        select: { id: true, username: true },
+        loadEagerRelations: false,
+      });
+      const cursorRank = cursor?.username
+        .toLowerCase()
+        .startsWith(query.q.toLowerCase())
+        ? 0
+        : 1;
+      builder.andWhere(
+        `(${rank} > :cursorRank OR (${rank} = :cursorRank AND u.id < :before))`,
+        { cursorRank, before: query.before },
+      );
+    }
+    const rows = await builder
+      .orderBy(rank, 'ASC')
+      .addOrderBy('u.id', 'DESC')
+      .limit(query.limit + 1)
+      .getMany();
+    return this.page(
+      rows.map((user) => this.publicUser(user)),
       query.limit,
     );
   }

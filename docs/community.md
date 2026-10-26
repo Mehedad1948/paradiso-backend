@@ -44,6 +44,7 @@ All routes are under `/community`. Successful responses include `apiVersion`.
 | POST   | `/posts/:postId/comments`            | Comment with `{ "text": "..." }`                                 |
 | DELETE | `/posts/:postId/comments/:commentId` | Delete a comment                                                 |
 | GET    | `/users/suggested`                   | Members to follow, recent public posters first (see below)       |
+| GET    | `/users/search?q=`                   | Find members by username, prefix matches first (see below)       |
 | GET    | `/users/:userId`                     | Public profile and follow counts                                 |
 | PUT    | `/users/:userId/follow`              | Follow; repeated requests are safe                               |
 | DELETE | `/users/:userId/follow`              | Unfollow; repeated requests are safe                             |
@@ -61,6 +62,12 @@ and returns `{ "data": [...], "apiVersion": "..." }`. It lists every member,
 people with a public post first (most recent poster first), then members
 without one, newest accounts first. Signed-in viewers never see themselves
 or people they already follow.
+
+`/users/search` needs `q` (1-50 characters) and is readable signed out. It
+matches usernames case-insensitively, prefix matches first and then names that
+merely contain `q`, each group newest accounts first. Signed-in viewers never
+see themselves. It uses the standard `limit`/`before` pagination; the cursor is
+the last user's ID.
 
 ## Publishing
 

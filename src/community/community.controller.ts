@@ -21,6 +21,7 @@ import {
   CommunityPageDto,
   CommunityReactionDto,
   CommunitySuggestedUsersDto,
+  CommunityUserSearchDto,
   CreateCommunityPostDto,
   UpdateCommunityPostDto,
 } from './community.dto';
@@ -160,6 +161,20 @@ export class CommunityController {
     @ActiveUser('sub') userId: number,
   ) {
     return this.community.deleteComment(postId, id, userId);
+  }
+
+  // Declared before users/:userId so "search" is not read as an ID.
+  @Get('users/search')
+  @Auth(AuthType.Bearer, AuthType.none)
+  @ApiOperation({
+    summary:
+      'Find members by username, case-insensitive: prefix matches first, then contains. Excludes yourself.',
+  })
+  searchUsers(
+    @Query() query: CommunityUserSearchDto,
+    @ActiveUser('sub') userId?: number,
+  ) {
+    return this.community.searchUsers(query, userId);
   }
 
   // Declared before users/:userId so "suggested" is not read as an ID.

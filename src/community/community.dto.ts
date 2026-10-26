@@ -49,6 +49,19 @@ export class CommunitySuggestedUsersDto {
   limit: number = 8;
 }
 
+export class CommunityUserSearchDto extends CommunityPageDto {
+  @ApiProperty({
+    minLength: 1,
+    maxLength: 50,
+    description: 'Case-insensitive text to find in usernames.',
+  })
+  @Transform(trim)
+  @IsString()
+  @MinLength(1)
+  @MaxLength(50)
+  q: string;
+}
+
 export class CommunityFeedDto extends CommunityPageDto {
   @ApiPropertyOptional({ minimum: 1 })
   @ValidateIf((_, value) => value !== undefined)

@@ -696,6 +696,7 @@ export const operationResponses: Record<string, string> = {
   Community_createComment: 'CommunityCommentResponse',
   Community_deleteComment: 'MessageResponse',
   Community_suggestedUsers: 'CommunityUserListResponse',
+  Community_searchUsers: 'CommunityUserPageResponse',
   Community_profile: 'CommunityProfileResponse',
   Community_recommendations: 'CommunityRecommendationPageResponse',
   Community_follow: 'MessageResponse',

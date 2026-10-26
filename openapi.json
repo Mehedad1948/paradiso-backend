@@ -4144,6 +4144,72 @@
         "summary": "delete Comment"
       }
     },
+    "/community/users/search": {
+      "get": {
+        "operationId": "Community_searchUsers",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Return IDs older than this cursor.",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Case-insensitive text to find in usernames.",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 50,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityUserPageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Find members by username, case-insensitive: prefix matches first, then contains. Excludes yourself.",
+        "tags": [
+          "Community"
+        ],
+        "security": []
+      }
+    },
     "/community/users/suggested": {
       "get": {
         "operationId": "Community_suggestedUsers",
