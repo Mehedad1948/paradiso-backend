@@ -14,6 +14,7 @@ count; see [Chat unread](#chat-unread) below.
 | `room_invite`    | Invited user, if they have an account | An invitation to them becomes pending         | `room`    |
 | `room_invite_approval` | Room owner                      | A member invites someone to a private room    | `room`    |
 | `room_invite_accepted` | Inviter                         | The invitation is accepted                    | `room`    |
+| `room_invite_declined` | Inviter                         | The invited user declines                     | `room`    |
 | `room_invite_rejected` | Inviter                         | The owner rejects the invitation              | `room`    |
 | `movie_added`    | Room members and owner                | A movie (TMDb or custom) is added to the room | `movie`   |
 | `chat_mention`   | Mentioned user, or replied-to author  | A chat message mentions or replies to them    | `message` |
@@ -72,7 +73,8 @@ type:
 
 - `room_invite`: `roomName`, `roomImage`, `invitationId`, and `inviteToken` for
   email invitations
-- `room_invite_approval`, `room_invite_accepted`, `room_invite_rejected`:
+- `room_invite_approval`, `room_invite_accepted`, `room_invite_declined`,
+  `room_invite_rejected`:
   `roomName`, `roomImage`, `invitationId`
 - `movie_added`: `roomName`, `roomImage`, `movieTitle`, `posterUrl`
 - `chat_mention`: `roomName`, `messageExcerpt`, `reason`

@@ -207,7 +207,10 @@ export class InvitationLifecycleService {
   }
 
   notifyInviter(
-    type: 'room_invite_accepted' | 'room_invite_rejected',
+    type:
+      | 'room_invite_accepted'
+      | 'room_invite_rejected'
+      | 'room_invite_declined',
     invitation: RoomInvitation,
     actorId: number,
     manager?: EntityManager,

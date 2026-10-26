@@ -64,6 +64,12 @@ export class InvitationActionsProvider {
         status: 'declined',
         respondedAt: new Date(),
       });
+      await this.lifecycle.notifyInviter(
+        'room_invite_declined',
+        invitation,
+        userId,
+        manager,
+      );
     });
   }
 

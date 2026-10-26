@@ -49,14 +49,14 @@ export class RoomUserInvitations1793059200000 implements MigrationInterface {
       ALTER TABLE "notification" DROP CONSTRAINT "CHK_notification_type";
       ALTER TABLE "notification" ADD CONSTRAINT "CHK_notification_type" CHECK ("type" IN (
         'room_invite', 'room_invite_approval', 'room_invite_accepted', 'room_invite_rejected',
-        'movie_added', 'chat_mention', 'post_liked', 'post_commented'));
+        'room_invite_declined', 'movie_added', 'chat_mention', 'post_liked', 'post_commented'));
     `);
   }
 
   // Lossy: user-id invitations without an email, and the new statuses, are folded away.
   async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
-      DELETE FROM "notification" WHERE "type" IN ('room_invite_approval', 'room_invite_accepted', 'room_invite_rejected');
+      DELETE FROM "notification" WHERE "type" IN ('room_invite_approval', 'room_invite_accepted', 'room_invite_rejected', 'room_invite_declined');
       ALTER TABLE "notification" DROP CONSTRAINT "CHK_notification_type";
       ALTER TABLE "notification" ADD CONSTRAINT "CHK_notification_type" CHECK ("type" IN (
         'room_invite', 'movie_added', 'chat_mention', 'post_liked', 'post_commented'));

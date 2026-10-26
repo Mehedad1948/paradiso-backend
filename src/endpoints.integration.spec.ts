@@ -1920,6 +1920,11 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         .expect(200);
       expect(declined.body.status).toBe('declined');
       expect(declined.body.respondedAt).toBeTruthy();
+      expect(
+        (await notifications(OWNER, 'room_invite_declined')).map(
+          (item) => item.data.invitationId,
+        ),
+      ).toContain(id);
       await as(A)
         .post('/room-invitations/' + id + '/accept')
         .expect(409);

@@ -85,8 +85,8 @@ address belongs to an account the invitation is addressed to that account
 
 - Notifications (see [notifications](notifications.md)): the invitee when an
   invitation becomes pending (including after approval, or when the room goes
-  public); the owner for `awaiting_approval`; the inviter on accepted or
-  rejected.
+  public); the owner for `awaiting_approval`; the inviter when it is
+  accepted, declined or rejected.
 - An inviter who leaves, is kicked or banned: their `awaiting_approval`
   invitations become `cancelled`. Their `pending` ones stay.
 - A private room becoming public turns its `awaiting_approval` invitations

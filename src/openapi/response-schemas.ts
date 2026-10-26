@@ -480,6 +480,7 @@ export const responseSchemas: Record<string, SchemaObject> = {
         'room_invite_approval',
         'room_invite_accepted',
         'room_invite_rejected',
+        'room_invite_declined',
         'movie_added',
         'chat_mention',
         'post_liked',
