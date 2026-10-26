@@ -620,19 +620,29 @@ export class CommunityService {
     );
   }
 
-  // People who posted publicly most recently, so suggestions favour active
-  // accounts. Signed-in viewers never see themselves or people they follow.
+  // Every member, recent public posters first and then people without public
+  // posts, newest accounts (highest id) first. Signed-in viewers never see
+  // themselves or people they follow.
   async suggestedUsers(query: CommunitySuggestedUsersDto, userId?: number) {
-    const builder = this.posts
-      .createQueryBuilder('post')
-      .innerJoin('post.author', 'author')
-      .leftJoin('post.room', 'room')
-      .select(['author.id AS id', 'author.username AS username'])
-      .addSelect('author.avatar', 'avatar')
-      .where('(post.roomId IS NULL OR room.isPublic = true)');
+    const builder = this.users
+      .createQueryBuilder('u')
+      .leftJoin(
+        (qb) =>
+          qb
+            .select('post.authorId', 'authorId')
+            .addSelect('MAX(post.createdAt)', 'latestAt')
+            .from(CommunityPost, 'post')
+            .leftJoin('post.room', 'room')
+            .where('(post.roomId IS NULL OR room.isPublic = true)')
+            .groupBy('post.authorId'),
+        'latest',
+        'latest."authorId" = u.id',
+      )
+      .select(['u.id AS id', 'u.username AS username'])
+      .addSelect('u.avatar', 'avatar');
     if (userId !== undefined)
       builder
-        .andWhere('author.id <> :viewerId', { viewerId: userId })
+        .where('u.id <> :viewerId', { viewerId: userId })
         .andWhere(
           'NOT EXISTS ' +
             builder
@@ -640,13 +650,12 @@ export class CommunityService {
               .select('1')
               .from(UserFollow, 'follow')
               .where('follow.followerId = :viewerId')
-              .andWhere('follow.followingId = author.id')
+              .andWhere('follow.followingId = u.id')
               .getQuery(),
         );
     const rows = await builder
-      .groupBy('author.id')
-      .orderBy('MAX(post.createdAt)', 'DESC')
-      .addOrderBy('author.id', 'DESC')
+      .orderBy('latest."latestAt"', 'DESC', 'NULLS LAST')
+      .addOrderBy('u.id', 'DESC')
       .limit(query.limit)
       .getRawMany<Pick<User, 'id' | 'username' | 'avatar'>>();
     return rows.map((user) => this.publicUser(user as User));

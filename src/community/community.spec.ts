@@ -81,6 +81,7 @@ describe('Community permissions and privacy', () => {
     manager: { transaction: jest.Mock };
   };
   let invites: { findOne: jest.Mock };
+  let users: { findOne: jest.Mock; createQueryBuilder: jest.Mock };
 
   beforeEach(() => {
     builder = {};
@@ -149,7 +150,10 @@ describe('Community permissions and privacy', () => {
       checkUserRoomAccess: jest.fn().mockResolvedValue(false),
       requireOwner: jest.fn().mockRejectedValue(new ForbiddenException()),
     };
-    const users = { findOne: jest.fn().mockResolvedValue(post.author) };
+    users = {
+      findOne: jest.fn().mockResolvedValue(post.author),
+      createQueryBuilder: jest.fn().mockReturnValue(builder),
+    };
     const movies = { existsBy: jest.fn().mockResolvedValue(true) };
     service = new CommunityService(
       posts as unknown as Repository<CommunityPost>,
@@ -478,11 +482,10 @@ describe('Community permissions and privacy', () => {
     expect(builder.orIgnore).toHaveBeenCalled();
   });
 
-  it('suggests recent public posters, excluding the viewer and their follows', async () => {
+  it('suggests all members, posters first, excluding the viewer and their follows', async () => {
     for (const method of [
-      'innerJoin',
+      'leftJoin',
       'addSelect',
-      'groupBy',
       'addOrderBy',
       'limit',
       'from',
@@ -492,18 +495,22 @@ describe('Community permissions and privacy', () => {
     builder.getQuery = jest.fn().mockReturnValue('(follow subquery)');
     builder.getRawMany = jest
       .fn()
-      .mockResolvedValue([{ id: 2, username: 'Poster', avatar: null }]);
+      .mockResolvedValue([{ id: 2, username: 'Member', avatar: null }]);
+    users.createQueryBuilder = jest.fn().mockReturnValue(builder);
     expect(await service.suggestedUsers({ limit: 8 })).toEqual([
-      { id: 2, username: 'Poster', avatar: null },
+      { id: 2, username: 'Member', avatar: null },
     ]);
-    expect(builder.where).toHaveBeenCalledWith(
-      '(post.roomId IS NULL OR room.isPublic = true)',
-    );
+    expect(builder.where).not.toHaveBeenCalled();
     expect(builder.andWhere).not.toHaveBeenCalled();
-    expect(builder.orderBy).toHaveBeenCalledWith('MAX(post.createdAt)', 'DESC');
+    expect(builder.orderBy).toHaveBeenCalledWith(
+      'latest."latestAt"',
+      'DESC',
+      'NULLS LAST',
+    );
+    expect(builder.addOrderBy).toHaveBeenCalledWith('u.id', 'DESC');
     expect(builder.limit).toHaveBeenCalledWith(8);
     await service.suggestedUsers({ limit: 3 }, 1);
-    expect(builder.andWhere).toHaveBeenCalledWith('author.id <> :viewerId', {
+    expect(builder.where).toHaveBeenCalledWith('u.id <> :viewerId', {
       viewerId: 1,
     });
     expect(builder.andWhere).toHaveBeenCalledWith(
