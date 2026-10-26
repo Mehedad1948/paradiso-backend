@@ -3762,6 +3762,51 @@
         "summary": "delete Comment"
       }
     },
+    "/community/users/suggested": {
+      "get": {
+        "operationId": "Community_suggestedUsers",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 20,
+              "default": 8,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityUserListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "People to follow: recent public posters, excluding yourself and anyone you follow.",
+        "tags": [
+          "Community"
+        ],
+        "security": []
+      }
+    },
     "/community/users/{userId}": {
       "get": {
         "operationId": "Community_profile",
@@ -7058,6 +7103,24 @@
         "required": [
           "data",
           "nextCursor",
+          "apiVersion"
+        ]
+      },
+      "CommunityUserListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicUser"
+            }
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
           "apiVersion"
         ]
       },

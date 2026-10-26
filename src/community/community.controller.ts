@@ -20,6 +20,7 @@ import {
   CommunityFeedDto,
   CommunityPageDto,
   CommunityReactionDto,
+  CommunitySuggestedUsersDto,
   CreateCommunityPostDto,
   UpdateCommunityPostDto,
 } from './community.dto';
@@ -159,6 +160,20 @@ export class CommunityController {
     @ActiveUser('sub') userId: number,
   ) {
     return this.community.deleteComment(postId, id, userId);
+  }
+
+  // Declared before users/:userId so "suggested" is not read as an ID.
+  @Get('users/suggested')
+  @Auth(AuthType.Bearer, AuthType.none)
+  @ApiOperation({
+    summary:
+      'People to follow: recent public posters, excluding yourself and anyone you follow.',
+  })
+  suggestedUsers(
+    @Query() query: CommunitySuggestedUsersDto,
+    @ActiveUser('sub') userId?: number,
+  ) {
+    return this.community.suggestedUsers(query, userId);
   }
 
   @Get('users/:userId')

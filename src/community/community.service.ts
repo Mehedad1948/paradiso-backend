@@ -18,6 +18,7 @@ import {
   CommunityCommentDto,
   CommunityFeedDto,
   CommunityPageDto,
+  CommunitySuggestedUsersDto,
   CreateCommunityPostDto,
   UpdateCommunityPostDto,
 } from './community.dto';
@@ -563,6 +564,38 @@ export class CommunityService {
       rows.map((row) => this.publicUser(row[relation])),
       query.limit,
     );
+  }
+
+  // People who posted publicly most recently, so suggestions favour active
+  // accounts. Signed-in viewers never see themselves or people they follow.
+  async suggestedUsers(query: CommunitySuggestedUsersDto, userId?: number) {
+    const builder = this.posts
+      .createQueryBuilder('post')
+      .innerJoin('post.author', 'author')
+      .leftJoin('post.room', 'room')
+      .select(['author.id AS id', 'author.username AS username'])
+      .addSelect('author.avatar', 'avatar')
+      .where('(post.roomId IS NULL OR room.isPublic = true)');
+    if (userId !== undefined)
+      builder
+        .andWhere('author.id <> :viewerId', { viewerId: userId })
+        .andWhere(
+          'NOT EXISTS ' +
+            builder
+              .subQuery()
+              .select('1')
+              .from(UserFollow, 'follow')
+              .where('follow.followerId = :viewerId')
+              .andWhere('follow.followingId = author.id')
+              .getQuery(),
+        );
+    const rows = await builder
+      .groupBy('author.id')
+      .orderBy('MAX(post.createdAt)', 'DESC')
+      .addOrderBy('author.id', 'DESC')
+      .limit(query.limit)
+      .getRawMany<Pick<User, 'id' | 'username' | 'avatar'>>();
+    return rows.map((user) => this.publicUser(user as User));
   }
 
   // Derived from the user's own highly rated public posts, one entry per movie

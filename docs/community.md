@@ -43,6 +43,7 @@ All routes are under `/community`. Successful responses include `apiVersion`.
 | GET    | `/posts/:postId/comments`            | List comments, newest first                                      |
 | POST   | `/posts/:postId/comments`            | Comment with `{ "text": "..." }`                                 |
 | DELETE | `/posts/:postId/comments/:commentId` | Delete a comment                                                 |
+| GET    | `/users/suggested`                   | Recent public posters to follow (see below)                      |
 | GET    | `/users/:userId`                     | Public profile and follow counts                                 |
 | PUT    | `/users/:userId/follow`              | Follow; repeated requests are safe                               |
 | DELETE | `/users/:userId/follow`              | Unfollow; repeated requests are safe                             |
@@ -54,6 +55,11 @@ They return `{ "data": [...], "nextCursor": 123, "apiVersion": "..." }`.
 Pass `nextCursor` as `before` for the next page; null means no further page.
 Post and comment cursors are their IDs. Follow-list cursors are user IDs;
 follow lists sort by user ID rather than follow time.
+
+`/users/suggested` is not paginated: it takes `limit` (default 8, maximum 20)
+and returns `{ "data": [...], "apiVersion": "..." }`. It lists people with a
+public post, most recent poster first. Signed-in viewers never see themselves
+or people they already follow.
 
 ## Publishing
 

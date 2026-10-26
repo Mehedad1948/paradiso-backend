@@ -904,6 +904,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/community/users/suggested": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** People to follow: recent public posters, excluding yourself and anyone you follow. */
+        get: operations["Community_suggestedUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/community/users/{userId}": {
         parameters: {
             query?: never;
@@ -1735,6 +1752,10 @@ export interface components {
         CommunityUserPageResponse: {
             data: components["schemas"]["PublicUser"][];
             nextCursor: number | null;
+            apiVersion: string;
+        };
+        CommunityUserListResponse: {
+            data: components["schemas"]["PublicUser"][];
             apiVersion: string;
         };
         ChatMessage: {
@@ -4770,6 +4791,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Community_suggestedUsers: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityUserListResponse"];
                 };
             };
             /** @description Error response */

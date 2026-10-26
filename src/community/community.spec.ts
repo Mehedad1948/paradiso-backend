@@ -17,6 +17,7 @@ import { RoomAccessService } from '../rooms/providers/room-access.service';
 import {
   CommunityCommentDto,
   CommunityReactionDto,
+  CommunitySuggestedUsersDto,
   CreateCommunityPostDto,
   UpdateCommunityPostDto,
 } from './community.dto';
@@ -404,6 +405,39 @@ describe('Community permissions and privacy', () => {
     expect(builder.orIgnore).toHaveBeenCalled();
   });
 
+  it('suggests recent public posters, excluding the viewer and their follows', async () => {
+    for (const method of [
+      'innerJoin',
+      'addSelect',
+      'groupBy',
+      'addOrderBy',
+      'limit',
+      'from',
+    ])
+      builder[method] = jest.fn().mockReturnValue(builder);
+    builder.subQuery = jest.fn().mockReturnValue(builder);
+    builder.getQuery = jest.fn().mockReturnValue('(follow subquery)');
+    builder.getRawMany = jest
+      .fn()
+      .mockResolvedValue([{ id: 2, username: 'Poster', avatar: null }]);
+    expect(await service.suggestedUsers({ limit: 8 })).toEqual([
+      { id: 2, username: 'Poster', avatar: null },
+    ]);
+    expect(builder.where).toHaveBeenCalledWith(
+      '(post.roomId IS NULL OR room.isPublic = true)',
+    );
+    expect(builder.andWhere).not.toHaveBeenCalled();
+    expect(builder.orderBy).toHaveBeenCalledWith('MAX(post.createdAt)', 'DESC');
+    expect(builder.limit).toHaveBeenCalledWith(8);
+    await service.suggestedUsers({ limit: 3 }, 1);
+    expect(builder.andWhere).toHaveBeenCalledWith('author.id <> :viewerId', {
+      viewerId: 1,
+    });
+    expect(builder.andWhere).toHaveBeenCalledWith(
+      'NOT EXISTS (follow subquery)',
+    );
+  });
+
   it('cannot delete a comment belonging to another post', async () => {
     comments.findOneBy.mockResolvedValue(null);
     await expect(service.deleteComment(12, 99, 1)).rejects.toBeInstanceOf(
@@ -473,6 +507,20 @@ describe('Community input validation', () => {
         { type: 'body', metatype: CommunityReactionDto },
       ),
     ).toMatchObject({ value: -1 });
+  });
+  it('defaults suggested users to 8 and caps them at 20', async () => {
+    const metadata = {
+      type: 'query' as const,
+      metatype: CommunitySuggestedUsersDto,
+    };
+    expect(await pipe.transform({}, metadata)).toMatchObject({ limit: 8 });
+    expect(await pipe.transform({ limit: '20' }, metadata)).toMatchObject({
+      limit: 20,
+    });
+    for (const limit of ['0', '21', 'x'])
+      await expect(pipe.transform({ limit }, metadata)).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
   });
   it('rejects changing scope, null edits and blank comments', async () => {
     for (const bad of [{ roomId: 7 }, { text: null }, { rating: null }])

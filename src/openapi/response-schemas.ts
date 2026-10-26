@@ -220,6 +220,9 @@ export const responseSchemas: Record<string, SchemaObject> = {
   CommunityUserPageResponse: envelope(
     object({ data: array(ref('PublicUser')), nextCursor: nullable(integer) }),
   ),
+  CommunityUserListResponse: envelope(
+    object({ data: array(ref('PublicUser')) }),
+  ),
   ChatMessage: object({
     id: integer,
     roomId: integer,
@@ -595,6 +598,7 @@ export const operationResponses: Record<string, string> = {
   Community_listComments: 'CommunityCommentPageResponse',
   Community_createComment: 'CommunityCommentResponse',
   Community_deleteComment: 'MessageResponse',
+  Community_suggestedUsers: 'CommunityUserListResponse',
   Community_profile: 'CommunityProfileResponse',
   Community_recommendations: 'CommunityRecommendationPageResponse',
   Community_follow: 'MessageResponse',

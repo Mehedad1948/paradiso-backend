@@ -40,6 +40,15 @@ export class CommunityPageDto {
   before?: number;
 }
 
+export class CommunitySuggestedUsersDto {
+  @ApiPropertyOptional({ default: 8, minimum: 1, maximum: 20 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(20)
+  limit: number = 8;
+}
+
 export class CommunityFeedDto extends CommunityPageDto {
   @ApiPropertyOptional({ minimum: 1 })
   @ValidateIf((_, value) => value !== undefined)

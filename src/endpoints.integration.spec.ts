@@ -242,6 +242,33 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     expect(followers.body.data).toEqual([
       { id: users[1].id, username: users[1].username, avatar: null },
     ]);
+    const anonymousSuggested = await request(server)
+      .get('/community/users/suggested?limit=20')
+      .expect(200);
+    assertOpenApiResponse(
+      createOpenApiDocument(app),
+      'Community_suggestedUsers',
+      anonymousSuggested.body,
+    );
+    expect(anonymousSuggested.body.nextCursor).toBeUndefined();
+    expect(anonymousSuggested.body.data).toContainEqual({
+      id: users[0].id,
+      username: users[0].username,
+      avatar: null,
+    });
+    for (const viewer of [0, 1]) {
+      const suggested = await request(server)
+        .get('/community/users/suggested?limit=20')
+        .auth(access[viewer], { type: 'bearer' })
+        .expect(200);
+      // users[0] is the viewer themselves or already followed by users[1].
+      expect(
+        suggested.body.data.map((user: { id: number }) => user.id),
+      ).not.toContain(users[0].id);
+    }
+    await request(server)
+      .get('/community/users/suggested?limit=21')
+      .expect(400);
     const followedUsers = await request(server)
       .get('/community/users/' + users[1].id + '/following')
       .expect(200);
