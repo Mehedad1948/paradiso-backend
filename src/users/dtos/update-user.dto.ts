@@ -5,6 +5,7 @@ import {
   ArrayUnique,
   Equals,
   IsArray,
+  IsIn,
   IsString,
   IsUUID,
   MinLength,
@@ -12,6 +13,10 @@ import {
   ValidateIf,
 } from 'class-validator';
 import { AVATAR_URL_MAX_LENGTH } from '../avatar-url';
+import {
+  ROOM_INVITE_POLICIES,
+  type RoomInvitePolicy,
+} from '../room-invite-policy';
 
 export const MAX_FAVORITE_GENRES = 10;
 
@@ -71,4 +76,13 @@ export class UpdateUserDto {
   @ValidateIf((_object, value: unknown) => value !== undefined)
   @Equals(true, { message: 'onboarded can only be set to true' })
   onboarded?: true;
+
+  @ApiPropertyOptional({
+    enum: ROOM_INVITE_POLICIES,
+    description:
+      'Who may invite you to rooms: everyone, only people you follow, or nobody. Omit to leave it unchanged.',
+  })
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsIn(ROOM_INVITE_POLICIES)
+  roomInvitePolicy?: RoomInvitePolicy;
 }

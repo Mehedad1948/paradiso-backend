@@ -29,6 +29,8 @@ See [the community API guide](docs/community.md) for endpoints, permissions,
 frontend integration and the database migration.
 Rooms also have a members-only chat with replies, mentions, movie cards,
 reactions and polls; see [the room chat API guide](docs/room-chat.md).
+Room invitations from profiles, with owner approval, are described in
+[the room invitations guide](docs/room-invitations.md).
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 

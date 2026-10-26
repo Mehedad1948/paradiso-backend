@@ -402,11 +402,142 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** get Room Invitations */
+        /**
+         * List the invitations of a room, newest first. Owner only.
+         * @description Filter with status=awaiting_approval to list the invitations waiting for review.
+         */
         get: operations["RoomInvitations_getRoomInvitations"];
         put?: never;
-        /** invite User */
+        /**
+         * Invite a user or an email address to the room.
+         * @description Room members only. Owners, and anyone inviting to a public room, create a pending invitation. A member inviting to a private room creates one awaiting_approval, which the owner must approve before the invited user sees it. Send exactly one of userId or email.
+         */
         post: operations["RoomInvitations_inviteUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/room-invitations/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept a pending invitation and join the room. Invitee only. */
+        post: operations["RoomInvitationActions_accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/room-invitations/{id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Decline a pending invitation. Invitee only. */
+        post: operations["RoomInvitationActions_decline"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/room-invitations/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve an invitation awaiting approval, making it pending. Room owner only. */
+        post: operations["RoomInvitationActions_approve"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/room-invitations/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject an invitation awaiting approval. Room owner only. */
+        post: operations["RoomInvitationActions_reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/room-invitations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Cancel an invitation you sent. Sets its status to cancelled. */
+        delete: operations["RoomInvitationActions_cancel"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/me/room-invitations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Room invitations sent to you, newest first.
+         * @description Invitations still waiting for the owner, or rejected by them, are never listed. Filter with status.
+         */
+        get: operations["MyRoomInvitations_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/users/{userId}/invitable-rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Your rooms, annotated for inviting this user from their profile.
+         * @description isMember: they are already in the room. hasPendingInvite: an open invitation exists for them. requiresApproval: your invitation would wait for the owner.
+         */
+        get: operations["UserInvitableRooms_list"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1450,8 +1581,9 @@ export interface components {
             token: string;
         };
         InviteUserToRoomDto: {
+            userId?: number;
             /** Format: email */
-            email: string;
+            email?: string;
         };
         CreateRoomInviteLinkDto: {
             /**
@@ -1558,6 +1690,11 @@ export interface components {
              * @example true
              */
             onboarded?: boolean;
+            /**
+             * @description Who may invite you to rooms: everyone, only people you follow, or nobody. Omit to leave it unchanged.
+             * @enum {string}
+             */
+            roomInvitePolicy?: "everyone" | "following" | "nobody";
         };
         CreateUserDto: {
             /** Format: email */
@@ -2018,6 +2155,8 @@ export interface components {
             genres: components["schemas"]["Genre"][];
             /** Format: date-time */
             onboardedAt: string | null;
+            /** @enum {string} */
+            roomInvitePolicy: "everyone" | "following" | "nobody";
             apiVersion: string;
         };
         Genre: {
@@ -2375,7 +2514,7 @@ export interface components {
             /** Format: uuid */
             id: string;
             /** @enum {string} */
-            type: "room_invite" | "movie_added" | "chat_mention" | "post_liked" | "post_commented";
+            type: "room_invite" | "room_invite_approval" | "room_invite_accepted" | "room_invite_rejected" | "movie_added" | "chat_mention" | "post_liked" | "post_commented";
             read: boolean;
             /** Format: date-time */
             createdAt: string;
@@ -2398,6 +2537,7 @@ export interface components {
                 roomName?: string;
                 roomImage?: string | null;
                 inviteToken?: string;
+                invitationId?: number;
                 movieTitle?: string;
                 posterUrl?: string | null;
                 postExcerpt?: string;
@@ -2449,27 +2589,76 @@ export interface components {
             movieId: string;
             apiVersion: string;
         };
-        InvitationCreatedResponse: {
-            message: string;
+        InvitationResponse: {
             id: number;
+            /** @enum {string} */
+            status: "awaiting_approval" | "pending" | "accepted" | "declined" | "rejected" | "cancelled" | "expired";
+            room: {
+                id: number;
+                name: string;
+                image: string | null;
+                isPublic: boolean;
+            };
+            inviter: components["schemas"]["PublicUser"] | (never | null);
+            invitee: components["schemas"]["PublicUser"] | (never | null);
+            /** Format: email */
+            email: string | null;
+            /** @enum {string} */
+            userStatus: "member" | "notVerified" | "guest";
+            reviewedBy: components["schemas"]["PublicUser"] | (never | null);
+            /** Format: date-time */
+            reviewedAt: string | null;
+            /** Format: date-time */
+            respondedAt: string | null;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
             apiVersion: string;
         };
         Invitation: {
             id: number;
-            /** Format: email */
-            email: string;
             /** @enum {string} */
-            status: "pending" | "accepted" | "declined" | "expired";
+            status: "awaiting_approval" | "pending" | "accepted" | "declined" | "rejected" | "cancelled" | "expired";
+            room: {
+                id: number;
+                name: string;
+                image: string | null;
+                isPublic: boolean;
+            };
+            inviter: components["schemas"]["PublicUser"] | (never | null);
+            invitee: components["schemas"]["PublicUser"] | (never | null);
+            /** Format: email */
+            email: string | null;
             /** @enum {string} */
             userStatus: "member" | "notVerified" | "guest";
+            reviewedBy: components["schemas"]["PublicUser"] | (never | null);
+            /** Format: date-time */
+            reviewedAt: string | null;
+            /** Format: date-time */
+            respondedAt: string | null;
             /** Format: date-time */
             createdAt: string;
-            invitedBy: components["schemas"]["PublicUser"] | (never | null);
+            /** Format: date-time */
+            expiresAt: string;
         };
         InvitationsResponse: {
             data: components["schemas"]["Invitation"][];
             meta: components["schemas"]["PaginationMeta"];
             links: components["schemas"]["PaginationLinks"];
+            apiVersion: string;
+        };
+        InvitableRoom: {
+            id: number;
+            name: string;
+            image: string | null;
+            isPublic: boolean;
+            isMember: boolean;
+            hasPendingInvite: boolean;
+            requiresApproval: boolean;
+        };
+        InvitableRoomsResponse: {
+            data: components["schemas"]["InvitableRoom"][];
             apiVersion: string;
         };
         InvitationAcceptedResponse: {
@@ -3544,6 +3733,7 @@ export interface operations {
             query?: {
                 limit?: number | null;
                 page?: number | null;
+                status?: "awaiting_approval" | "pending" | "accepted" | "declined" | "rejected" | "cancelled" | "expired";
             };
             header?: never;
             path: {
@@ -3594,7 +3784,226 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["InvitationCreatedResponse"];
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomInvitationActions_accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomInvitationActions_decline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomInvitationActions_approve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomInvitationActions_reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    RoomInvitationActions_cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    MyRoomInvitations_list: {
+        parameters: {
+            query?: {
+                limit?: number | null;
+                page?: number | null;
+                status?: "pending" | "accepted" | "declined" | "cancelled" | "expired";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationsResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    UserInvitableRooms_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitableRoomsResponse"];
                 };
             };
             /** @description Error response */

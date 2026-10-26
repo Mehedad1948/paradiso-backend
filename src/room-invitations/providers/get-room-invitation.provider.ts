@@ -1,56 +1,61 @@
-import { AuthenticatedRequest } from '../../auth/interfaces/authenticated-request.interface';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { REQUEST } from '@nestjs/core';
-import { InjectRepository } from '@nestjs/typeorm';
-import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
-import { RoomAccessService } from '../../rooms/providers/room-access.service';
-import { Repository } from 'typeorm';
-import { RoomInvitation } from '../room-invitation.entity';
+import { Injectable } from '@nestjs/common';
 import { PaginationProvider } from '../../common/pagination/providers/pagination.provider';
-import { GetRoomInvitationsDto } from '../dto/get-room-inviations.dto';
+import { RoomAccessService } from '../../rooms/providers/room-access.service';
+import {
+  GetRoomInvitationsDto,
+  ListMyInvitationsQueryDto,
+} from '../dto/get-room-inviations.dto';
+import {
+  applyStatusFilter,
+  InvitationLifecycleService,
+} from '../invitation-lifecycle.service';
 
 @Injectable()
 export class GetRoomInvitationProvider {
   constructor(
-    @Inject(REQUEST) private readonly request: AuthenticatedRequest,
     private readonly access: RoomAccessService,
     private readonly paginationProvider: PaginationProvider,
-    @InjectRepository(RoomInvitation)
-    private readonly roomInvitationRepository: Repository<RoomInvitation>,
+    private readonly lifecycle: InvitationLifecycleService,
   ) {}
-  private query(roomId: number) {
-    return this.roomInvitationRepository
-      .createQueryBuilder('invitation')
-      .leftJoin('invitation.invitedBy', 'inviter')
-      .where('invitation.room = :roomId', { roomId })
-      .select([
-        'invitation.id',
-        'invitation.email',
-        'invitation.status',
-        'invitation.userStatus',
-        'invitation.createdAt',
-        'inviter.id',
-        'inviter.username',
-        'inviter.avatar',
-      ])
-      .orderBy('invitation.createdAt', 'DESC')
-      .addOrderBy('invitation.id', 'DESC');
-  }
-  async getRoomInvitation(dto: GetRoomInvitationsDto) {
-    await this.access.requireOwner(
-      dto.roomId,
-      this.request[REQUEST_USER_KEY]?.sub,
+
+  private async page(
+    dto: ListMyInvitationsQueryDto,
+    builder: ReturnType<InvitationLifecycleService['query']>,
+  ) {
+    const result = await this.paginationProvider.paginateQuery(
+      dto,
+      builder
+        .orderBy('invitation.createdAt', 'DESC')
+        .addOrderBy('invitation.id', 'DESC'),
     );
-    return this.paginationProvider.paginateQuery(dto, this.query(dto.roomId));
+    return { ...result, data: result.data.map((i) => this.lifecycle.view(i)) };
   }
-  async getInvitationByRoomIdAndEmail(roomId: number, email: string) {
-    await this.access.requireOwner(roomId, this.request[REQUEST_USER_KEY]?.sub);
-    const invitation = await this.query(roomId)
-      .andWhere('invitation.email = :email', {
-        email: email.trim().toLowerCase(),
-      })
-      .getOne();
-    if (!invitation) throw new NotFoundException('Invitation not found');
-    return invitation;
+
+  // Everything sent for a room, including invitations waiting for approval.
+  async forRoom(dto: GetRoomInvitationsDto, userId: number) {
+    await this.access.requireOwner(dto.roomId, userId);
+    return this.page(
+      dto,
+      applyStatusFilter(
+        this.lifecycle
+          .query()
+          .where('invitation.room = :roomId', { roomId: dto.roomId }),
+        dto.status,
+      ),
+    );
+  }
+
+  // Invitations addressed to the user, minus the ones they were never shown.
+  forInvitee(dto: ListMyInvitationsQueryDto, userId: number) {
+    return this.page(
+      dto,
+      applyStatusFilter(
+        this.lifecycle
+          .query()
+          .where('invitation.inviteeUserId = :userId', { userId })
+          .andWhere('invitation.pendingAt IS NOT NULL'),
+        dto.status,
+      ),
+    );
   }
 }

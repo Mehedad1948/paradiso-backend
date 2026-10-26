@@ -1328,6 +1328,7 @@
     },
     "/rooms/{roomId}/invitations": {
       "post": {
+        "description": "Room members only. Owners, and anyone inviting to a public room, create a pending invitation. A member inviting to a private room creates one awaiting_approval, which the owner must approve before the invited user sees it. Send exactly one of userId or email.",
         "operationId": "RoomInvitations_inviteUser",
         "parameters": [
           {
@@ -1356,7 +1357,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/InvitationCreatedResponse"
+                  "$ref": "#/components/schemas/InvitationResponse"
                 }
               }
             }
@@ -1372,6 +1373,7 @@
             }
           }
         },
+        "summary": "Invite a user or an email address to the room.",
         "tags": [
           "RoomInvitations"
         ],
@@ -1379,10 +1381,10 @@
           {
             "accessToken": []
           }
-        ],
-        "summary": "invite User"
+        ]
       },
       "get": {
+        "description": "Filter with status=awaiting_approval to list the invitations waiting for review.",
         "operationId": "RoomInvitations_getRoomInvitations",
         "parameters": [
           {
@@ -1419,6 +1421,23 @@
               "default": 1,
               "type": "integer"
             }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "awaiting_approval",
+                "pending",
+                "accepted",
+                "declined",
+                "rejected",
+                "cancelled",
+                "expired"
+              ]
+            }
           }
         ],
         "responses": {
@@ -1443,6 +1462,7 @@
             }
           }
         },
+        "summary": "List the invitations of a room, newest first. Owner only.",
         "tags": [
           "RoomInvitations"
         ],
@@ -1450,8 +1470,370 @@
           {
             "accessToken": []
           }
+        ]
+      }
+    },
+    "/room-invitations/{id}/accept": {
+      "post": {
+        "operationId": "RoomInvitationActions_accept",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
         ],
-        "summary": "get Room Invitations"
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Accept a pending invitation and join the room. Invitee only.",
+        "tags": [
+          "RoomInvitationActions"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/room-invitations/{id}/decline": {
+      "post": {
+        "operationId": "RoomInvitationActions_decline",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Decline a pending invitation. Invitee only.",
+        "tags": [
+          "RoomInvitationActions"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/room-invitations/{id}/approve": {
+      "post": {
+        "operationId": "RoomInvitationActions_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Approve an invitation awaiting approval, making it pending. Room owner only.",
+        "tags": [
+          "RoomInvitationActions"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/room-invitations/{id}/reject": {
+      "post": {
+        "operationId": "RoomInvitationActions_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Reject an invitation awaiting approval. Room owner only.",
+        "tags": [
+          "RoomInvitationActions"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/room-invitations/{id}": {
+      "delete": {
+        "operationId": "RoomInvitationActions_cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Cancel an invitation you sent. Sets its status to cancelled.",
+        "tags": [
+          "RoomInvitationActions"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/me/room-invitations": {
+      "get": {
+        "description": "Invitations still waiting for the owner, or rejected by them, are never listed. Filter with status.",
+        "operationId": "MyRoomInvitations_list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "format": "int32",
+              "nullable": true,
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 1000000,
+              "format": "int32",
+              "nullable": true,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "accepted",
+                "declined",
+                "cancelled",
+                "expired"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitationsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Room invitations sent to you, newest first.",
+        "tags": [
+          "MyRoomInvitations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/users/{userId}/invitable-rooms": {
+      "get": {
+        "description": "isMember: they are already in the room. hasPendingInvite: an open invitation exists for them. requiresApproval: your invitation would wait for the owner.",
+        "operationId": "UserInvitableRooms_list",
+        "parameters": [
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitableRoomsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Your rooms, annotated for inviting this user from their profile.",
+        "tags": [
+          "UserInvitableRooms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
       }
     },
     "/invite-links/{token}": {
@@ -6064,15 +6446,16 @@
       "InviteUserToRoomDto": {
         "type": "object",
         "properties": {
+          "userId": {
+            "type": "integer",
+            "minimum": 1
+          },
           "email": {
             "type": "string",
             "format": "email",
             "minLength": 1
           }
         },
-        "required": [
-          "email"
-        ],
         "additionalProperties": false
       },
       "CreateRoomInviteLinkDto": {
@@ -6338,6 +6721,15 @@
             "type": "boolean",
             "example": true,
             "description": "Send true to mark onboarding finished or skipped. Idempotent; it cannot be unset."
+          },
+          "roomInvitePolicy": {
+            "type": "string",
+            "enum": [
+              "everyone",
+              "following",
+              "nobody"
+            ],
+            "description": "Who may invite you to rooms: everyone, only people you follow, or nobody. Omit to leave it unchanged."
           }
         },
         "additionalProperties": false
@@ -8036,6 +8428,14 @@
             "format": "date-time",
             "nullable": true
           },
+          "roomInvitePolicy": {
+            "type": "string",
+            "enum": [
+              "everyone",
+              "following",
+              "nobody"
+            ]
+          },
           "apiVersion": {
             "type": "string"
           }
@@ -8047,6 +8447,7 @@
           "avatar",
           "genres",
           "onboardedAt",
+          "roomInvitePolicy",
           "apiVersion"
         ]
       },
@@ -9539,6 +9940,9 @@
             "type": "string",
             "enum": [
               "room_invite",
+              "room_invite_approval",
+              "room_invite_accepted",
+              "room_invite_rejected",
               "movie_added",
               "chat_mention",
               "post_liked",
@@ -9617,6 +10021,9 @@
               },
               "inviteToken": {
                 "type": "string"
+              },
+              "invitationId": {
+                "type": "integer"
               },
               "movieTitle": {
                 "type": "string"
@@ -9823,57 +10230,49 @@
           "apiVersion"
         ]
       },
-      "InvitationCreatedResponse": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string"
-          },
-          "id": {
-            "type": "integer"
-          },
-          "apiVersion": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "message",
-          "id",
-          "apiVersion"
-        ]
-      },
-      "Invitation": {
+      "InvitationResponse": {
         "type": "object",
         "properties": {
           "id": {
             "type": "integer"
-          },
-          "email": {
-            "type": "string",
-            "format": "email"
           },
           "status": {
             "type": "string",
             "enum": [
+              "awaiting_approval",
               "pending",
               "accepted",
               "declined",
+              "rejected",
+              "cancelled",
               "expired"
             ]
           },
-          "userStatus": {
-            "type": "string",
-            "enum": [
-              "member",
-              "notVerified",
-              "guest"
+          "room": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string",
+                "nullable": true
+              },
+              "isPublic": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "image",
+              "isPublic"
             ]
           },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "invitedBy": {
+          "inviter": {
             "oneOf": [
               {
                 "$ref": "#/components/schemas/PublicUser"
@@ -9886,15 +10285,215 @@
                 ]
               }
             ]
+          },
+          "invitee": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublicUser"
+              },
+              {
+                "type": "object",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "userStatus": {
+            "type": "string",
+            "enum": [
+              "member",
+              "notVerified",
+              "guest"
+            ]
+          },
+          "reviewedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublicUser"
+              },
+              {
+                "type": "object",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "respondedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "apiVersion": {
+            "type": "string"
           }
         },
         "required": [
           "id",
-          "email",
           "status",
+          "room",
+          "inviter",
+          "invitee",
+          "email",
           "userStatus",
+          "reviewedBy",
+          "reviewedAt",
+          "respondedAt",
           "createdAt",
-          "invitedBy"
+          "expiresAt",
+          "apiVersion"
+        ]
+      },
+      "Invitation": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "awaiting_approval",
+              "pending",
+              "accepted",
+              "declined",
+              "rejected",
+              "cancelled",
+              "expired"
+            ]
+          },
+          "room": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "image": {
+                "type": "string",
+                "nullable": true
+              },
+              "isPublic": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "image",
+              "isPublic"
+            ]
+          },
+          "inviter": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublicUser"
+              },
+              {
+                "type": "object",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "invitee": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublicUser"
+              },
+              {
+                "type": "object",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "userStatus": {
+            "type": "string",
+            "enum": [
+              "member",
+              "notVerified",
+              "guest"
+            ]
+          },
+          "reviewedBy": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublicUser"
+              },
+              {
+                "type": "object",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "reviewedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "respondedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "room",
+          "inviter",
+          "invitee",
+          "email",
+          "userStatus",
+          "reviewedBy",
+          "reviewedAt",
+          "respondedAt",
+          "createdAt",
+          "expiresAt"
         ]
       },
       "InvitationsResponse": {
@@ -9920,6 +10519,60 @@
           "data",
           "meta",
           "links",
+          "apiVersion"
+        ]
+      },
+      "InvitableRoom": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string",
+            "nullable": true
+          },
+          "isPublic": {
+            "type": "boolean"
+          },
+          "isMember": {
+            "type": "boolean"
+          },
+          "hasPendingInvite": {
+            "type": "boolean"
+          },
+          "requiresApproval": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "image",
+          "isPublic",
+          "isMember",
+          "hasPendingInvite",
+          "requiresApproval"
+        ]
+      },
+      "InvitableRoomsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InvitableRoom"
+            }
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
           "apiVersion"
         ]
       },

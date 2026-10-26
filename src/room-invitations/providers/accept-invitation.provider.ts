@@ -16,6 +16,7 @@ import { lockRoom } from '../../rooms/providers/room-transaction';
 import { Room } from '../../rooms/room.entity';
 import { Repository } from 'typeorm';
 import { RoomInvitation } from '../room-invitation.entity';
+import { InvitationLifecycleService } from '../invitation-lifecycle.service';
 
 interface InvitationClaims {
   tokenUse: string;
@@ -30,6 +31,7 @@ export class AcceptInvitationProvider {
     @InjectRepository(RoomInvitation)
     private readonly invitations: Repository<RoomInvitation>,
     private readonly jwt: JwtService,
+    private readonly lifecycle: InvitationLifecycleService,
     @Inject(jwtConfig.KEY)
     private readonly config: ConfigType<typeof jwtConfig>,
   ) {}
@@ -84,6 +86,7 @@ export class AcceptInvitationProvider {
         };
       if (
         invitation.status !== 'pending' ||
+        invitation.expiresAt <= new Date() ||
         invitation.updatedAt.toISOString() !== claims.invitationVersion
       ) {
         throw new ConflictException('Invitation is no longer active');
@@ -96,7 +99,16 @@ export class AcceptInvitationProvider {
           .of(claims.roomId)
           .add(user.sub);
       invitation.status = 'accepted';
+      invitation.respondedAt = new Date();
       await repo.save(invitation);
+      const full = await this.lifecycle.load(invitation.id, manager);
+      if (full)
+        await this.lifecycle.notifyInviter(
+          'room_invite_accepted',
+          full,
+          user.sub,
+          manager,
+        );
       return { roomId: claims.roomId, message: 'Invitation accepted' };
     });
   }

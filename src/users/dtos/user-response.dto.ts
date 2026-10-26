@@ -31,4 +31,7 @@ export class UserResponseDto {
 
   @Expose()
   onboardedAt: Date | null;
+
+  @Expose()
+  roomInvitePolicy: 'everyone' | 'following' | 'nobody';
 }

@@ -62,8 +62,9 @@ export class UpdateUserProvider {
     const { genreIds, onboarded, ...rest } = Object.fromEntries(
       Object.entries(data).filter(([, value]) => value !== undefined),
     ) as UpdateUserDto;
-    const changes: Partial<Pick<User, 'password' | 'username' | 'avatar'>> =
-      rest;
+    const changes: Partial<
+      Pick<User, 'password' | 'username' | 'avatar' | 'roomInvitePolicy'>
+    > = rest;
     if (
       !Object.keys(changes).length &&
       genreIds === undefined &&

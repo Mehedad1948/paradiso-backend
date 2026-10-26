@@ -106,7 +106,8 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
           parameter.schema = { type: 'string', format: 'uuid' };
         } else if (
           parameter.name !== 'userId' ||
-          path.startsWith('/community/')
+          path.startsWith('/community/') ||
+          path.endsWith('/invitable-rooms')
         ) {
           parameter.schema = { type: 'integer', minimum: 1 };
         }

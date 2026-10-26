@@ -15,6 +15,9 @@ import { CommunityPost } from '../community/community-post.entity';
 
 export const NOTIFICATION_TYPES = [
   'room_invite',
+  'room_invite_approval',
+  'room_invite_accepted',
+  'room_invite_rejected',
   'movie_added',
   'chat_mention',
   'post_liked',
@@ -35,6 +38,7 @@ export interface NotificationData {
   roomName?: string;
   roomImage?: string | null;
   inviteToken?: string;
+  invitationId?: number;
   movieTitle?: string;
   posterUrl?: string | null;
   postExcerpt?: string;

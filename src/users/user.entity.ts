@@ -3,7 +3,9 @@ import { Rating } from '../ratings/rating.entity';
 import { Role } from '../roles/role.entity';
 import { Genre } from '../genres/genre.entity';
 import { Room } from '../rooms/room.entity';
+import { ROOM_INVITE_POLICIES, RoomInvitePolicy } from './room-invite-policy';
 import {
+  Check,
   Column,
   Entity,
   ManyToMany,
@@ -14,6 +16,10 @@ import {
   JoinTable,
 } from 'typeorm';
 @Entity()
+@Check(
+  'CHK_user_room_invite_policy',
+  `"roomInvitePolicy" IN (${ROOM_INVITE_POLICIES.map((p) => `'${p}'`).join(', ')})`,
+)
 @Index('IDX_user_email_lower', { synchronize: false })
 export class User {
   @PrimaryGeneratedColumn()
@@ -56,6 +62,11 @@ export class User {
 
   @ManyToMany(() => Room, (room) => room.users)
   rooms: Room[];
+
+  // Who may invite this user to rooms; 'following' means people they follow.
+  @Column({ type: 'varchar', length: 10, default: 'everyone' })
+  @Expose()
+  roomInvitePolicy: RoomInvitePolicy;
 
   // Set once when the optional post-signup onboarding step is finished or skipped.
   @Column({ nullable: true, type: 'timestamp with time zone' })

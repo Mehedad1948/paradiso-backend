@@ -1,33 +1,52 @@
 import { Injectable } from '@nestjs/common';
 import { InviteUserToRoomDto } from '../dto/invite-user-to-room.dto';
-import { AddUserToRoomProvider } from './add-user-to-room.provider';
+import {
+  GetRoomInvitationsDto,
+  ListMyInvitationsQueryDto,
+} from '../dto/get-room-inviations.dto';
+import { CreateInvitationProvider } from './create-invitation.provider';
 import { GetRoomInvitationProvider } from './get-room-invitation.provider';
-import { GetRoomInvitationsDto } from '../dto/get-room-inviations.dto';
+import { InvitableRoomsProvider } from './invitable-rooms.provider';
+import { InvitationActionsProvider } from './invitation-actions.provider';
 
 @Injectable()
 export class RoomInvitationService {
   constructor(
-    private readonly addUserToRoomProvider: AddUserToRoomProvider,
-    private readonly getRoomInvitationProvider: GetRoomInvitationProvider,
+    private readonly createProvider: CreateInvitationProvider,
+    private readonly getProvider: GetRoomInvitationProvider,
+    private readonly actions: InvitationActionsProvider,
+    private readonly invitableRooms: InvitableRoomsProvider,
   ) {}
 
-  async inviteUser(inviteUserToRoomDto: InviteUserToRoomDto, roomId: number) {
-    return await this.addUserToRoomProvider.inviteUserToRoom(
-      inviteUserToRoomDto,
-      roomId,
-    );
+  inviteUser(dto: InviteUserToRoomDto, roomId: number, userId: number) {
+    return this.createProvider.create(dto, roomId, userId);
   }
 
-  async getRoomInvitations(getRoomInvitationsDto: GetRoomInvitationsDto) {
-    return await this.getRoomInvitationProvider.getRoomInvitation(
-      getRoomInvitationsDto,
-    );
+  getRoomInvitations(dto: GetRoomInvitationsDto, userId: number) {
+    return this.getProvider.forRoom(dto, userId);
   }
 
-  async getInvitationByRoomIdAndEmail(roomId: number, email: string) {
-    return await this.getRoomInvitationProvider.getInvitationByRoomIdAndEmail(
-      roomId,
-      email,
-    );
+  getMyInvitations(dto: ListMyInvitationsQueryDto, userId: number) {
+    return this.getProvider.forInvitee(dto, userId);
+  }
+
+  listInvitableRooms(targetUserId: number, userId: number) {
+    return this.invitableRooms.list(targetUserId, userId);
+  }
+
+  accept(id: number, userId: number) {
+    return this.actions.accept(id, userId);
+  }
+  decline(id: number, userId: number) {
+    return this.actions.decline(id, userId);
+  }
+  approve(id: number, userId: number) {
+    return this.actions.approve(id, userId);
+  }
+  reject(id: number, userId: number) {
+    return this.actions.reject(id, userId);
+  }
+  cancel(id: number, userId: number) {
+    return this.actions.cancel(id, userId);
   }
 }

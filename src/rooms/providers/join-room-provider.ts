@@ -8,12 +8,14 @@ import { Repository } from 'typeorm';
 import { Room } from '../room.entity';
 import { assertNotBanned } from './room-moderation.provider';
 import { lockRoom } from './room-transaction';
+import { InvitationLifecycleService } from '../../room-invitations/invitation-lifecycle.service';
 
 @Injectable()
 export class JoinRoomProvider {
   constructor(
     @InjectRepository(Room)
     private readonly roomRepository: Repository<Room>,
+    private readonly invitations: InvitationLifecycleService,
   ) {}
 
   async joinToRoom(userId: number, roomId: number) {
@@ -33,6 +35,7 @@ export class JoinRoomProvider {
         .relation(Room, 'users')
         .of(roomId)
         .add(userId);
+      await this.invitations.acceptOpenFor(manager, roomId, userId);
       return { message: 'User successfully joined the room.' };
     });
   }

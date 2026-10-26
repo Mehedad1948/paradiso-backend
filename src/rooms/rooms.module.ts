@@ -22,6 +22,7 @@ import { RoomModerationProvider } from './providers/room-moderation.provider';
 import { RoomBan } from './room-ban.entity';
 import { LeaveRoomProvider } from './providers/leave-room.provider';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { RoomInvitationLifecycleModule } from '../room-invitations/room-invitation-lifecycle.module';
 
 @Module({
   providers: [
@@ -48,6 +49,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     AuthModule,
     forwardRef(() => RatingsModule),
     NotificationsModule,
+    RoomInvitationLifecycleModule,
   ],
   controllers: [RoomsController],
 })

@@ -11,7 +11,10 @@ count; see [Chat unread](#chat-unread) below.
 
 | `type`           | Recipient                             | Trigger                                       | `entity`  |
 | ---------------- | ------------------------------------- | --------------------------------------------- | --------- |
-| `room_invite`    | Invited user, if they have an account | The room owner invites their email            | `room`    |
+| `room_invite`    | Invited user, if they have an account | An invitation to them becomes pending         | `room`    |
+| `room_invite_approval` | Room owner                      | A member invites someone to a private room    | `room`    |
+| `room_invite_accepted` | Inviter                         | The invitation is accepted                    | `room`    |
+| `room_invite_rejected` | Inviter                         | The owner rejects the invitation              | `room`    |
 | `movie_added`    | Room members and owner                | A movie (TMDb or custom) is added to the room | `movie`   |
 | `chat_mention`   | Mentioned user, or replied-to author  | A chat message mentions or replies to them    | `message` |
 | `post_liked`     | Post author                           | Someone likes the post (dislikes are silent)  | `post`    |
@@ -20,10 +23,13 @@ count; see [Chat unread](#chat-unread) below.
 - `chat_mention` has `data.reason` set to `mention` or `reply`. Editing a
   message notifies only the people the edit newly mentions. Only current room
   members are notified.
-- `room_invite` carries `data.inviteToken`, the same token as the email link.
-  Pass it to `POST /room-invitations/accept` to accept in-app. It expires
-  like the email link. Re-inviting refreshes the unread notification rather
-  than adding a second one.
+- All `room_invite*` notifications carry `data.invitationId`. For
+  `room_invite`, answer it with `POST /room-invitations/:id/accept` or
+  `/decline`; see [room invitations](room-invitations.md). Invitations sent by
+  email address to an account also carry `data.inviteToken`, the same token as
+  the email link, which still works with `POST /room-invitations/accept`.
+  Re-inviting refreshes the unread `room_invite` notification for that room
+  rather than adding a second one.
 
 ### Grouping
 
@@ -64,7 +70,10 @@ next like or comment starts a new notification.
 updated, so it still renders if the post or room changes later. Fields by
 type:
 
-- `room_invite`: `roomName`, `roomImage`, `inviteToken`
+- `room_invite`: `roomName`, `roomImage`, `invitationId`, and `inviteToken` for
+  email invitations
+- `room_invite_approval`, `room_invite_accepted`, `room_invite_rejected`:
+  `roomName`, `roomImage`, `invitationId`
 - `movie_added`: `roomName`, `roomImage`, `movieTitle`, `posterUrl`
 - `chat_mention`: `roomName`, `messageExcerpt`, `reason`
 - `post_liked`: `postExcerpt`, plus `movieTitle` and `posterUrl` when the

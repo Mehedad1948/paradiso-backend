@@ -9,11 +9,13 @@ import { Rating } from '../../ratings/rating.entity';
 import { RoomChatRead } from '../../room-chat/room-message.entity';
 import { Room } from '../room.entity';
 import { lockRoom } from './room-transaction';
+import { InvitationLifecycleService } from '../../room-invitations/invitation-lifecycle.service';
 
 @Injectable()
 export class LeaveRoomProvider {
   constructor(
     @InjectRepository(Room) private readonly rooms: Repository<Room>,
+    private readonly invitations: InvitationLifecycleService,
   ) {}
 
   async leave(roomId: number, userId: number, clearVotes = false) {
@@ -53,6 +55,7 @@ export class LeaveRoomProvider {
         .relation(Room, 'users')
         .of(roomId)
         .remove(userId);
+      await this.invitations.cancelAwaitingFrom(manager, roomId, userId);
       return { message: 'You left the room', votesCleared: clearVotes };
     });
   }

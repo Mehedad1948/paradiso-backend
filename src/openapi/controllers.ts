@@ -7,6 +7,9 @@ import { RatingsController } from '../ratings/ratings.controller';
 import { RolesController } from '../roles/roles.controller';
 import { AcceptInvitationController } from '../room-invitations/accept-invitation.controller';
 import { RoomInvitationsController } from '../room-invitations/room-invitations.controller';
+import { RoomInvitationActionsController } from '../room-invitations/room-invitation-actions.controller';
+import { MyRoomInvitationsController } from '../room-invitations/my-room-invitations.controller';
+import { UserInvitableRoomsController } from '../room-invitations/user-invitable-rooms.controller';
 import { PublicInviteLinksController } from '../room-invite-links/public-invite-links.controller';
 import { RoomInviteLinksController } from '../room-invite-links/room-invite-links.controller';
 import { RoomsController } from '../rooms/rooms.controller';
@@ -31,6 +34,9 @@ export const apiControllers = [
   RolesController,
   AcceptInvitationController,
   RoomInvitationsController,
+  RoomInvitationActionsController,
+  MyRoomInvitationsController,
+  UserInvitableRoomsController,
   PublicInviteLinksController,
   RoomInviteLinksController,
   RoomsController,

@@ -1,7 +1,7 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getDataSourceToken } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { DataSource, In, IsNull, MoreThan } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -23,6 +23,8 @@ import { Rating } from './ratings/rating.entity';
 import { Upload } from './uploads/upload.entity';
 import { RoomInviteLink } from './room-invite-links/room-invite-link.entity';
 import { RoomInvitation } from './room-invitations/room-invitation.entity';
+import { InvitationLifecycleService } from './room-invitations/invitation-lifecycle.service';
+import { RoomUserInvitations1793059200000 } from './room-invitations/migrations/1793059200000-room-user-invitations';
 import { CommunityPost } from './community/community-post.entity';
 import { CommunityComment } from './community/community-comment.entity';
 import { CommunityPostReaction } from './community/community-post-reaction.entity';
@@ -892,7 +894,10 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       .expect(201);
     const invitation = await database
       .getRepository(RoomInvitation)
-      .findOneByOrFail({ email: users[3].email });
+      .findOneOrFail({
+        where: { email: users[3].email },
+        order: { id: 'DESC' },
+      });
     expect(invitation.status).toBe('accepted');
     expect(
       await database
@@ -1750,6 +1755,736 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     await app.get(NotificationsService).pruneRead();
     expect(await repository.existsBy({ id: invite.id })).toBe(false);
     expect(await repository.existsBy({ id: recent.id })).toBe(true);
+  });
+
+  describe('inviting users to rooms from their profile', () => {
+    const server = () => app.getHttpServer();
+    let people: User[] = [];
+    let token: string[] = [];
+    const as = (index: number) => ({
+      get: (path: string) =>
+        request(server()).get(path).auth(token[index], { type: 'bearer' }),
+      post: (path: string, body?: object) =>
+        request(server())
+          .post(path)
+          .auth(token[index], { type: 'bearer' })
+          .send(body),
+      patch: (path: string, body?: object) =>
+        request(server())
+          .patch(path)
+          .auth(token[index], { type: 'bearer' })
+          .send(body),
+      put: (path: string) =>
+        request(server()).put(path).auth(token[index], { type: 'bearer' }),
+      delete: (path: string) =>
+        request(server()).delete(path).auth(token[index], { type: 'bearer' }),
+    });
+    // 0 owns the rooms, 1 is a member, 2..4 are people being invited, 5 is an outsider.
+    const [OWNER, MEMBER, A, B, C, OUTSIDER] = [0, 1, 2, 3, 4, 5];
+    let privateId: number;
+    let publicId: number;
+    const addMember = (roomId: number, userId: number) =>
+      database
+        .createQueryBuilder()
+        .relation(Room, 'users')
+        .of(roomId)
+        .add(userId);
+    const invite = (
+      by: number,
+      roomId: number,
+      body: { userId?: number; email?: string },
+    ) => as(by).post('/rooms/' + roomId + '/invitations', body);
+    const notifications = async (index: number, type: string) =>
+      (
+        (await as(index).get('/notifications').expect(200)).body.items as {
+          type: string;
+          data: { invitationId?: number };
+          actor: { id: number };
+        }[]
+      ).filter((item) => item.type === type);
+    const statusOf = async (id: number) =>
+      (await database.getRepository(RoomInvitation).findOneByOrFail({ id }))
+        .status;
+
+    beforeAll(async () => {
+      const role = await database
+        .getRepository(Role)
+        .findOneByOrFail({ name: 'user' });
+      for (let index = 0; index < 6; index++) {
+        const user = await database.getRepository(User).save({
+          email: 'invite' + index + '@example.test',
+          username: 'Inviter ' + index,
+          password: 'private-password-hash',
+          isEmailVerified: true,
+          role,
+        });
+        people.push(user);
+        token.push((await tokens.generateTokens(user)).accessToken);
+      }
+      privateId = (
+        await as(OWNER)
+          .post('/rooms', { name: 'Invite private room', isPublic: false })
+          .expect(201)
+      ).body.id;
+      publicId = (
+        await as(OWNER)
+          .post('/rooms', { name: 'Invite public room', isPublic: true })
+          .expect(201)
+      ).body.id;
+      for (const roomId of [privateId, publicId])
+        await addMember(roomId, people[MEMBER].id);
+    });
+
+    it('defaults the invite policy to everyone and lets users change it', async () => {
+      expect(
+        (await as(A).get('/users/me').expect(200)).body.roomInvitePolicy,
+      ).toBe('everyone');
+      await as(A).patch('/users/me', { roomInvitePolicy: 'bogus' }).expect(400);
+      const updated = await as(A)
+        .patch('/users/me', { roomInvitePolicy: 'nobody' })
+        .expect(200);
+      expect(updated.body.roomInvitePolicy).toBe('nobody');
+      await as(A)
+        .patch('/users/me', { roomInvitePolicy: 'everyone' })
+        .expect(200);
+    });
+
+    it('lets only members invite and validates the body', async () => {
+      await invite(OUTSIDER, privateId, { userId: people[A].id }).expect(403);
+      await invite(OWNER, privateId, {}).expect(400);
+      await invite(OWNER, privateId, {
+        userId: people[A].id,
+        email: 'x@example.test',
+      }).expect(400);
+      await invite(OWNER, privateId, { userId: 0 }).expect(400);
+      await invite(OWNER, privateId, { userId: 999999 }).expect(404);
+      await invite(OWNER, privateId, { userId: people[OWNER].id }).expect(400);
+      await invite(OWNER, privateId, { userId: people[MEMBER].id }).expect(409);
+      await invite(OWNER, 999999, { userId: people[A].id }).expect(404);
+    });
+
+    it('runs the owner flow: pending, notify, duplicate, decline, re-invite, accept', async () => {
+      const created = await invite(OWNER, privateId, {
+        userId: people[A].id,
+      }).expect(201);
+      assertOpenApiResponse(
+        createOpenApiDocument(app),
+        'RoomInvitations_inviteUser',
+        created.body,
+      );
+      const id = created.body.id as number;
+      expect(created.body).toMatchObject({
+        status: 'pending',
+        room: { id: privateId, name: 'Invite private room' },
+        inviter: { id: people[OWNER].id },
+        invitee: { id: people[A].id },
+      });
+      const days =
+        (Date.parse(created.body.expiresAt) -
+          Date.parse(created.body.createdAt)) /
+        86_400_000;
+      expect(Math.round(days)).toBe(14);
+      expect((await notifications(A, 'room_invite'))[0]).toMatchObject({
+        data: { invitationId: id },
+        actor: { id: people[OWNER].id },
+      });
+      await invite(MEMBER, privateId, { userId: people[A].id }).expect(409);
+
+      // Only the invitee can answer.
+      await as(OUTSIDER)
+        .post('/room-invitations/' + id + '/accept')
+        .expect(403);
+      await as(OWNER)
+        .post('/room-invitations/' + id + '/decline')
+        .expect(403);
+      await as(A).post('/room-invitations/999999/accept').expect(404);
+
+      const mine = await as(A).get('/me/room-invitations').expect(200);
+      assertOpenApiResponse(
+        createOpenApiDocument(app),
+        'MyRoomInvitations_list',
+        mine.body,
+      );
+      expect(mine.body.data.map((i: { id: number }) => i.id)).toContain(id);
+      await as(A).get('/me/room-invitations?status=bogus').expect(400);
+      await as(A)
+        .get('/me/room-invitations?status=awaiting_approval')
+        .expect(400);
+      expect(
+        (await as(A).get('/me/room-invitations?status=declined').expect(200))
+          .body.data,
+      ).toHaveLength(0);
+
+      const declined = await as(A)
+        .post('/room-invitations/' + id + '/decline')
+        .expect(200);
+      expect(declined.body.status).toBe('declined');
+      expect(declined.body.respondedAt).toBeTruthy();
+      await as(A)
+        .post('/room-invitations/' + id + '/accept')
+        .expect(409);
+      expect(
+        (await as(A).get('/me/room-invitations?status=declined').expect(200))
+          .body.data,
+      ).toHaveLength(1);
+
+      const again = await invite(OWNER, privateId, {
+        userId: people[A].id,
+      }).expect(201);
+      const accepted = await as(A)
+        .post('/room-invitations/' + again.body.id + '/accept')
+        .expect(200);
+      assertOpenApiResponse(
+        createOpenApiDocument(app),
+        'RoomInvitationActions_accept',
+        accepted.body,
+      );
+      expect(accepted.body.status).toBe('accepted');
+      expect(
+        await database.getRepository(Room).exists({
+          where: { id: privateId, users: { id: people[A].id } },
+        }),
+      ).toBe(true);
+      expect(
+        (await notifications(OWNER, 'room_invite_accepted')).map(
+          (item) => item.data.invitationId,
+        ),
+      ).toContain(again.body.id);
+      // Accepting twice is harmless.
+      await as(A)
+        .post('/room-invitations/' + again.body.id + '/accept')
+        .expect(200);
+    });
+
+    it('holds member invitations to private rooms for owner approval', async () => {
+      const created = await invite(MEMBER, privateId, {
+        userId: people[B].id,
+      }).expect(201);
+      const id = created.body.id as number;
+      expect(created.body.status).toBe('awaiting_approval');
+      expect(
+        (await notifications(OWNER, 'room_invite_approval')).map(
+          (item) => item.data.invitationId,
+        ),
+      ).toContain(id);
+      expect(await notifications(B, 'room_invite')).toHaveLength(0);
+      // The invitee cannot see or answer it yet.
+      expect(
+        (await as(B).get('/me/room-invitations').expect(200)).body.data,
+      ).toHaveLength(0);
+      await as(B)
+        .post('/room-invitations/' + id + '/accept')
+        .expect(404);
+      await invite(OWNER, privateId, { userId: people[B].id }).expect(409);
+
+      // Only the owner lists and reviews it.
+      await as(MEMBER)
+        .get('/rooms/' + privateId + '/invitations')
+        .expect(403);
+      const waiting = await as(OWNER)
+        .get('/rooms/' + privateId + '/invitations?status=awaiting_approval')
+        .expect(200);
+      assertOpenApiResponse(
+        createOpenApiDocument(app),
+        'RoomInvitations_getRoomInvitations',
+        waiting.body,
+      );
+      expect(waiting.body.data.map((i: { id: number }) => i.id)).toEqual([id]);
+      await as(MEMBER)
+        .post('/room-invitations/' + id + '/approve')
+        .expect(403);
+      await as(MEMBER)
+        .post('/room-invitations/' + id + '/reject')
+        .expect(403);
+      await as(B)
+        .post('/room-invitations/' + id + '/approve')
+        .expect(403);
+
+      const approved = await as(OWNER)
+        .post('/room-invitations/' + id + '/approve')
+        .expect(200);
+      expect(approved.body).toMatchObject({
+        status: 'pending',
+        reviewedBy: { id: people[OWNER].id },
+      });
+      await as(OWNER)
+        .post('/room-invitations/' + id + '/approve')
+        .expect(409);
+      expect((await notifications(B, 'room_invite'))[0].data.invitationId).toBe(
+        id,
+      );
+      await as(B)
+        .post('/room-invitations/' + id + '/accept')
+        .expect(200);
+      expect(
+        (await notifications(MEMBER, 'room_invite_accepted')).map(
+          (item) => item.data.invitationId,
+        ),
+      ).toContain(id);
+    });
+
+    it('rejects, cancels and lets the invite be sent again', async () => {
+      const first = await invite(MEMBER, privateId, {
+        userId: people[C].id,
+      }).expect(201);
+      await as(OWNER)
+        .post('/room-invitations/' + first.body.id + '/reject')
+        .expect(200);
+      expect(await statusOf(first.body.id)).toBe('rejected');
+      expect(
+        (await notifications(MEMBER, 'room_invite_rejected')).map(
+          (item) => item.data.invitationId,
+        ),
+      ).toContain(first.body.id);
+      await as(OWNER)
+        .post('/room-invitations/' + first.body.id + '/reject')
+        .expect(409);
+      // The invitee never learns about a rejected invitation.
+      expect(
+        (await as(C).get('/me/room-invitations').expect(200)).body.data,
+      ).toHaveLength(0);
+
+      const second = await invite(MEMBER, privateId, {
+        userId: people[C].id,
+      }).expect(201);
+      await as(OWNER)
+        .delete('/room-invitations/' + second.body.id)
+        .expect(403);
+      const cancelled = await as(MEMBER)
+        .delete('/room-invitations/' + second.body.id)
+        .expect(200);
+      expect(cancelled.body.status).toBe('cancelled');
+      await as(MEMBER)
+        .delete('/room-invitations/' + second.body.id)
+        .expect(409);
+      await as(MEMBER)
+        .post('/room-invitations/' + second.body.id + '/approve')
+        .expect(403);
+      await as(OWNER)
+        .post('/room-invitations/' + second.body.id + '/approve')
+        .expect(409);
+    });
+
+    it('skips approval in public rooms and for owners', async () => {
+      const created = await invite(MEMBER, publicId, {
+        userId: people[C].id,
+      }).expect(201);
+      expect(created.body.status).toBe('pending');
+      expect(created.body.inviter.id).toBe(people[MEMBER].id);
+      await as(MEMBER)
+        .delete('/room-invitations/' + created.body.id)
+        .expect(200);
+    });
+
+    it('describes your rooms for the profile invite menu', async () => {
+      await invite(MEMBER, publicId, { userId: people[C].id }).expect(201);
+      const response = await as(MEMBER)
+        .get('/users/' + people[C].id + '/invitable-rooms')
+        .expect(200);
+      assertOpenApiResponse(
+        createOpenApiDocument(app),
+        'UserInvitableRooms_list',
+        response.body,
+      );
+      const byName = Object.fromEntries(
+        response.body.data.map((room: { name: string }) => [room.name, room]),
+      );
+      expect(byName['Invite private room']).toMatchObject({
+        isMember: false,
+        hasPendingInvite: false,
+        requiresApproval: true,
+      });
+      expect(byName['Invite public room']).toMatchObject({
+        isMember: false,
+        hasPendingInvite: true,
+        requiresApproval: false,
+      });
+      const asOwner = await as(OWNER)
+        .get('/users/' + people[A].id + '/invitable-rooms')
+        .expect(200);
+      expect(
+        asOwner.body.data.find(
+          (room: { name: string }) => room.name === 'Invite private room',
+        ),
+      ).toMatchObject({ isMember: true, requiresApproval: false });
+      await as(MEMBER)
+        .get('/users/' + people[MEMBER].id + '/invitable-rooms')
+        .expect(400);
+      await as(MEMBER).get('/users/999999/invitable-rooms').expect(404);
+      await as(MEMBER).get('/users/abc/invitable-rooms').expect(400);
+      await request(server())
+        .get('/users/' + people[C].id + '/invitable-rooms')
+        .expect(401);
+      await as(MEMBER)
+        .delete('/room-invitations/' + (await latestInvitationId(publicId, C)))
+        .expect(200);
+    });
+
+    const latestInvitationId = async (roomId: number, user: number) =>
+      (
+        await database.getRepository(RoomInvitation).findOneOrFail({
+          where: { room: { id: roomId }, inviteeUserId: people[user].id },
+          order: { id: 'DESC' },
+        })
+      ).id;
+
+    it('honors the invitee policy', async () => {
+      await as(C)
+        .patch('/users/me', { roomInvitePolicy: 'nobody' })
+        .expect(200);
+      await invite(OWNER, privateId, { userId: people[C].id }).expect(403);
+      await as(C)
+        .patch('/users/me', { roomInvitePolicy: 'following' })
+        .expect(200);
+      await invite(OWNER, privateId, { userId: people[C].id }).expect(403);
+      await as(C)
+        .put('/community/users/' + people[OWNER].id + '/follow')
+        .expect(200);
+      const created = await invite(OWNER, privateId, {
+        userId: people[C].id,
+      }).expect(201);
+      await as(OWNER)
+        .delete('/room-invitations/' + created.body.id)
+        .expect(200);
+
+      // Blocking invites later stops an approval that was still waiting.
+      await as(C)
+        .patch('/users/me', { roomInvitePolicy: 'everyone' })
+        .expect(200);
+      const waiting = await invite(MEMBER, privateId, {
+        userId: people[C].id,
+      }).expect(201);
+      expect(waiting.body.status).toBe('awaiting_approval');
+      await as(C)
+        .patch('/users/me', { roomInvitePolicy: 'nobody' })
+        .expect(200);
+      await as(OWNER)
+        .post('/room-invitations/' + waiting.body.id + '/approve')
+        .expect(403);
+      await as(OWNER)
+        .post('/room-invitations/' + waiting.body.id + '/reject')
+        .expect(200);
+      await as(C)
+        .patch('/users/me', { roomInvitePolicy: 'everyone' })
+        .expect(200);
+    });
+
+    it('cancels what a leaving inviter had waiting but keeps pending invitations', async () => {
+      await addMember(privateId, people[OUTSIDER].id);
+      const waiting = await invite(OUTSIDER, privateId, {
+        userId: people[C].id,
+      }).expect(201);
+      expect(waiting.body.status).toBe('awaiting_approval');
+      await as(OUTSIDER)
+        .post('/rooms/' + privateId + '/leave', {})
+        .expect(201);
+      expect(await statusOf(waiting.body.id)).toBe('cancelled');
+
+      const kept = await invite(OWNER, privateId, {
+        userId: people[C].id,
+      }).expect(201);
+      await addMember(privateId, people[OUTSIDER].id);
+      const pendingFromMember = await database
+        .getRepository(RoomInvitation)
+        .save({
+          room: { id: privateId },
+          inviterId: people[OUTSIDER].id,
+          inviteeUserId: null,
+          email: 'kept-after-leave@example.test',
+          status: 'pending',
+          pendingAt: new Date(),
+          expiresAt: new Date(Date.now() + 86_400_000),
+        });
+      await as(OUTSIDER)
+        .post('/rooms/' + privateId + '/leave', {})
+        .expect(201);
+      expect(await statusOf(kept.body.id)).toBe('pending');
+      expect(await statusOf(pendingFromMember.id)).toBe('pending');
+      await as(OWNER)
+        .delete('/room-invitations/' + kept.body.id)
+        .expect(200);
+    });
+
+    it('moves waiting invitations forward when the room becomes public', async () => {
+      const room = (
+        await as(OWNER)
+          .post('/rooms', { name: 'Soon public room', isPublic: false })
+          .expect(201)
+      ).body.id as number;
+      await addMember(room, people[MEMBER].id);
+      const waiting = await invite(MEMBER, room, {
+        userId: people[B].id,
+      }).expect(201);
+      expect(waiting.body.status).toBe('awaiting_approval');
+      await as(OWNER)
+        .patch('/rooms/' + room, { isPublic: true })
+        .expect(200);
+      expect(await statusOf(waiting.body.id)).toBe('pending');
+      expect(
+        (await notifications(B, 'room_invite')).map(
+          (item) => item.data.invitationId,
+        ),
+      ).toContain(waiting.body.id);
+      expect(
+        (await as(B).get('/me/room-invitations?status=pending').expect(200))
+          .body.data[0].room.id,
+      ).toBe(room);
+
+      // Joining with the Join button fulfils the invitation.
+      await as(B).post('/rooms/join', { roomId: room }).expect(201);
+      expect(await statusOf(waiting.body.id)).toBe('accepted');
+      expect(
+        (await notifications(MEMBER, 'room_invite_accepted')).map(
+          (item) => item.data.invitationId,
+        ),
+      ).toContain(waiting.body.id);
+    });
+
+    it('marks open invitations accepted when the user joins by invite link', async () => {
+      const created = await invite(OWNER, privateId, {
+        userId: people[OUTSIDER].id,
+      }).expect(201);
+      const link = (
+        await as(OWNER)
+          .post('/rooms/' + privateId + '/invite-links', {})
+          .expect(201)
+      ).body;
+      await as(OUTSIDER)
+        .post('/invite-links/verify/' + link.token)
+        .expect(201);
+      expect(await statusOf(created.body.id)).toBe('accepted');
+    });
+
+    it('checks the current owner and handles a change of owner', async () => {
+      const room = (
+        await as(OWNER)
+          .post('/rooms', { name: 'Changing owner room', isPublic: false })
+          .expect(201)
+      ).body.id as number;
+      await addMember(room, people[MEMBER].id);
+      const waiting = await invite(MEMBER, room, {
+        userId: people[C].id,
+      }).expect(201);
+      await database
+        .createQueryBuilder()
+        .update(Room)
+        .set({ owner: { id: people[MEMBER].id } })
+        .where('id = :room', { room })
+        .execute();
+      await as(OWNER)
+        .post('/room-invitations/' + waiting.body.id + '/approve')
+        .expect(403);
+      await as(MEMBER)
+        .post('/room-invitations/' + waiting.body.id + '/approve')
+        .expect(200);
+    });
+
+    it('expires overdue invitations on read, on answer and in the scheduled job', async () => {
+      const room = publicId;
+      const created = await invite(OWNER, room, {
+        userId: people[OUTSIDER].id,
+      }).expect(201);
+      await database
+        .getRepository(RoomInvitation)
+        .update(created.body.id, { expiresAt: new Date(Date.now() - 1000) });
+      expect(
+        (
+          await as(OUTSIDER)
+            .get('/me/room-invitations?status=expired')
+            .expect(200)
+        ).body.data.map((i: { id: number }) => i.id),
+      ).toContain(created.body.id);
+      expect(
+        (
+          await as(OUTSIDER)
+            .get('/me/room-invitations?status=pending')
+            .expect(200)
+        ).body.data.map((i: { id: number }) => i.id),
+      ).not.toContain(created.body.id);
+      await as(OUTSIDER)
+        .post('/room-invitations/' + created.body.id + '/accept')
+        .expect(410);
+      expect(await statusOf(created.body.id)).toBe('expired');
+
+      // An overdue invitation does not block a new one, even before the job runs.
+      const overdue = await invite(OWNER, room, {
+        userId: people[OUTSIDER].id,
+      }).expect(201);
+      await database
+        .getRepository(RoomInvitation)
+        .update(overdue.body.id, { expiresAt: new Date(Date.now() - 1000) });
+      await invite(OWNER, room, { userId: people[OUTSIDER].id })
+        .expect(201)
+        .then(async (fresh) => {
+          expect(await statusOf(overdue.body.id)).toBe('expired');
+          await database
+            .getRepository(RoomInvitation)
+            .update(fresh.body.id, { expiresAt: new Date(Date.now() - 1000) });
+        });
+      await app.get(InvitationLifecycleService).expireOverdue();
+      expect(
+        await database.getRepository(RoomInvitation).countBy({
+          inviteeUserId: people[OUTSIDER].id,
+          status: In(['pending', 'awaiting_approval']),
+        }),
+      ).toBe(0);
+    });
+
+    it('limits how many invitations a user can send per day', async () => {
+      const repo = database.getRepository(RoomInvitation);
+      const recent = await repo.countBy({
+        inviterId: people[OWNER].id,
+        createdAt: MoreThan(new Date(Date.now() - 86_400_000)),
+      });
+      await repo.insert(
+        Array.from({ length: 20 - recent }, () => ({
+          room: { id: publicId },
+          inviterId: people[OWNER].id,
+          status: 'cancelled' as const,
+          expiresAt: new Date(Date.now() + 86_400_000),
+        })),
+      );
+      const limited = await invite(OWNER, publicId, { userId: people[B].id });
+      expect(limited.status).toBe(429);
+      // Other people are unaffected.
+      await invite(MEMBER, publicId, { userId: people[B].id })
+        .expect(201)
+        .then((response) =>
+          as(MEMBER)
+            .delete('/room-invitations/' + response.body.id)
+            .expect(200),
+        );
+      await repo.delete({
+        inviterId: people[OWNER].id,
+        status: 'cancelled',
+        email: IsNull(),
+        inviteeUserId: IsNull(),
+      });
+    });
+
+    it('keeps email invitations on the token flow and approves them like the rest', async () => {
+      const guest = 'guest-' + randomUUID() + '@example.test';
+      mail.sendInvitationEmail.mockClear();
+      const waiting = await invite(MEMBER, privateId, { email: guest }).expect(
+        201,
+      );
+      expect(waiting.body).toMatchObject({
+        status: 'awaiting_approval',
+        email: guest,
+        invitee: null,
+      });
+      expect(mail.sendInvitationEmail).not.toHaveBeenCalled();
+      await invite(OWNER, privateId, { email: guest.toUpperCase() }).expect(
+        409,
+      );
+      await as(OWNER)
+        .post('/room-invitations/' + waiting.body.id + '/approve')
+        .expect(200);
+      expect(mail.sendInvitationEmail).toHaveBeenCalledTimes(1);
+      expect(mail.sendInvitationEmail.mock.calls[0][0].email).toBe(guest);
+      await as(MEMBER)
+        .delete('/room-invitations/' + waiting.body.id)
+        .expect(200);
+
+      // An address that belongs to an account is an invitation to that account.
+      const direct = await invite(OWNER, publicId, {
+        email: people[B].email.toUpperCase(),
+      }).expect(201);
+      expect(direct.body.invitee.id).toBe(people[B].id);
+      const note = (await notifications(B, 'room_invite')).find(
+        (item) => item.data.invitationId === direct.body.id,
+      );
+      expect(note).toBeDefined();
+      await as(OWNER)
+        .delete('/room-invitations/' + direct.body.id)
+        .expect(200);
+    });
+
+    it('applies the invitations migration with the same shape as the entities', async () => {
+      const runner = database.createQueryRunner();
+      const target = schema + '_invitations';
+      const shape = async (name: string) => ({
+        columns: (await runner.query(
+          'SELECT table_name, column_name, data_type, is_nullable, character_maximum_length FROM information_schema.columns WHERE table_schema = $1 AND table_name IN ($2, $3) AND (table_name = $2 OR column_name = $4) ORDER BY table_name, column_name',
+          [name, 'room_invitation', 'user', 'roomInvitePolicy'],
+        )) as unknown[],
+        indexes: (
+          (await runner.query(
+            'SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = $1 AND tablename = $2 ORDER BY indexname',
+            [name, 'room_invitation'],
+          )) as { indexname: string; indexdef: string }[]
+        )
+          .filter((index) => !/^PK_|_pkey$/.test(index.indexname))
+          .map((index) => index.indexdef.split(name).join('')),
+      });
+      await runner.connect();
+      await runner.startTransaction();
+      try {
+        await runner.query('CREATE SCHEMA "' + target + '"');
+        await runner.query('SET LOCAL search_path TO "' + target + '"');
+        await runner.query(`
+          CREATE TABLE "user" ("id" SERIAL PRIMARY KEY, "email" varchar(255) NOT NULL);
+          CREATE TABLE "room" ("id" SERIAL PRIMARY KEY);
+          CREATE TABLE "notification" ("id" uuid PRIMARY KEY DEFAULT gen_random_uuid(), "type" varchar(32) NOT NULL,
+            CONSTRAINT "CHK_notification_type" CHECK ("type" IN ('room_invite', 'movie_added', 'chat_mention', 'post_liked', 'post_commented')));
+          CREATE TYPE "room_invitation_status_enum" AS ENUM('pending', 'accepted', 'declined', 'expired');
+          CREATE TYPE "room_invitation_userstatus_enum" AS ENUM('member', 'notVerified', 'guest');
+          CREATE TABLE "room_invitation" ("id" SERIAL NOT NULL, "email" character varying NOT NULL,
+            "status" "room_invitation_status_enum" NOT NULL DEFAULT 'pending',
+            "userStatus" "room_invitation_userstatus_enum" NOT NULL DEFAULT 'guest',
+            "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(),
+            "roomId" integer REFERENCES "room"("id") ON DELETE CASCADE, "invitedById" integer REFERENCES "user"("id") ON DELETE SET NULL,
+            CONSTRAINT "UQ_31a34814d3264e21e9fdf2a2775" UNIQUE ("email", "roomId"), CONSTRAINT "PK_297d79115071f9e85633ceea6ab" PRIMARY KEY ("id"));
+          CREATE INDEX "IDX_invitation_room_created" ON "room_invitation" ("roomId", "createdAt", "id");
+          INSERT INTO "user" ("email") VALUES ('Member@Example.test'), ('inviter@example.test');
+          INSERT INTO "room" DEFAULT VALUES;
+          INSERT INTO "room_invitation" ("email", "status", "roomId", "invitedById") VALUES
+            ('member@example.test', 'pending', 1, 2), ('nobody@example.test', 'accepted', 1, 2);
+        `);
+        const migration = new RoomUserInvitations1793059200000();
+        await migration.up(runner);
+        const rows = (await runner.query(
+          'SELECT "email", "status", "inviterId", "inviteeUserId", "pendingAt" IS NOT NULL AS shown, "expiresAt" > now() AS open FROM "room_invitation" ORDER BY "id"',
+        )) as Record<string, unknown>[];
+        expect(rows).toEqual([
+          {
+            email: 'member@example.test',
+            status: 'pending',
+            inviterId: 2,
+            inviteeUserId: 1,
+            shown: true,
+            open: true,
+          },
+          {
+            email: 'nobody@example.test',
+            status: 'accepted',
+            inviterId: 2,
+            inviteeUserId: null,
+            shown: true,
+            open: true,
+          },
+        ]);
+        const migrated = await shape(target);
+        const synchronized = await shape(schema);
+        expect(migrated.columns).toEqual(synchronized.columns);
+        expect(migrated.indexes).toEqual(synchronized.indexes);
+        await runner.query(
+          `INSERT INTO "notification" ("type") VALUES ('room_invite_accepted')`,
+        );
+        await migration.down(runner);
+        expect(
+          await runner.query(
+            'SELECT "email", "status" FROM "room_invitation" ORDER BY "id"',
+          ),
+        ).toEqual([
+          { email: 'member@example.test', status: 'pending' },
+          { email: 'nobody@example.test', status: 'accepted' },
+        ]);
+      } finally {
+        await runner.rollbackTransaction();
+        await runner.release();
+      }
+    });
   });
 
   it('applies the notifications migration with the same shape as the entity', async () => {

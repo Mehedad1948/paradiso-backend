@@ -12,6 +12,7 @@ import { PaginationProvider } from '../common/pagination/providers/pagination.pr
 import { GetOneRoomInviteLinkProvider } from './providers/get-one-room-invite-token';
 import { PublicInviteLinksController } from './public-invite-links.controller';
 import { RoomsModule } from '../rooms/rooms.module';
+import { RoomInvitationLifecycleModule } from '../room-invitations/room-invitation-lifecycle.module';
 
 @Module({
   controllers: [RoomInviteLinksController, PublicInviteLinksController],
@@ -25,6 +26,10 @@ import { RoomsModule } from '../rooms/rooms.module';
     GetOneRoomInviteLinkProvider,
     PaginationProvider,
   ],
-  imports: [RoomsModule, TypeOrmModule.forFeature([RoomInviteLink])],
+  imports: [
+    RoomsModule,
+    RoomInvitationLifecycleModule,
+    TypeOrmModule.forFeature([RoomInviteLink]),
+  ],
 })
 export class RoomInviteLinksModule {}

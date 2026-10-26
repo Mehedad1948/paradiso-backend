@@ -11,6 +11,7 @@ import { Room } from '../room.entity';
 import { RoomBan } from '../room-ban.entity';
 import { RoomAccessService } from './room-access.service';
 import { lockRoom } from './room-transaction';
+import { InvitationLifecycleService } from '../../room-invitations/invitation-lifecycle.service';
 
 // Throws if the user is banned from the room; call inside the room lock.
 export async function assertNotBanned(
@@ -36,6 +37,7 @@ export class RoomModerationProvider {
     @InjectRepository(RoomBan)
     private readonly bans: Repository<RoomBan>,
     private readonly access: RoomAccessService,
+    private readonly invitations: InvitationLifecycleService,
   ) {}
 
   // Callers are verified as the owner, so targeting yourself means targeting the owner.
@@ -54,6 +56,9 @@ export class RoomModerationProvider {
       .relation(Room, 'users')
       .of(roomId)
       .remove(userId);
+    // Invitations they sponsored were waiting on the owner; without a sponsor
+    // they would only surprise the invitee later.
+    await this.invitations.cancelAwaitingFrom(manager, roomId, userId);
   }
 
   async kick(roomId: number, ownerId: number, userId: number) {
@@ -106,8 +111,9 @@ export class RoomModerationProvider {
       // A pending invitation or invite link must not let the user back in.
       await manager.query(
         `UPDATE "room_invitation" SET "status" = 'expired'
-         WHERE "roomId" = $1 AND "status" = 'pending'
-           AND "email" = (SELECT lower("email") FROM "user" WHERE "id" = $2)`,
+         WHERE "roomId" = $1 AND "status" IN ('awaiting_approval', 'pending')
+           AND ("inviteeUserId" = $2
+             OR lower("email") = (SELECT lower("email") FROM "user" WHERE "id" = $2))`,
         [roomId, userId],
       );
       return { message: 'User banned from the room' };

@@ -14,6 +14,7 @@ import { lockRoom } from '../../rooms/providers/room-transaction';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RoomInviteLink } from '../room-invite-link.entity';
+import { InvitationLifecycleService } from '../../room-invitations/invitation-lifecycle.service';
 
 @Injectable()
 export class VerifyRoomInviteLinkProvider {
@@ -21,6 +22,7 @@ export class VerifyRoomInviteLinkProvider {
     @Inject(REQUEST) private readonly request: AuthenticatedRequest,
     @InjectRepository(RoomInviteLink)
     private readonly repo: Repository<RoomInviteLink>,
+    private readonly invitations: InvitationLifecycleService,
   ) {}
 
   async verify(token: string) {
@@ -58,6 +60,11 @@ export class VerifyRoomInviteLinkProvider {
           .add(userId);
         invite.uses += 1;
         await links.save(invite);
+        await this.invitations.acceptOpenFor(
+          manager,
+          reference.room.id,
+          userId,
+        );
       }
       return {
         room: { id: reference.room.id, name: reference.room.name },

@@ -8,6 +8,7 @@ import { UpdateRoomDto } from '../dtos/update-room.dto';
 import { Room } from '../room.entity';
 import { RoomAccessService } from './room-access.service';
 import { lockRoom } from './room-transaction';
+import { InvitationLifecycleService } from '../../room-invitations/invitation-lifecycle.service';
 
 @Injectable()
 export class UpdateRoomProvider {
@@ -15,6 +16,7 @@ export class UpdateRoomProvider {
     @Inject(REQUEST) private readonly request: AuthenticatedRequest,
     @InjectRepository(Room) private readonly roomRepository: Repository<Room>,
     private readonly access: RoomAccessService,
+    private readonly invitations: InvitationLifecycleService,
   ) {}
 
   async updateRoom(roomId: number, dto: UpdateRoomDto) {
@@ -23,6 +25,7 @@ export class UpdateRoomProvider {
       this.request[REQUEST_USER_KEY]?.sub,
       'Only the room owner can edit this room',
     );
+    let emailInvitations: number[] = [];
     try {
       await this.roomRepository.manager.transaction(async (manager) => {
         const room = await lockRoom(manager, roomId);
@@ -39,9 +42,16 @@ export class UpdateRoomProvider {
         // null clears description/image/themeColor; undefined leaves them untouched
         if (dto.description !== undefined) room.description = dto.description;
         if (dto.image !== undefined) room.image = dto.image;
+        const becamePublic = dto.isPublic === true && !room.isPublic;
         if (typeof dto.isPublic === 'boolean') room.isPublic = dto.isPublic;
         if (dto.themeColor !== undefined) room.themeColor = dto.themeColor;
         await manager.getRepository(Room).save(room);
+        // Invitations waiting for owner approval no longer need it.
+        if (becamePublic)
+          emailInvitations = await this.invitations.approveAllAwaiting(
+            manager,
+            roomId,
+          );
       });
     } catch (error) {
       if (
@@ -51,5 +61,6 @@ export class UpdateRoomProvider {
         throw new ConflictException('Room name already exists');
       throw error;
     }
+    await this.invitations.deliverPending(emailInvitations);
   }
 }

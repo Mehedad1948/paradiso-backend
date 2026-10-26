@@ -35,6 +35,6 @@ import { GoogleAuthenticationService } from './social/providers/google-authentic
     MailModule,
     JwtModule.registerAsync(jwtConfig.asProvider()),
   ],
-  exports: [AuthService, HashingProvider],
+  exports: [AuthService, HashingProvider, GenerateTokensProvider],
 })
 export class AuthModule {}
