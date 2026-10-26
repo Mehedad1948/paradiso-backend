@@ -14,6 +14,9 @@ import { Movie } from './movies/movie.entity';
 import { Room } from './rooms/room.entity';
 import { WatchlistItem } from './watchlist/watchlist-item.entity';
 import { FavoriteMovie } from './favorites/favorite-movie.entity';
+import { Notification } from './notifications/notification.entity';
+import { NotificationsService } from './notifications/notifications.service';
+import { Notifications1792972800000 } from './notifications/migrations/1792972800000-notifications';
 import { RoomBan } from './rooms/room-ban.entity';
 import { Genre } from './genres/genre.entity';
 import { Rating } from './ratings/rating.entity';
@@ -76,6 +79,8 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     database = await new DataSource({
       ...options,
       schema,
+      // Raw SQL in services names tables without a schema.
+      extra: { options: '-c search_path=' + schema + ',public' },
       synchronize: true,
       entities: [
         User,
@@ -85,6 +90,7 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         RoomBan,
         WatchlistItem,
         FavoriteMovie,
+        Notification,
         Genre,
         Rating,
         Upload,
@@ -1451,6 +1457,344 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     }
     expect(limited).toBe(true);
   });
+  it('creates, groups, pages, reads and cleans up notifications', async () => {
+    const server = app.getHttpServer();
+    const document = createOpenApiDocument(app);
+    const as = (index: number) => ({
+      get: (path: string) =>
+        request(server).get(path).auth(access[index], { type: 'bearer' }),
+      post: (path: string, body?: object) =>
+        request(server)
+          .post(path)
+          .auth(access[index], { type: 'bearer' })
+          .send(body),
+      put: (path: string, body?: object) =>
+        request(server)
+          .put(path)
+          .auth(access[index], { type: 'bearer' })
+          .send(body),
+      patch: (path: string, body?: object) =>
+        request(server)
+          .patch(path)
+          .auth(access[index], { type: 'bearer' })
+          .send(body),
+      delete: (path: string) =>
+        request(server).delete(path).auth(access[index], { type: 'bearer' }),
+    });
+    type Item = {
+      id: string;
+      type: string;
+      read: boolean;
+      actor: { id: number };
+      actorCount: number;
+      entity: { type: string; id: string };
+      data: Record<string, unknown>;
+      roomId: number | null;
+    };
+    const items = async (index: number, query = '') =>
+      (
+        await as(index)
+          .get('/notifications' + query)
+          .expect(200)
+      ).body.items as Item[];
+    const unread = async (index: number) =>
+      (await as(index).get('/notifications/unread-count').expect(200)).body
+        .count as number;
+    const clear = (index: number) =>
+      as(index).post('/notifications/read', { all: true }).expect(200);
+    const react = (index: number, postId: number, value: 1 | -1) =>
+      as(index)
+        .put('/community/posts/' + postId + '/reaction', { value })
+        .expect(200);
+    await request(server).get('/notifications').expect(401);
+    for (const index of [0, 1, 2, 3]) await clear(index);
+
+    // users[0] owns the room; users[1] and users[2] join it.
+    const roomId = (
+      await as(0)
+        .post('/rooms', { name: 'Notification room', isPublic: true })
+        .expect(201)
+    ).body.id as number;
+    for (const index of [1, 2])
+      await as(index).post('/rooms/join', { roomId }).expect(201);
+
+    // movie_added reaches everyone in the room except the adder.
+    await as(1)
+      .post('/rooms/add-custom-movie/' + roomId, {
+        title: 'Notified movie',
+        year: 2001,
+      })
+      .expect(201);
+    expect(await unread(1)).toBe(0);
+    for (const index of [0, 2]) {
+      const [added] = await items(index);
+      expect(added).toMatchObject({
+        type: 'movie_added',
+        read: false,
+        actor: { id: users[1].id },
+        entity: { type: 'movie' },
+        roomId,
+        data: { roomName: 'Notification room', movieTitle: 'Notified movie' },
+      });
+    }
+    const listed = await as(0).get('/notifications').expect(200);
+    assertOpenApiResponse(document, 'Notifications_list', listed.body);
+
+    // Chat: plain messages notify nobody; mentions and replies do.
+    const chat = '/rooms/' + roomId + '/chat/messages';
+    const plain = (await as(0).post(chat, { text: 'Hello room' }).expect(201))
+      .body.id as number;
+    expect(await unread(1)).toBe(0);
+    const mention = (
+      await as(0)
+        .post(chat, {
+          text: '@User 1 tonight?',
+          mentionedUserIds: [users[1].id, users[0].id],
+        })
+        .expect(201)
+    ).body.id as number;
+    await as(2).post(chat, { text: 'Agreed', replyToId: plain }).expect(201);
+    expect((await items(1))[0]).toMatchObject({
+      type: 'chat_mention',
+      entity: { type: 'message', id: String(mention) },
+      data: { reason: 'mention', messageExcerpt: '@User 1 tonight?' },
+    });
+    expect((await items(0))[0]).toMatchObject({
+      type: 'chat_mention',
+      actor: { id: users[2].id },
+      data: { reason: 'reply' },
+    });
+    // Editing notifies only people the edit newly mentions.
+    await as(0)
+      .patch(chat + '/' + mention, {
+        text: '@User 1 @User 2 tonight?',
+        mentionedUserIds: [users[1].id, users[2].id],
+      })
+      .expect(200);
+    expect(
+      (await items(1)).filter(
+        (item) => item.type === 'chat_mention' && item.roomId === roomId,
+      ),
+    ).toHaveLength(1);
+    expect((await items(2))[0]).toMatchObject({ type: 'chat_mention' });
+    // Deleting the message removes its mention notifications.
+    await as(0)
+      .delete(chat + '/' + mention)
+      .expect(200);
+    expect(
+      (await items(1)).some(
+        (item) => item.type === 'chat_mention' && item.roomId === roomId,
+      ),
+    ).toBe(false);
+
+    // Chat unread per room, and clearing it from the rooms list.
+    const unreadIn = async (index: number, query: string) =>
+      (
+        (
+          await as(index)
+            .get('/rooms' + query)
+            .expect(200)
+        ).body.data as {
+          id: number;
+          unreadCount: number;
+        }[]
+      ).find((room) => room.id === roomId)!.unreadCount;
+    const rooms = await as(1).get('/rooms?usersRoom=true').expect(200);
+    assertOpenApiResponse(document, 'Rooms_getRooms', rooms.body);
+    // The deleted mention no longer counts: "Hello room" and "Agreed".
+    expect(await unreadIn(1, '?usersRoom=true')).toBe(2);
+    const read = await as(1)
+      .post('/rooms/' + roomId + '/read')
+      .expect(200);
+    assertOpenApiResponse(document, 'RoomRead_markRead', read.body);
+    expect(read.body.unreadCount).toBe(0);
+    expect(await unreadIn(1, '?usersRoom=true')).toBe(0);
+    await as(3)
+      .post('/rooms/' + roomId + '/read')
+      .expect(403);
+    expect(await unreadIn(3, '?limit=100')).toBe(0);
+
+    // Likes group per post while unread; self-likes and dislikes are silent.
+    for (const index of [0, 1, 2]) await clear(index);
+    const postId = (
+      await as(1)
+        .post('/community/posts', { movieId, text: 'Group my likes' })
+        .expect(201)
+    ).body.id as number;
+    await react(1, postId, 1);
+    await react(3, postId, -1);
+    expect(await unread(1)).toBe(0);
+    await react(0, postId, 1);
+    await react(0, postId, 1);
+    await react(2, postId, 1);
+    const count = await as(1).get('/notifications/unread-count').expect(200);
+    assertOpenApiResponse(document, 'Notifications_unreadCount', count.body);
+    expect(count.body.count).toBe(1);
+    const [liked] = await items(1);
+    expect(liked).toMatchObject({
+      type: 'post_liked',
+      actor: { id: users[2].id },
+      actorCount: 2,
+      entity: { type: 'post', id: String(postId) },
+      data: { postExcerpt: 'Group my likes', movieTitle: expect.any(String) },
+    });
+    for (const index of [0, 2, 3])
+      await as(index)
+        .post('/community/posts/' + postId + '/comments', {
+          text: 'Comment ' + index,
+        })
+        .expect(201);
+    const [commented] = await items(1);
+    expect(commented).toMatchObject({
+      type: 'post_commented',
+      actor: { id: users[3].id },
+      actorCount: 3,
+      data: { commentExcerpt: 'Comment 3' },
+    });
+
+    // Cursor pages are ordered by latest activity and do not overlap.
+    const first = (await as(1).get('/notifications?limit=1').expect(200)).body;
+    expect(first.items.map((item: Item) => item.id)).toEqual([commented.id]);
+    const second = (
+      await as(1)
+        .get('/notifications?limit=1&cursor=' + first.nextCursor)
+        .expect(200)
+    ).body;
+    expect(second.items.map((item: Item) => item.id)).toEqual([liked.id]);
+    // Walking every page one at a time yields the unpaged list exactly.
+    const walked: string[] = [];
+    let cursor: string | null = '';
+    while (cursor !== null) {
+      const page = (
+        await as(1)
+          .get('/notifications?limit=1' + (cursor ? '&cursor=' + cursor : ''))
+          .expect(200)
+      ).body as { items: Item[]; nextCursor: string | null };
+      walked.push(...page.items.map((item) => item.id));
+      cursor = page.nextCursor;
+    }
+    expect(walked).toEqual(
+      (await items(1, '?limit=50')).map((item) => item.id),
+    );
+    await as(1).get('/notifications?cursor=nope').expect(400);
+    await as(1).get('/notifications?limit=51').expect(400);
+
+    // Reading ends the group: the next like starts a new notification.
+    await as(1).post('/notifications/read', {}).expect(400);
+    await as(1)
+      .post('/notifications/read', { ids: [liked.id], all: true })
+      .expect(400);
+    const marked = await as(1)
+      .post('/notifications/read', { ids: [liked.id] })
+      .expect(200);
+    assertOpenApiResponse(document, 'Notifications_markRead', marked.body);
+    expect(marked.body.updated).toBe(1);
+    expect(
+      (
+        await as(1)
+          .post('/notifications/read', { ids: [liked.id] })
+          .expect(200)
+      ).body.updated,
+    ).toBe(0);
+    await react(3, postId, 1);
+    const likes = (await items(1)).filter((item) => item.type === 'post_liked');
+    expect(likes.map((item) => [item.read, item.actorCount])).toEqual([
+      [false, 1],
+      [true, 2],
+    ]);
+    expect(
+      (await items(1, '?unreadOnly=true')).map((item) => item.type),
+    ).toEqual(['post_liked', 'post_commented']);
+
+    // Only the recipient can delete a notification.
+    await as(0)
+      .delete('/notifications/' + liked.id)
+      .expect(404);
+    await as(1)
+      .delete('/notifications/' + liked.id)
+      .expect(204);
+    await as(1).delete('/notifications/not-a-uuid').expect(400);
+
+    // Deleting the post deletes its notifications.
+    await as(1)
+      .delete('/community/posts/' + postId)
+      .expect(200);
+    expect(await database.getRepository(Notification).countBy({ postId })).toBe(
+      0,
+    );
+
+    // Invites to existing accounts reach the bell with an accept token.
+    await as(0)
+      .post('/rooms/' + roomId + '/invitations', { email: users[3].email })
+      .expect(201);
+    const [invite] = await items(3);
+    expect(invite).toMatchObject({
+      type: 'room_invite',
+      actor: { id: users[0].id },
+      entity: { type: 'room', id: String(roomId) },
+      roomId,
+      data: { roomName: 'Notification room' },
+    });
+    await as(3)
+      .post('/room-invitations/accept', { token: invite.data.inviteToken })
+      .expect(201);
+
+    // Retention removes only read notifications older than 90 days.
+    const repository = database.getRepository(Notification);
+    const [recent] = await items(2);
+    await repository.update(
+      { id: invite.id },
+      { readAt: new Date(Date.now() - 91 * 86_400_000) },
+    );
+    await repository.update({ id: recent.id }, { readAt: new Date() });
+    await app.get(NotificationsService).pruneRead();
+    expect(await repository.existsBy({ id: invite.id })).toBe(false);
+    expect(await repository.existsBy({ id: recent.id })).toBe(true);
+  });
+
+  it('applies the notifications migration with the same shape as the entity', async () => {
+    const runner = database.createQueryRunner();
+    const migrationSchema = schema + '_notifications';
+    const shape = async (target: string) => ({
+      columns: (await runner.query(
+        'SELECT column_name, data_type, is_nullable, character_maximum_length, datetime_precision FROM information_schema.columns WHERE table_schema = $1 AND table_name = $2 ORDER BY column_name',
+        [target, 'notification'],
+      )) as unknown[],
+      indexes: (
+        (await runner.query(
+          'SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = $1 AND tablename = $2 ORDER BY indexname',
+          [target, 'notification'],
+        )) as { indexname: string; indexdef: string }[]
+      )
+        .filter((index) => !/^PK_|_pkey$/.test(index.indexname))
+        .map((index) => index.indexdef.split(target).join('')),
+    });
+    await runner.connect();
+    await runner.startTransaction();
+    try {
+      await runner.query('CREATE SCHEMA "' + migrationSchema + '"');
+      await runner.query(
+        'SET LOCAL search_path TO "' + migrationSchema + '", "' + schema + '"',
+      );
+      const migration = new Notifications1792972800000();
+      await migration.up(runner);
+      const migrated = await shape(migrationSchema);
+      const synchronized = await shape(schema);
+      expect(migrated.columns).toEqual(synchronized.columns);
+      expect(migrated.indexes).toEqual(synchronized.indexes);
+      await migration.down(runner);
+      expect(
+        await runner.query(
+          'SELECT tablename FROM pg_tables WHERE schemaname = $1',
+          [migrationSchema],
+        ),
+      ).toHaveLength(0);
+    } finally {
+      await runner.rollbackTransaction();
+      await runner.release();
+    }
+  });
+
   describe('onboarding: favorite genres, onboardedAt and avatar', () => {
     const avatarBase = () =>
       (process.env.R2_PUBLIC_URL ?? '').replace(/\/+$/, '') +

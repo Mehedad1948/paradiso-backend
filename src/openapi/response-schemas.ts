@@ -355,6 +355,8 @@ export const responseSchemas: Record<string, SchemaObject> = {
   ),
   RoomListItem: object({
     ...roomProperties,
+    // Unread chat messages for the viewer; 0 in rooms they are not part of.
+    unreadCount: integer,
     owner: object({ id: integer, username: string }),
     users: array(ref('PublicUser')),
     movies: array(
@@ -426,6 +428,54 @@ export const responseSchemas: Record<string, SchemaObject> = {
   }),
   FavoritesResponse: data(array(ref('FavoriteMovie'))),
   FavoriteStatusResponse: envelope(object({ isFavorite: boolean })),
+  Notification: object({
+    id: uuid,
+    type: {
+      type: 'string',
+      enum: [
+        'room_invite',
+        'movie_added',
+        'chat_mention',
+        'post_liked',
+        'post_commented',
+      ],
+    },
+    read: boolean,
+    createdAt: date,
+    updatedAt: date,
+    actor: object({
+      id: integer,
+      username: string,
+      displayName: string,
+      avatarUrl: nullable({ type: 'string', format: 'uri' }),
+    }),
+    actorCount: integer,
+    entity: object({
+      type: { type: 'string', enum: ['room', 'post', 'movie', 'message'] },
+      id: string,
+    }),
+    // Render snapshot; which fields are present depends on type.
+    data: object(
+      {
+        roomName: string,
+        roomImage: nullable(string),
+        inviteToken: string,
+        movieTitle: string,
+        posterUrl: nullable(string),
+        postExcerpt: string,
+        commentExcerpt: string,
+        messageExcerpt: string,
+        reason: { type: 'string', enum: ['mention', 'reply'] },
+      },
+      [],
+    ),
+    roomId: nullable(integer),
+  }),
+  NotificationPageResponse: envelope(
+    object({ items: array(ref('Notification')), nextCursor: nullable(string) }),
+  ),
+  NotificationUnreadCountResponse: envelope(object({ count: integer })),
+  NotificationsReadResponse: envelope(object({ updated: integer })),
   CommunityRecommendation: object({
     id: integer,
     rating: number,
@@ -610,6 +660,7 @@ export const operationResponses: Record<string, string> = {
   RoomChat_listPinned: 'ChatMessageListResponse',
   RoomChat_getUnread: 'ChatUnreadResponse',
   RoomChat_markRead: 'ChatUnreadResponse',
+  RoomRead_markRead: 'ChatUnreadResponse',
   RoomChat_getMessage: 'ChatMessageResponse',
   RoomChat_sendMessage: 'ChatMessageResponse',
   RoomChat_editMessage: 'ChatMessageResponse',
@@ -660,6 +711,10 @@ export const operationResponses: Record<string, string> = {
   Favorites_has: 'FavoriteStatusResponse',
   Favorites_add: 'MessageResponse',
   Favorites_remove: 'MessageResponse',
+  Notifications_list: 'NotificationPageResponse',
+  Notifications_unreadCount: 'NotificationUnreadCountResponse',
+  Notifications_markRead: 'NotificationsReadResponse',
+  Notifications_remove: 'EmptyResponse',
   Rooms_getRoomRatings: 'RoomRatingsResponse',
   Rooms_getRoomRatingSummary: 'RoomRatingSummaryResponse',
   Ratings_addRating: 'AddedRatingResponse',

@@ -20,6 +20,7 @@ import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { InviteUserToRoomDto } from '../dto/invite-user-to-room.dto';
 import { RoomInvitation } from '../room-invitation.entity';
+import { NotificationsService } from '../../notifications/notifications.service';
 
 @Injectable()
 export class AddUserToRoomProvider {
@@ -31,6 +32,7 @@ export class AddUserToRoomProvider {
     private readonly config: ConfigService,
     @InjectRepository(RoomInvitation)
     private readonly roomInvitationRepository: Repository<RoomInvitation>,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async inviteUserToRoom(dto: InviteUserToRoomDto, roomId: number) {
@@ -39,7 +41,7 @@ export class AddUserToRoomProvider {
     const email = dto.email.trim().toLowerCase();
     const invitedUser = await this.userService.findOneByEmail(email);
     const invitingUser = await this.userService.findOneById(userId);
-    const invitation = await this.roomInvitationRepository.manager.transaction(
+    const saved = await this.roomInvitationRepository.manager.transaction(
       async (manager) => {
         await lockRoom(manager, roomId);
         const room = await manager
@@ -78,9 +80,11 @@ export class AddUserToRoomProvider {
             ? 'member'
             : 'notVerified'
           : 'guest';
-        return repo.save(record);
+        return { invitation: await repo.save(record), room };
       },
     );
+    const { invitation, room } = saved;
+    let token: string;
     try {
       const { inviteToken } = await this.authService.generateInvitationToken({
         inviterUsername: invitingUser.username,
@@ -94,6 +98,7 @@ export class AddUserToRoomProvider {
         email,
         invitationToken: inviteToken,
       });
+      token = inviteToken;
     } catch {
       // Failed deliveries can be retried; never leave a permanently blocking pending row.
       await this.roomInvitationRepository.update(
@@ -108,6 +113,24 @@ export class AddUserToRoomProvider {
         'Invitation email could not be sent. Please retry.',
       );
     }
+    // Existing accounts also get it in the bell. The token lets them accept
+    // in-app; accepting still requires their verified email. A re-invite
+    // refreshes the unread notification instead of adding a second one.
+    if (invitedUser)
+      await this.notifications.notify({
+        type: 'room_invite',
+        recipientId: invitedUser.id,
+        actorId: userId,
+        entityType: 'room',
+        entityId: roomId,
+        roomId,
+        groupKey: `room_invite:${roomId}`,
+        data: {
+          roomName: room.name,
+          roomImage: room.image ?? null,
+          inviteToken: token,
+        },
+      });
     return { message: 'Invitation email sent successfully', id: invitation.id };
   }
 }

@@ -5,6 +5,7 @@ import { Room } from '../rooms/room.entity';
 import { User } from '../users/user.entity';
 import { RoomInviteLink } from '../room-invite-links/room-invite-link.entity';
 import { RoomsModule } from '../rooms/rooms.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { CommunityPost } from './community-post.entity';
 import { CommunityComment } from './community-comment.entity';
 import { CommunityPostReaction } from './community-post-reaction.entity';
@@ -15,6 +16,7 @@ import { CommunityController } from './community.controller';
 @Module({
   imports: [
     RoomsModule,
+    NotificationsModule,
     TypeOrmModule.forFeature([
       CommunityPost,
       CommunityComment,

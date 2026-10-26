@@ -49,11 +49,13 @@ export class RoomsService {
 
   async addMovieToRoom(
     roomId: number,
+    userId: number,
     movieId: number,
     isWatchedTogether = false,
   ) {
     return await this.addMovieToRoomProvider.addMovieToRoom(
       roomId,
+      userId,
       movieId,
       isWatchedTogether,
     );

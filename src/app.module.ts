@@ -3,8 +3,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { WatchlistModule } from './watchlist/watchlist.module';
 import { FavoritesModule } from './favorites/favorites.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -39,6 +41,7 @@ const ENV = process.env.NODE_ENV || 'development';
       validationSchema: environmentValidation,
     }),
     ConfigModule.forFeature(jwtConfig),
+    ScheduleModule.forRoot(),
     JwtModule.registerAsync({ ...jwtConfig.asProvider(), global: true }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -68,6 +71,7 @@ const ENV = process.env.NODE_ENV || 'development';
     RoomChatModule,
     WatchlistModule,
     FavoritesModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

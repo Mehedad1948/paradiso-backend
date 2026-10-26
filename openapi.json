@@ -5013,6 +5013,53 @@
         "summary": "unpin Message"
       }
     },
+    "/rooms/{roomId}/read": {
+      "post": {
+        "operationId": "RoomRead_markRead",
+        "parameters": [
+          {
+            "name": "roomId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatUnreadResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Mark the room's chat read up to its latest message.",
+        "tags": [
+          "RoomRead"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
     "/watchlist": {
       "get": {
         "operationId": "Watchlist_list",
@@ -5466,6 +5513,199 @@
         },
         "tags": [
           "Favorites"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "remove"
+      }
+    },
+    "/notifications": {
+      "get": {
+        "description": "Page with cursor=nextCursor. Grouped likes and comments move to the top when someone else joins in.",
+        "operationId": "Notifications_list",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "nextCursor from the previous page.",
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "unreadOnly",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationPageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Notifications, most recently active first.",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/notifications/unread-count": {
+      "get": {
+        "operationId": "Notifications_unreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationUnreadCountResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Unread notification count for the bell badge.",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/notifications/read": {
+      "post": {
+        "operationId": "Notifications_markRead",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkNotificationsReadDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationsReadResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Mark notifications read, by ids or all at once.",
+        "tags": [
+          "Notifications"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/notifications/{id}": {
+      "delete": {
+        "operationId": "Notifications_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Notifications"
         ],
         "security": [
           {
@@ -6407,6 +6647,28 @@
         "required": [
           "movieIds"
         ],
+        "additionalProperties": false
+      },
+      "MarkNotificationsReadDto": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "maxItems": 100,
+            "description": "Notifications to mark read. Send this or all, not both.",
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "all": {
+            "type": "number",
+            "enum": [
+              true
+            ],
+            "description": "Mark every unread notification read."
+          }
+        },
         "additionalProperties": false
       },
       "CommunityPost": {
@@ -8712,6 +8974,9 @@
             "type": "string",
             "nullable": true
           },
+          "unreadCount": {
+            "type": "integer"
+          },
           "owner": {
             "type": "object",
             "properties": {
@@ -8780,6 +9045,7 @@
           "image",
           "isPublic",
           "themeColor",
+          "unreadCount",
           "owner",
           "users",
           "movies"
@@ -9259,6 +9525,193 @@
         },
         "required": [
           "isFavorite",
+          "apiVersion"
+        ]
+      },
+      "Notification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "room_invite",
+              "movie_added",
+              "chat_mention",
+              "post_liked",
+              "post_commented"
+            ]
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "username": {
+                "type": "string"
+              },
+              "displayName": {
+                "type": "string"
+              },
+              "avatarUrl": {
+                "type": "string",
+                "format": "uri",
+                "nullable": true
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "displayName",
+              "avatarUrl"
+            ]
+          },
+          "actorCount": {
+            "type": "integer"
+          },
+          "entity": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "room",
+                  "post",
+                  "movie",
+                  "message"
+                ]
+              },
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "id"
+            ]
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "roomName": {
+                "type": "string"
+              },
+              "roomImage": {
+                "type": "string",
+                "nullable": true
+              },
+              "inviteToken": {
+                "type": "string"
+              },
+              "movieTitle": {
+                "type": "string"
+              },
+              "posterUrl": {
+                "type": "string",
+                "nullable": true
+              },
+              "postExcerpt": {
+                "type": "string"
+              },
+              "commentExcerpt": {
+                "type": "string"
+              },
+              "messageExcerpt": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "mention",
+                  "reply"
+                ]
+              }
+            },
+            "required": []
+          },
+          "roomId": {
+            "type": "integer",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "read",
+          "createdAt",
+          "updatedAt",
+          "actor",
+          "actorCount",
+          "entity",
+          "data",
+          "roomId"
+        ]
+      },
+      "NotificationPageResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Notification"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "apiVersion"
+        ]
+      },
+      "NotificationUnreadCountResponse": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "count",
+          "apiVersion"
+        ]
+      },
+      "NotificationsReadResponse": {
+        "type": "object",
+        "properties": {
+          "updated": {
+            "type": "integer"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "updated",
           "apiVersion"
         ]
       },

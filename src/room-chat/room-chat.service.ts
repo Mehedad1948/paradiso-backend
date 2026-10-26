@@ -13,6 +13,10 @@ import { MovieDbService } from '../movies/providers/MovieDb.serviec';
 import { Room } from '../rooms/room.entity';
 import { User } from '../users/user.entity';
 import {
+  excerpt,
+  NotificationsService,
+} from '../notifications/notifications.service';
+import {
   RoomChatRead,
   RoomMessage,
   RoomMessageMention,
@@ -53,6 +57,7 @@ export class RoomChatService {
     @InjectRepository(RoomMessage)
     private readonly messages: Repository<RoomMessage>,
     private readonly movieDb: MovieDbService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private get manager() {
@@ -304,6 +309,52 @@ export class RoomChatService {
     return ids;
   }
 
+  // Mentioned users and the author of the message replied to. Only current
+  // members are notified, so someone who left never sees the chat again.
+  private async notifyMentions(
+    manager: EntityManager,
+    message: Pick<RoomMessage, 'id' | 'roomId' | 'authorId' | 'text'>,
+    mentionIds: number[],
+    replyAuthorId?: number,
+  ) {
+    const reasons = new Map<number, 'mention' | 'reply'>();
+    for (const id of mentionIds) reasons.set(id, 'mention');
+    if (replyAuthorId && !reasons.has(replyAuthorId))
+      reasons.set(replyAuthorId, 'reply');
+    reasons.delete(message.authorId);
+    if (!reasons.size) return;
+    const room = await manager
+      .getRepository(Room)
+      .createQueryBuilder('room')
+      .leftJoin('room.users', 'member', 'member.id IN (:...ids)', {
+        ids: [...reasons.keys()],
+      })
+      .leftJoin('room.owner', 'owner')
+      .select(['room.id', 'room.name', 'member.id', 'owner.id'])
+      .where('room.id = :roomId', { roomId: message.roomId })
+      .getOneOrFail();
+    const members = new Set(room.users.map((user) => user.id));
+    if (room.owner) members.add(room.owner.id);
+    await this.notifications.notify(
+      [...reasons]
+        .filter(([recipientId]) => members.has(recipientId))
+        .map(([recipientId, reason]) => ({
+          type: 'chat_mention' as const,
+          recipientId,
+          actorId: message.authorId,
+          entityType: 'message' as const,
+          entityId: message.id,
+          roomId: message.roomId,
+          data: {
+            roomName: room.name,
+            messageExcerpt: excerpt(message.text),
+            reason,
+          },
+        })),
+      manager,
+    );
+  }
+
   private async roomMovies(roomId: number, ids: string[]) {
     if (!ids.length) return new Map<string, Movie>();
     const movies = await this.manager
@@ -505,7 +556,9 @@ export class RoomChatService {
         );
     }
     await this.rateLimit(roomId, userId);
-    if (dto.replyToId) await this.findActiveMessage(roomId, dto.replyToId);
+    const replyTo = dto.replyToId
+      ? await this.findActiveMessage(roomId, dto.replyToId)
+      : null;
     const mentionIds = await this.memberIds(roomId, dto.mentionedUserIds ?? []);
     // Resolve TMDb cards before opening the transaction.
     const movies = await this.resolveMovies(roomId, movieMentions);
@@ -552,6 +605,12 @@ export class RoomChatService {
           })),
         );
       }
+      await this.notifyMentions(
+        manager,
+        message,
+        mentionIds,
+        replyTo?.authorId,
+      );
       return message.id;
     });
     return this.getMessage(roomId, id, userId);
@@ -583,6 +642,16 @@ export class RoomChatService {
         .where('id = :id', { id })
         .execute();
       if (mentionIds) {
+        const previous = await manager
+          .getRepository(RoomMessageMention)
+          .findBy({ messageId: id });
+        const known = new Set(previous.map((mention) => mention.userId));
+        // Only people newly mentioned by the edit hear about it.
+        await this.notifyMentions(
+          manager,
+          { ...message, text: dto.text ?? message.text },
+          mentionIds.filter((mentioned) => !known.has(mentioned)),
+        );
         await manager
           .getRepository(RoomMessageMention)
           .delete({ messageId: id });
@@ -610,6 +679,7 @@ export class RoomChatService {
           RoomPoll,
         ])
           await manager.getRepository(entity).delete({ messageId: id });
+        await this.notifications.removeForEntity('message', id, manager);
         await manager
           .createQueryBuilder()
           .update(RoomMessage)
@@ -792,5 +862,16 @@ export class RoomChatService {
         .orIgnore()
         .execute();
     return this.getUnread(roomId, userId);
+  }
+
+  async markLatestRead(roomId: number, userId: number) {
+    const latest = await this.messages
+      .createQueryBuilder('message')
+      .select('MAX(message.id)', 'max')
+      .where('message.roomId = :roomId', { roomId })
+      .getRawOne<{ max: number | null }>();
+    return latest?.max
+      ? this.markRead(roomId, userId, latest.max)
+      : this.getUnread(roomId, userId);
   }
 }

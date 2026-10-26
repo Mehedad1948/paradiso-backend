@@ -17,6 +17,7 @@ import { GetRoomDto } from '../dtos/get-room.dto';
 import { Room } from '../room.entity';
 import { GetRoomRatingDto } from '../dtos/get-room-ratings';
 import { MoviesService } from '../../movies/providers/movies.service';
+import { RoomChatRead, RoomMessage } from '../../room-chat/room-message.entity';
 
 @Injectable()
 export class GetRoomProvider {
@@ -77,7 +78,10 @@ export class GetRoomProvider {
         query,
       );
 
-      return rooms;
+      return {
+        ...rooms,
+        data: await this.withUnreadCounts(rooms.data, userId),
+      };
     } catch (error) {
       if (
         error instanceof UnauthorizedException ||
@@ -88,6 +92,42 @@ export class GetRoomProvider {
       }
       throw new InternalServerErrorException('Failed to get rooms');
     }
+  }
+
+  // Same rule as GET /rooms/:id/chat/unread: other people's undeleted
+  // messages after the viewer's read position. Only members have a chat.
+  private async withUnreadCounts(rooms: Room[], userId?: number) {
+    const ids = rooms
+      .filter(
+        (room) =>
+          room.owner?.id === userId ||
+          room.users?.some((user) => user.id === userId),
+      )
+      .map((room) => room.id);
+    const counts = new Map<number, number>();
+    if (userId && ids.length) {
+      const rows = await this.roomRepository.manager
+        .getRepository(RoomMessage)
+        .createQueryBuilder('message')
+        .leftJoin(
+          RoomChatRead,
+          'chatRead',
+          'chatRead.roomId = message.roomId AND chatRead.userId = :userId',
+          { userId },
+        )
+        .select('message.roomId', 'roomId')
+        .addSelect('COUNT(*)::int', 'count')
+        .where('message.roomId IN (:...ids)', { ids })
+        .andWhere('message.id > COALESCE(chatRead.lastReadMessageId, 0)')
+        .andWhere('message.authorId != :userId')
+        .andWhere('message.deletedAt IS NULL')
+        .groupBy('message.roomId')
+        .getRawMany<{ roomId: number; count: number }>();
+      for (const row of rows) counts.set(row.roomId, row.count);
+    }
+    return rooms.map((room) =>
+      Object.assign(room, { unreadCount: counts.get(room.id) ?? 0 }),
+    );
   }
 
   async findRoomById(roomId: number) {

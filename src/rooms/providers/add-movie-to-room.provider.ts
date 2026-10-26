@@ -7,11 +7,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { MovieDbService } from '../../movies/providers/MovieDb.serviec';
 import { MoviesService } from '../../movies/providers/movies.service';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { Room } from '../room.entity';
 import { lockRoom } from './room-transaction';
 import { Movie } from '../../movies/movie.entity';
 import { CreateCustomMovieDto } from '../../movies/dtos/create-custom-movie.dto';
+import { NotificationsService } from '../../notifications/notifications.service';
 
 @Injectable()
 export class AddMovieToRoomProvider {
@@ -20,8 +21,51 @@ export class AddMovieToRoomProvider {
     private readonly movieService: MoviesService,
     private readonly movieDbService: MovieDbService,
     @InjectRepository(Room) private readonly roomRepository: Repository<Room>,
+    private readonly notifications: NotificationsService,
   ) {}
-  async addMovieToRoom(roomId: number, dbId: number, isWatchedTogether = false) {
+
+  // Every member and the owner hears about a new movie, except whoever added it.
+  private async notifyMovieAdded(
+    manager: EntityManager,
+    roomId: number,
+    actorId: number,
+    movie: Pick<Movie, 'id' | 'title' | 'poster_path'>,
+  ) {
+    const room = await manager
+      .getRepository(Room)
+      .createQueryBuilder('room')
+      .leftJoin('room.users', 'member')
+      .leftJoin('room.owner', 'owner')
+      .select(['room.id', 'room.name', 'room.image', 'member.id', 'owner.id'])
+      .where('room.id = :roomId', { roomId })
+      .getOneOrFail();
+    const recipients = new Set(room.users.map((user) => user.id));
+    if (room.owner) recipients.add(room.owner.id);
+    await this.notifications.notify(
+      [...recipients].map((recipientId) => ({
+        type: 'movie_added' as const,
+        recipientId,
+        actorId,
+        entityType: 'movie' as const,
+        entityId: movie.id,
+        roomId,
+        data: {
+          roomName: room.name,
+          roomImage: room.image ?? null,
+          movieTitle: movie.title,
+          posterUrl: movie.poster_path ?? null,
+        },
+      })),
+      manager,
+    );
+  }
+
+  async addMovieToRoom(
+    roomId: number,
+    userId: number,
+    dbId: number,
+    isWatchedTogether = false,
+  ) {
     let movie = await this.movieService.getMovieWithMovieDbId(dbId);
     if (!movie) {
       const details = await this.movieDbService.getMovieDetails(dbId);
@@ -56,6 +100,7 @@ export class AddMovieToRoomProvider {
         .relation(Room, 'movies')
         .of(roomId)
         .add(movieId);
+      await this.notifyMovieAdded(manager, roomId, userId, movie);
       return { message: 'Movie added to room successfully.', movieId };
     });
   }
@@ -97,6 +142,7 @@ export class AddMovieToRoomProvider {
         .relation(Room, 'movies')
         .of(roomId)
         .add(movie.id);
+      await this.notifyMovieAdded(manager, roomId, userId, movie);
       return {
         message: 'Movie added to room successfully.',
         movieId: movie.id,

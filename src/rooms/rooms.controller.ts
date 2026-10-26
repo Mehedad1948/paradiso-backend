@@ -74,9 +74,11 @@ export class RoomsController {
   async addMovieToRoom(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: AddRoomMovieDto,
+    @ActiveUser() user: ActiveUserData,
   ) {
     return await this.roomsService.addMovieToRoom(
       id,
+      user.sub,
       dto.dbId,
       dto.isWatchedTogether ?? false,
     );

@@ -10,6 +10,10 @@ import { User } from '../users/user.entity';
 import { Movie } from '../movies/movie.entity';
 import { RoomInviteLink } from '../room-invite-links/room-invite-link.entity';
 import { RoomAccessService } from '../rooms/providers/room-access.service';
+import {
+  excerpt,
+  NotificationsService,
+} from '../notifications/notifications.service';
 import { CommunityPost } from './community-post.entity';
 import { CommunityComment } from './community-comment.entity';
 import { CommunityPostReaction } from './community-post-reaction.entity';
@@ -51,6 +55,7 @@ export class CommunityService {
     private readonly roomAccess: RoomAccessService,
     @InjectRepository(CommunityPostReaction)
     private readonly reactions: Repository<CommunityPostReaction>,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private publicUser(user: User) {
@@ -422,14 +427,54 @@ export class CommunityService {
       !(await this.roomAccess.checkUserRoomAccess(post.roomId, userId))
     )
       throw new ForbiddenException('Join the room before reacting');
+    return post;
+  }
+
+  // Likes and comments on one post collapse into one unread notification.
+  private postNotification(
+    type: 'post_liked' | 'post_commented',
+    post: CommunityPost,
+    actorId: number,
+    commentText?: string,
+  ) {
+    return {
+      type,
+      recipientId: post.authorId,
+      actorId,
+      entityType: 'post' as const,
+      entityId: post.id,
+      postId: post.id,
+      roomId: post.roomId,
+      groupKey: `${type}:${post.id}`,
+      data: {
+        postExcerpt: excerpt(post.text),
+        ...(post.movie
+          ? {
+              movieTitle: post.movie.title,
+              posterUrl: post.movie.poster_path ?? null,
+            }
+          : {}),
+        ...(post.room ? { roomName: post.room.name } : {}),
+        ...(commentText !== undefined
+          ? { commentExcerpt: excerpt(commentText) }
+          : {}),
+      },
+    };
   }
 
   async react(postId: number, value: 1 | -1, userId: number) {
-    await this.requireReactable(postId, userId);
-    await this.reactions.upsert({ postId, userId, value }, [
-      'postId',
-      'userId',
-    ]);
+    const post = await this.requireReactable(postId, userId);
+    await this.reactions.manager.transaction(async (manager) => {
+      const reactions = manager.getRepository(CommunityPostReaction);
+      const previous = await reactions.findOneBy({ postId, userId });
+      await reactions.upsert({ postId, userId, value }, ['postId', 'userId']);
+      // Dislikes are not announced, and repeating a like is not a new one.
+      if (value === 1 && previous?.value !== 1)
+        await this.notifications.notify(
+          this.postNotification('post_liked', post, userId),
+          manager,
+        );
+    });
     return this.reactionSummary(postId, userId);
   }
 
@@ -485,9 +530,18 @@ export class CommunityService {
       !(await this.roomAccess.checkUserRoomAccess(post.roomId, userId))
     )
       throw new ForbiddenException('Join the room before commenting');
-    const comment = await this.comments.save(
-      this.comments.create({ postId, authorId: userId, text: dto.text }),
-    );
+    const comment = await this.comments.manager.transaction(async (manager) => {
+      const saved = await manager
+        .getRepository(CommunityComment)
+        .save(
+          this.comments.create({ postId, authorId: userId, text: dto.text }),
+        );
+      await this.notifications.notify(
+        this.postNotification('post_commented', post, userId, dto.text),
+        manager,
+      );
+      return saved;
+    });
     return this.serializeComment(
       await this.commentQuery()
         .where('comment.id = :id', { id: comment.id })

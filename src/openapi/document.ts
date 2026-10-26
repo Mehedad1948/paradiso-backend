@@ -78,13 +78,16 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
         Object.keys(operation.responses).find((code) => code.startsWith('2')) ??
         (method === 'post' ? '201' : '200');
       operation.responses = {
-        [id === 'GoogleAuthentication_authenticate' ? '501' : success]: {
-          description:
-            id === 'GoogleAuthentication_authenticate'
-              ? 'Google authentication is not configured.'
-              : 'Successful response',
-          content: { 'application/json': { schema: ref(response) } },
-        },
+        [id === 'GoogleAuthentication_authenticate' ? '501' : success]:
+          success === '204'
+            ? { description: 'No content' }
+            : {
+                description:
+                  id === 'GoogleAuthentication_authenticate'
+                    ? 'Google authentication is not configured.'
+                    : 'Successful response',
+                content: { 'application/json': { schema: ref(response) } },
+              },
         default: {
           description: 'Error response',
           content: { 'application/json': { schema: ref('ErrorResponse') } },
@@ -97,7 +100,8 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
           parameter.name === 'token' ||
           path.startsWith('/movies/{id}') ||
           path === '/ratings/movie/{id}' ||
-          path.startsWith('/genres/{id}')
+          path.startsWith('/genres/{id}') ||
+          path.startsWith('/notifications/{id}')
         ) {
           parameter.schema = { type: 'string', format: 'uuid' };
         } else if (

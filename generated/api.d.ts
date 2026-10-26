@@ -1185,6 +1185,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/rooms/{roomId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark the room's chat read up to its latest message. */
+        post: operations["RoomRead_markRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/watchlist": {
         parameters: {
             query?: never;
@@ -1270,6 +1287,77 @@ export interface paths {
         post?: never;
         /** remove */
         delete: operations["Favorites_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Notifications, most recently active first.
+         * @description Page with cursor=nextCursor. Grouped likes and comments move to the top when someone else joins in.
+         */
+        get: operations["Notifications_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Unread notification count for the bell badge. */
+        get: operations["Notifications_unreadCount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark notifications read, by ids or all at once. */
+        post: operations["Notifications_markRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/notifications/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** remove */
+        delete: operations["Notifications_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1577,6 +1665,15 @@ export interface components {
         SetFavoritesDto: {
             /** @description The full favorites list in display order. Movies left out are removed. */
             movieIds: string[];
+        };
+        MarkNotificationsReadDto: {
+            /** @description Notifications to mark read. Send this or all, not both. */
+            ids?: string[];
+            /**
+             * @description Mark every unread notification read.
+             * @enum {number}
+             */
+            all?: true;
         };
         CommunityPost: {
             id: number;
@@ -2140,6 +2237,7 @@ export interface components {
             image: string | null;
             isPublic: boolean;
             themeColor: string | null;
+            unreadCount: number;
             owner: {
                 id: number;
                 username: string;
@@ -2271,6 +2369,56 @@ export interface components {
         };
         FavoriteStatusResponse: {
             isFavorite: boolean;
+            apiVersion: string;
+        };
+        Notification: {
+            /** Format: uuid */
+            id: string;
+            /** @enum {string} */
+            type: "room_invite" | "movie_added" | "chat_mention" | "post_liked" | "post_commented";
+            read: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+            actor: {
+                id: number;
+                username: string;
+                displayName: string;
+                /** Format: uri */
+                avatarUrl: string | null;
+            };
+            actorCount: number;
+            entity: {
+                /** @enum {string} */
+                type: "room" | "post" | "movie" | "message";
+                id: string;
+            };
+            data: {
+                roomName?: string;
+                roomImage?: string | null;
+                inviteToken?: string;
+                movieTitle?: string;
+                posterUrl?: string | null;
+                postExcerpt?: string;
+                commentExcerpt?: string;
+                messageExcerpt?: string;
+                /** @enum {string} */
+                reason?: "mention" | "reply";
+            };
+            roomId: number | null;
+        };
+        NotificationPageResponse: {
+            items: components["schemas"]["Notification"][];
+            nextCursor: string | null;
+            apiVersion: string;
+        };
+        NotificationUnreadCountResponse: {
+            count: number;
+            apiVersion: string;
+        };
+        NotificationsReadResponse: {
+            updated: number;
             apiVersion: string;
         };
         CommunityRecommendation: {
@@ -5539,6 +5687,37 @@ export interface operations {
             };
         };
     };
+    RoomRead_markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                roomId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatUnreadResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     Watchlist_list: {
         parameters: {
             query?: {
@@ -5838,6 +6017,131 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
                 };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Notifications_list: {
+        parameters: {
+            query?: {
+                /** @description nextCursor from the previous page. */
+                cursor?: string;
+                limit?: number;
+                unreadOnly?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationPageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Notifications_unreadCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationUnreadCountResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Notifications_markRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MarkNotificationsReadDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationsReadResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Notifications_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Error response */
             default: {

@@ -6,6 +6,7 @@ import { AuthModule } from '../auth/auth.module';
 import { MailModule } from '../mail/mail.module';
 import { RoomsModule } from '../rooms/rooms.module';
 import { UsersModule } from '../users/users.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { AddUserToRoomProvider } from './providers/add-user-to-room.provider';
 import { GetRoomInvitationProvider } from './providers/get-room-invitation.provider';
 import { RoomInvitationService } from './providers/invitations.service';
@@ -22,6 +23,7 @@ import { AcceptInvitationProvider } from './providers/accept-invitation.provider
     AuthModule,
     UsersModule,
     MailModule,
+    NotificationsModule,
     TypeOrmModule.forFeature([RoomInvitation]),
   ],
   providers: [

@@ -14,6 +14,7 @@ import { User } from '../users/user.entity';
 import { Movie } from '../movies/movie.entity';
 import { RoomInviteLink } from '../room-invite-links/room-invite-link.entity';
 import { RoomAccessService } from '../rooms/providers/room-access.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   CommunityCommentDto,
   CommunityReactionDto,
@@ -58,13 +59,27 @@ describe('Community permissions and privacy', () => {
     save: jest.Mock;
     create: jest.Mock;
   };
-  let reactions: { query: jest.Mock; upsert: jest.Mock; delete: jest.Mock };
+  let reactions: {
+    query: jest.Mock;
+    upsert: jest.Mock;
+    delete: jest.Mock;
+    findOneBy: jest.Mock;
+    manager: { transaction: jest.Mock };
+  };
+  let notifications: { notify: jest.Mock };
   let access: {
     canRead: jest.Mock;
     checkUserRoomAccess: jest.Mock;
     requireOwner: jest.Mock;
   };
-  let comments: { findOneBy: jest.Mock; delete: jest.Mock; save: jest.Mock };
+  let comments: {
+    findOneBy: jest.Mock;
+    delete: jest.Mock;
+    save: jest.Mock;
+    create: jest.Mock;
+    createQueryBuilder: jest.Mock;
+    manager: { transaction: jest.Mock };
+  };
   let invites: { findOne: jest.Mock };
 
   beforeEach(() => {
@@ -95,16 +110,39 @@ describe('Community permissions and privacy', () => {
       save: jest.fn().mockResolvedValue({ id: 99 }),
       create: jest.fn((value: unknown) => value),
     };
+    // Transactions run inline against the same repository mocks.
+    const transaction = (repository: unknown) =>
+      jest.fn((work: (manager: unknown) => unknown) =>
+        work({ getRepository: () => repository }),
+      );
     reactions = {
       query: jest.fn().mockResolvedValue([]),
       upsert: jest.fn(),
       delete: jest.fn(),
+      findOneBy: jest.fn().mockResolvedValue(null),
+      manager: { transaction: jest.fn() },
     };
+    reactions.manager.transaction = transaction(reactions);
+    notifications = { notify: jest.fn() };
     const follows = {
       createQueryBuilder: jest.fn().mockReturnValue(builder),
       delete: jest.fn(),
     };
-    comments = { findOneBy: jest.fn(), delete: jest.fn(), save: jest.fn() };
+    comments = {
+      findOneBy: jest.fn(),
+      delete: jest.fn(),
+      save: jest.fn().mockResolvedValue({ id: 5 }),
+      create: jest.fn((value: unknown) => value),
+      createQueryBuilder: jest.fn().mockReturnValue(builder),
+      manager: { transaction: jest.fn() },
+    };
+    comments.manager.transaction = transaction(comments);
+    builder.getOneOrFail = jest.fn().mockResolvedValue({
+      id: 5,
+      postId: 12,
+      text: 'So good',
+      author: post.author,
+    });
     invites = { findOne: jest.fn() };
     access = {
       canRead: jest.fn().mockResolvedValue(false),
@@ -122,6 +160,7 @@ describe('Community permissions and privacy', () => {
       invites as unknown as Repository<RoomInviteLink>,
       access as unknown as RoomAccessService,
       reactions as unknown as Repository<CommunityPostReaction>,
+      notifications as unknown as NotificationsService,
     );
   });
 
@@ -390,6 +429,40 @@ describe('Community permissions and privacy', () => {
     access.canRead.mockResolvedValue(true);
     await expect(service.react(12, 1, 3)).rejects.toBeInstanceOf(
       ForbiddenException,
+    );
+  });
+
+  it('notifies the author of new likes and comments, grouped per post', async () => {
+    await service.react(12, -1, 2);
+    expect(notifications.notify).not.toHaveBeenCalled();
+    await service.react(12, 1, 2);
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'post_liked',
+        recipientId: 1,
+        actorId: 2,
+        postId: 12,
+        groupKey: 'post_liked:12',
+        data: expect.objectContaining({
+          postExcerpt: 'Watch this',
+          movieTitle: 'A movie',
+        }),
+      }),
+      expect.anything(),
+    );
+    // Repeating a like is not a new like.
+    notifications.notify.mockClear();
+    reactions.findOneBy.mockResolvedValue({ value: 1 });
+    await service.react(12, 1, 2);
+    expect(notifications.notify).not.toHaveBeenCalled();
+    await service.createComment(12, { text: 'So good' }, 2);
+    expect(notifications.notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'post_commented',
+        groupKey: 'post_commented:12',
+        data: expect.objectContaining({ commentExcerpt: 'So good' }),
+      }),
+      expect.anything(),
     );
   });
 

@@ -110,6 +110,10 @@ position, and how many of them mention you. Call `PUT /read` with the newest
 visible message ID when the user views the chat. The read position only moves
 forward.
 
+`GET /rooms` also returns `unreadCount` per room, and `POST /rooms/:id/read`
+marks everything up to the latest message read. See
+[notifications.md](notifications.md#chat-unread).
+
 ## Database
 
 The chat adds eight tables, all prefixed `room_message`, `room_poll` or
