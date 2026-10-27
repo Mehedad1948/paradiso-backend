@@ -1457,7 +1457,8 @@ export interface paths {
         delete: operations["Favorites_remove"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Set or clear the note on one favorite movie. */
+        patch: operations["Favorites_setNote"];
         trace?: never;
     };
     "/notifications": {
@@ -1839,6 +1840,10 @@ export interface components {
         SetFavoritesDto: {
             /** @description The full favorites list in display order. Movies left out are removed. */
             movieIds: string[];
+        };
+        UpdateFavoriteNoteDto: {
+            /** @description Shown with the movie on the profile. null or blank clears it. */
+            note: string | null;
         };
         MarkNotificationsReadDto: {
             /** @description Notifications to mark read. Send this or all, not both. */
@@ -2537,6 +2542,7 @@ export interface components {
             position: number;
             /** Format: date-time */
             addedAt: string;
+            note: string | null;
             movie: components["schemas"]["Movie"];
         };
         FavoritesResponse: {
@@ -6546,6 +6552,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Favorites_setNote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movieId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateFavoriteNoteDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FavoritesResponse"];
                 };
             };
             /** @description Error response */

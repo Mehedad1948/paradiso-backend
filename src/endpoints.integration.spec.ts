@@ -369,6 +369,36 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       [2, movieId],
     ]);
     expect(reordered.body.data[1].addedAt).toBe(added.body.data[0].addedAt);
+    const noted = await request(server)
+      .patch('/favorites/' + movieId)
+      .auth(access[3], { type: 'bearer' })
+      .send({ note: '  Rewatch every winter.  ' })
+      .expect(200);
+    assertOpenApiResponse(document, 'Favorites_setNote', noted.body);
+    expect(noted.body.data[1].note).toBe('Rewatch every winter.');
+    expect(noted.body.data[0].note).toBeNull();
+    await request(server)
+      .patch('/favorites/' + movieId)
+      .auth(access[3], { type: 'bearer' })
+      .send({ note: 'x'.repeat(281) })
+      .expect(400);
+    await request(server)
+      .patch('/favorites/' + randomUUID())
+      .auth(access[3], { type: 'bearer' })
+      .send({ note: 'Not pinned' })
+      .expect(404);
+    const kept = await request(server)
+      .put('/favorites')
+      .auth(access[3], { type: 'bearer' })
+      .send({ movieIds: [movieId, otherMovieId] })
+      .expect(200);
+    expect(kept.body.data[0].note).toBe('Rewatch every winter.');
+    const cleared = await request(server)
+      .patch('/favorites/' + movieId)
+      .auth(access[3], { type: 'bearer' })
+      .send({ note: '   ' })
+      .expect(200);
+    expect(cleared.body.data[0].note).toBeNull();
     await request(server)
       .put('/favorites')
       .auth(access[3], { type: 'bearer' })

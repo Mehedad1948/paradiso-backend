@@ -32,9 +32,10 @@ export class FavoritesService {
       .getMany();
     // Stored positions can have gaps after removals; expose a clean 1..n rank.
     return {
-      data: rows.map(({ createdAt, movie }, index) => ({
+      data: rows.map(({ createdAt, note, movie }, index) => ({
         position: index + 1,
         addedAt: createdAt,
+        note,
         movie: { ...movie, addedBy: movie.addedBy ?? null },
       })),
     };
@@ -88,7 +89,7 @@ export class FavoritesService {
         movieIds.length ? { userId, movieId: Not(In(movieIds)) } : { userId },
       );
       if (!movieIds.length) return;
-      // Movies already in the list keep their addedAt; only position changes.
+      // Movies already in the list keep their addedAt and note; only position changes.
       await repo
         .createQueryBuilder()
         .insert()
@@ -98,6 +99,15 @@ export class FavoritesService {
         .orUpdate(['position'], ['userId', 'movieId'])
         .execute();
     });
+    return this.list(userId);
+  }
+
+  async setNote(userId: number, movieId: string, note: string | null) {
+    const { affected } = await this.favorites.update(
+      { userId, movieId },
+      { note },
+    );
+    if (!affected) throw new NotFoundException('Movie is not a favorite');
     return this.list(userId);
   }
 

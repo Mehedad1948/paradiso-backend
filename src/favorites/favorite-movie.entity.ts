@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { Movie } from '../movies/movie.entity';
 import { User } from '../users/user.entity';
+import { MAX_FAVORITE_NOTE } from './favorites.dto';
 
 // A movie pinned to a user's public profile. Lists are short and hand-ordered.
 @Entity()
@@ -25,6 +26,10 @@ export class FavoriteMovie {
   movie: Movie;
 
   @Column({ type: 'integer' }) position: number;
+
+  // The owner's short, public note on why the movie is a favorite.
+  @Column({ type: 'varchar', length: MAX_FAVORITE_NOTE, nullable: true })
+  note: string | null;
 
   @CreateDateColumn() createdAt: Date;
 }

@@ -6006,6 +6006,61 @@
           }
         ]
       },
+      "patch": {
+        "operationId": "Favorites_setNote",
+        "parameters": [
+          {
+            "name": "movieId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFavoriteNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FavoritesResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Set or clear the note on one favorite movie.",
+        "tags": [
+          "Favorites"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      },
       "delete": {
         "operationId": "Favorites_remove",
         "parameters": [
@@ -7186,6 +7241,21 @@
         },
         "required": [
           "movieIds"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateFavoriteNoteDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 280,
+            "description": "Shown with the movie on the profile. null or blank clears it."
+          }
+        },
+        "required": [
+          "note"
         ],
         "additionalProperties": false
       },
@@ -10034,6 +10104,10 @@
             "type": "string",
             "format": "date-time"
           },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
           "movie": {
             "$ref": "#/components/schemas/Movie"
           }
@@ -10041,6 +10115,7 @@
         "required": [
           "position",
           "addedAt",
+          "note",
           "movie"
         ]
       },

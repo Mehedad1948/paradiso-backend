@@ -6,13 +6,14 @@ import {
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
+  Patch,
   Put,
 } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 import { ActiveUser } from '../auth/decorator/active-user.decorator';
 import { Auth } from '../auth/decorator/auth.decorator';
 import { AuthType } from '../auth/enums/auth.decorator';
-import { SetFavoritesDto } from './favorites.dto';
+import { SetFavoritesDto, UpdateFavoriteNoteDto } from './favorites.dto';
 import { FavoritesService } from './favorites.service';
 
 @Controller('favorites')
@@ -62,6 +63,16 @@ export class FavoritesController {
     @ActiveUser('sub') userId: number,
   ) {
     return this.favorites.add(userId, movieId);
+  }
+
+  @Patch(':movieId')
+  @ApiOperation({ summary: 'Set or clear the note on one favorite movie.' })
+  setNote(
+    @Param('movieId', ParseUUIDPipe) movieId: string,
+    @Body() dto: UpdateFavoriteNoteDto,
+    @ActiveUser('sub') userId: number,
+  ) {
+    return this.favorites.setNote(userId, movieId, dto.note);
   }
 
   @Delete(':movieId')

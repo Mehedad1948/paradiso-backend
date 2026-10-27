@@ -467,6 +467,7 @@ export const responseSchemas: Record<string, SchemaObject> = {
   FavoriteMovie: object({
     position: integer,
     addedAt: date,
+    note: nullable(string),
     movie: ref('Movie'),
   }),
   FavoritesResponse: data(array(ref('FavoriteMovie'))),
@@ -772,6 +773,7 @@ export const operationResponses: Record<string, string> = {
   Favorites_set: 'FavoritesResponse',
   Favorites_listForUser: 'FavoritesResponse',
   Favorites_has: 'FavoriteStatusResponse',
+  Favorites_setNote: 'FavoritesResponse',
   Favorites_add: 'MessageResponse',
   Favorites_remove: 'MessageResponse',
   Notifications_list: 'NotificationPageResponse',
