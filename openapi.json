@@ -8654,6 +8654,40 @@
               "nobody"
             ]
           },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "followersCount": {
+                "type": "integer"
+              },
+              "followingCount": {
+                "type": "integer"
+              },
+              "favoritesCount": {
+                "type": "integer"
+              },
+              "watchlistCount": {
+                "type": "integer"
+              },
+              "favoritePosters": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "maxItems": 4,
+                "description": "poster_path of the first 4 favorites in display order; null when that movie has no poster."
+              }
+            },
+            "required": [
+              "followersCount",
+              "followingCount",
+              "favoritesCount",
+              "watchlistCount",
+              "favoritePosters"
+            ],
+            "description": "The user's account totals. Counts are 0 when empty."
+          },
           "apiVersion": {
             "type": "string"
           }
@@ -8666,6 +8700,7 @@
           "genres",
           "onboardedAt",
           "roomInvitePolicy",
+          "stats",
           "apiVersion"
         ]
       },

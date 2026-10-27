@@ -20,6 +20,7 @@ import { Request } from 'express';
 import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
 import { ActiveUserData } from '../../auth/interfaces/active-user-data.interface';
 import { isOwnAvatarUrl } from '../avatar-url';
+import { UserStatsProvider } from './user-stats.provider';
 
 export const USER_PROFILE_RELATIONS = ['role', 'genres'];
 
@@ -32,6 +33,7 @@ export class UpdateUserProvider {
     @Inject(forwardRef(() => HashingProvider))
     private readonly hashing: HashingProvider,
     private readonly config: ConfigService,
+    private readonly userStats: UserStatsProvider,
   ) {}
 
   async update(email: string, data: Partial<User>): Promise<User | null> {
@@ -115,13 +117,19 @@ export class UpdateUserProvider {
         );
     });
 
-    const updatedUser = await this.userRepository.findOne({
-      where: { id },
-      relations: USER_PROFILE_RELATIONS,
-    });
-    return plainToInstance(UserResponseDto, updatedUser, {
+    const [updatedUser, stats] = await Promise.all([
+      this.userRepository.findOne({
+        where: { id },
+        relations: USER_PROFILE_RELATIONS,
+      }),
+      this.userStats.forUser(id),
+    ]);
+    const profile = plainToInstance(UserResponseDto, updatedUser, {
       excludeExtraneousValues: true,
     });
+    // The same stats as GET /users/me, so a cached profile stays complete.
+    profile.stats = stats;
+    return profile;
   }
 
   private assertOwnAvatar(avatar: string) {

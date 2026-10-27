@@ -8,6 +8,7 @@ import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
 import { Repository } from 'typeorm';
 import { UserResponseDto } from '../dtos/user-response.dto';
 import { User } from '../user.entity';
+import { UserStatsProvider } from './user-stats.provider';
 
 export class GetUserProvider {
   constructor(
@@ -15,11 +16,19 @@ export class GetUserProvider {
     private readonly userRepository: Repository<User>,
 
     private readonly jwtService: JwtService,
+    private readonly userStats: UserStatsProvider,
     @Inject(REQUEST)
     private readonly request: Request,
   ) {}
 
   async getWithToken(): Promise<UserResponseDto> {
+    const profile = await this.findCurrent();
+    // Outside findCurrent so a failed count is a 500, not a 401.
+    profile.stats = await this.userStats.forUser(profile.id);
+    return profile;
+  }
+
+  private async findCurrent(): Promise<UserResponseDto> {
     try {
       // Verify and decode JWT token
       const payload = this.request[REQUEST_USER_KEY];

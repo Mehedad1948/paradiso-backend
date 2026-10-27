@@ -393,6 +393,22 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       .send({ movieIds: [movieId, otherMovieId] })
       .expect(200);
     expect(kept.body.data[0].note).toBe('Rewatch every winter.');
+    const me = await request(server)
+      .get('/users/me')
+      .auth(access[3], { type: 'bearer' })
+      .expect(200);
+    assertOpenApiResponse(document, 'Users_getCurrentUser', me.body);
+    expect(me.body.stats).toMatchObject({ favoritesCount: 2 });
+    expect(me.body.stats.favoritePosters).toHaveLength(2);
+    // Second favorite was created without a poster.
+    expect(me.body.stats.favoritePosters[1]).toBeNull();
+    const saved = await request(server)
+      .patch('/users/me')
+      .auth(access[3], { type: 'bearer' })
+      .send({ onboarded: true })
+      .expect(200);
+    assertOpenApiResponse(document, 'Users_updateCurrentUser', saved.body);
+    expect(saved.body.stats).toEqual(me.body.stats);
     const cleared = await request(server)
       .patch('/favorites/' + movieId)
       .auth(access[3], { type: 'bearer' })

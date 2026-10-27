@@ -8,6 +8,7 @@ import { User } from './user.entity';
 import { UsersController } from './users.controller';
 import { GetUserProvider } from './providers/get-user.provider';
 import { UpdateUserProvider } from './providers/update-usrer.provider';
+import { UserStatsProvider } from './providers/user-stats.provider';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { UpdateUserProvider } from './providers/update-usrer.provider';
     CreateUserProvider,
     GetUserProvider,
     UpdateUserProvider,
+    UserStatsProvider,
   ],
   exports: [UsersService],
 })

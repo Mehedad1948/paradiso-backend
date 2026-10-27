@@ -2199,6 +2199,15 @@ export interface components {
             onboardedAt: string | null;
             /** @enum {string} */
             roomInvitePolicy: "everyone" | "following" | "nobody";
+            /** @description The user's account totals. Counts are 0 when empty. */
+            stats: {
+                followersCount: number;
+                followingCount: number;
+                favoritesCount: number;
+                watchlistCount: number;
+                /** @description poster_path of the first 4 favorites in display order; null when that movie has no poster. */
+                favoritePosters: (string | null)[];
+            };
             apiVersion: string;
         };
         Genre: {

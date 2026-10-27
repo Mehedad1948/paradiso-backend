@@ -2,6 +2,7 @@
 import { Expose, Transform, Type } from 'class-transformer';
 import { GenreResponseDto } from '../../genres/dtos/genre-response.dto';
 import { avatarOrNull } from '../avatar-url';
+import type { UserStats } from '../providers/user-stats.provider';
 
 export class UserResponseDto {
   @Expose()
@@ -34,4 +35,7 @@ export class UserResponseDto {
 
   @Expose()
   roomInvitePolicy: 'everyone' | 'following' | 'nobody';
+
+  // Set by the /users/me handlers after serialization, not read from the entity.
+  stats?: UserStats;
 }

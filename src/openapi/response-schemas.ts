@@ -141,6 +141,21 @@ const currentUser = object(
       type: 'string',
       enum: ['everyone', 'following', 'nobody'],
     },
+    stats: {
+      ...object({
+        followersCount: integer,
+        followingCount: integer,
+        favoritesCount: integer,
+        watchlistCount: integer,
+        favoritePosters: {
+          ...array(nullable(string)),
+          maxItems: 4,
+          description:
+            'poster_path of the first 4 favorites in display order; null when that movie has no poster.',
+        },
+      }),
+      description: "The user's account totals. Counts are 0 when empty.",
+    },
   },
   [
     'id',
@@ -150,6 +165,7 @@ const currentUser = object(
     'genres',
     'onboardedAt',
     'roomInvitePolicy',
+    'stats',
   ],
 );
 const updatedMovie = object({
