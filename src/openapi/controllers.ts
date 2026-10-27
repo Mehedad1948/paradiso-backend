@@ -9,6 +9,7 @@ import { AcceptInvitationController } from '../room-invitations/accept-invitatio
 import { RoomInvitationsController } from '../room-invitations/room-invitations.controller';
 import { RoomInvitationActionsController } from '../room-invitations/room-invitation-actions.controller';
 import { MyRoomInvitationsController } from '../room-invitations/my-room-invitations.controller';
+import { MySentRoomInvitationsController } from '../room-invitations/my-sent-room-invitations.controller';
 import { UserInvitableRoomsController } from '../room-invitations/user-invitable-rooms.controller';
 import { PublicInviteLinksController } from '../room-invite-links/public-invite-links.controller';
 import { RoomInviteLinksController } from '../room-invite-links/room-invite-links.controller';
@@ -36,6 +37,7 @@ export const apiControllers = [
   RoomInvitationsController,
   RoomInvitationActionsController,
   MyRoomInvitationsController,
+  MySentRoomInvitationsController,
   UserInvitableRoomsController,
   PublicInviteLinksController,
   RoomInviteLinksController,

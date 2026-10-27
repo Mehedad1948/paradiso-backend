@@ -31,6 +31,7 @@ invitation as `expired`.
 | POST   | `/rooms/{roomId}/invitations`                           | room members   | Body `{ "userId": 7 }` or `{ "email": "a@b.c" }`; returns the invitation |
 | GET    | `/rooms/{roomId}/invitations?status=awaiting_approval`  | owner          | Invitations of the room, paginated; `status` optional       |
 | GET    | `/me/room-invitations?status=pending`                   | invitee        | Invitations sent to you, paginated; `status` optional       |
+| GET    | `/me/sent-room-invitations?status=pending`              | inviter        | Invitations you sent from any room, every status, `limit` ≤ 50; adds `summary` with counts per status (ignores `status` and paging) |
 | POST   | `/room-invitations/{id}/accept`                         | invitee        | Join the room                                                |
 | POST   | `/room-invitations/{id}/decline`                        | invitee        |                                                              |
 | POST   | `/room-invitations/{id}/approve`                        | owner          | `awaiting_approval` → `pending`                              |

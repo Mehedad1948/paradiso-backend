@@ -16,6 +16,7 @@ import { AcceptInvitationController } from './accept-invitation.controller';
 import { AcceptInvitationProvider } from './providers/accept-invitation.provider';
 import { RoomInvitationActionsController } from './room-invitation-actions.controller';
 import { MyRoomInvitationsController } from './my-room-invitations.controller';
+import { MySentRoomInvitationsController } from './my-sent-room-invitations.controller';
 import { UserInvitableRoomsController } from './user-invitable-rooms.controller';
 import { RoomInvitationLifecycleModule } from './room-invitation-lifecycle.module';
 
@@ -40,6 +41,7 @@ import { RoomInvitationLifecycleModule } from './room-invitation-lifecycle.modul
     AcceptInvitationController,
     RoomInvitationActionsController,
     MyRoomInvitationsController,
+    MySentRoomInvitationsController,
     UserInvitableRoomsController,
   ],
   exports: [RoomInvitationService],

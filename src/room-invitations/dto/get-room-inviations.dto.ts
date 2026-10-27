@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional } from 'class-validator';
+import { IsIn, IsOptional, Max } from 'class-validator';
 import { PaginationQueryDto } from '../../common/pagination/dtos/pagination-query.dto';
 import {
   INVITATION_STATUSES,
@@ -33,3 +33,17 @@ export class ListMyInvitationsQueryDto extends PaginationQueryDto {
 export type GetRoomInvitationsDto = ListRoomInvitationsQueryDto & {
   roomId: number;
 };
+
+// The inviter sees every status, including ones the invitee never saw.
+export class ListSentInvitationsQueryDto extends ListRoomInvitationsQueryDto {
+  @ApiPropertyOptional({
+    type: 'integer',
+    format: 'int32',
+    maximum: 50,
+    minimum: 1,
+    default: 10,
+    nullable: true,
+  })
+  @Max(50)
+  limit?: number = 10;
+}

@@ -545,6 +545,20 @@ export const responseSchemas: Record<string, SchemaObject> = {
   InvitationResponse: envelope(object(invitationProperties)),
   Invitation: object(invitationProperties),
   InvitationsResponse: envelope(page(ref('Invitation'))),
+  SentInvitationsResponse: envelope(
+    object({
+      ...page(ref('Invitation')).properties,
+      summary: object({
+        total: integer,
+        ...Object.fromEntries(
+          (invitationStatus.enum as string[]).map((status) => [
+            status,
+            integer,
+          ]),
+        ),
+      }),
+    }),
+  ),
   InvitableRoom: object({
     id: integer,
     name: string,
@@ -777,6 +791,7 @@ export const operationResponses: Record<string, string> = {
   RoomInvitationActions_reject: 'InvitationResponse',
   RoomInvitationActions_cancel: 'InvitationResponse',
   MyRoomInvitations_list: 'InvitationsResponse',
+  MySentRoomInvitations_list: 'SentInvitationsResponse',
   UserInvitableRooms_list: 'InvitableRoomsResponse',
   AcceptInvitation_accept: 'InvitationAcceptedResponse',
   RoomInviteLinks_create: 'CreatedInviteLinkResponse',

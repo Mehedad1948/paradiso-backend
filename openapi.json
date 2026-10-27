@@ -1788,6 +1788,88 @@
         ]
       }
     },
+    "/me/sent-room-invitations": {
+      "get": {
+        "description": "Every room and every status, including invitations awaiting approval or rejected by the owner. summary counts all of your sent invitations regardless of status and page. Cancel an open one with DELETE /room-invitations/{id}.",
+        "operationId": "MySentRoomInvitations_list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "format": "int32",
+              "nullable": true,
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 1000000,
+              "format": "int32",
+              "nullable": true,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "awaiting_approval",
+                "pending",
+                "accepted",
+                "declined",
+                "rejected",
+                "cancelled",
+                "expired"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SentInvitationsResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Room invitations you sent, newest first.",
+        "tags": [
+          "MySentRoomInvitations"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
     "/users/{userId}/invitable-rooms": {
       "get": {
         "description": "isMember: they are already in the room. hasPendingInvite: an open invitation exists for them. requiresApproval: your invitation would wait for the owner.",
@@ -10586,6 +10668,72 @@
           "data",
           "meta",
           "links",
+          "apiVersion"
+        ]
+      },
+      "SentInvitationsResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Invitation"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          },
+          "links": {
+            "$ref": "#/components/schemas/PaginationLinks"
+          },
+          "summary": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "awaiting_approval": {
+                "type": "integer"
+              },
+              "pending": {
+                "type": "integer"
+              },
+              "accepted": {
+                "type": "integer"
+              },
+              "declined": {
+                "type": "integer"
+              },
+              "rejected": {
+                "type": "integer"
+              },
+              "cancelled": {
+                "type": "integer"
+              },
+              "expired": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "total",
+              "awaiting_approval",
+              "pending",
+              "accepted",
+              "declined",
+              "rejected",
+              "cancelled",
+              "expired"
+            ]
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "links",
+          "summary",
           "apiVersion"
         ]
       },

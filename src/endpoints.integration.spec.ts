@@ -2405,6 +2405,136 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         .expect(200);
     });
 
+    it('lists the invitations you sent from every room with a status summary', async () => {
+      await request(server()).get('/me/sent-room-invitations').expect(401);
+
+      // Fresh people so earlier tests' invitations do not leak into the counts.
+      const role = await database
+        .getRepository(Role)
+        .findOneByOrFail({ name: 'user' });
+      const first = people.length;
+      for (let index = 0; index < 5; index++) {
+        const user = await database.getRepository(User).save({
+          email: 'sent-' + randomUUID() + '@example.test',
+          username: 'Sender ' + randomUUID().slice(0, 8),
+          password: 'private-password-hash',
+          isEmailVerified: true,
+          role,
+        });
+        people.push(user);
+        token.push((await tokens.generateTokens(user)).accessToken);
+      }
+      const [SENDER, P1, P2, P3, P4] = [0, 1, 2, 3, 4].map((i) => first + i);
+      const ownId = (
+        await as(SENDER)
+          .post('/rooms', { name: 'Sender room', isPublic: true })
+          .expect(201)
+      ).body.id as number;
+      await addMember(privateId, people[SENDER].id);
+
+      const ids: number[] = [];
+      const send = async (roomId: number, body: object) => {
+        const response = await invite(SENDER, roomId, body).expect(201);
+        ids.push(response.body.id);
+        return response.body as { id: number; status: string };
+      };
+      const pending = await send(ownId, { userId: people[P1].id });
+      expect(pending.status).toBe('pending');
+      await send(ownId, {
+        email: 'sent-guest-' + randomUUID() + '@example.test',
+      });
+      const waiting = await send(privateId, { userId: people[P2].id });
+      expect(waiting.status).toBe('awaiting_approval');
+      const rejected = await send(privateId, { userId: people[P3].id });
+      await as(OWNER)
+        .post('/room-invitations/' + rejected.id + '/reject')
+        .expect(200);
+      const overdue = await send(ownId, { userId: people[P4].id });
+      await database
+        .getRepository(RoomInvitation)
+        .update(overdue.id, { expiresAt: new Date(Date.now() - 1000) });
+      // Someone else's invitation is not listed.
+      const other = await invite(OWNER, publicId, {
+        userId: people[P1].id,
+      }).expect(201);
+
+      const all = await as(SENDER).get('/me/sent-room-invitations').expect(200);
+      assertOpenApiResponse(
+        createOpenApiDocument(app),
+        'MySentRoomInvitations_list',
+        all.body,
+      );
+      expect(all.body.data.map((i: { id: number }) => i.id)).toEqual(
+        [...ids].reverse(),
+      );
+      expect(all.body.data.map((i: { id: number }) => i.id)).not.toContain(
+        other.body.id,
+      );
+      const summary = {
+        total: 5,
+        awaiting_approval: 1,
+        pending: 2,
+        accepted: 0,
+        declined: 0,
+        rejected: 1,
+        cancelled: 0,
+        expired: 1,
+      };
+      expect(all.body.summary).toEqual(summary);
+      expect(
+        all.body.data.find((i: { id: number }) => i.id === overdue.id).status,
+      ).toBe('expired');
+
+      // The filter narrows data, never the summary.
+      const filtered = await as(SENDER)
+        .get('/me/sent-room-invitations?status=rejected')
+        .expect(200);
+      expect(filtered.body.data.map((i: { id: number }) => i.id)).toEqual([
+        rejected.id,
+      ]);
+      expect(filtered.body.summary).toEqual(summary);
+      expect(
+        (
+          await as(SENDER)
+            .get('/me/sent-room-invitations?status=expired')
+            .expect(200)
+        ).body.data.map((i: { id: number }) => i.id),
+      ).toEqual([overdue.id]);
+      expect(
+        (
+          await as(SENDER)
+            .get('/me/sent-room-invitations?status=awaiting_approval')
+            .expect(200)
+        ).body.data.map((i: { id: number }) => i.id),
+      ).toEqual([waiting.id]);
+
+      const paged = await as(SENDER)
+        .get('/me/sent-room-invitations?limit=2&page=2')
+        .expect(200);
+      expect(paged.body.meta).toEqual({
+        totalItems: 5,
+        itemsPerPage: 2,
+        totalPages: 3,
+        currentPage: 2,
+      });
+      expect(paged.body.data.map((i: { id: number }) => i.id)).toEqual(
+        [...ids].reverse().slice(2, 4),
+      );
+
+      for (const query of ['status=bogus', 'limit=51', 'limit=0', 'page=0'])
+        await as(SENDER)
+          .get('/me/sent-room-invitations?' + query)
+          .expect(400);
+      expect(
+        (await as(P1).get('/me/sent-room-invitations').expect(200)).body.summary
+          .total,
+      ).toBe(0);
+
+      await as(OWNER)
+        .delete('/room-invitations/' + other.body.id)
+        .expect(200);
+    });
+
     it('applies the invitations migration with the same shape as the entities', async () => {
       const runner = database.createQueryRunner();
       const target = schema + '_invitations';

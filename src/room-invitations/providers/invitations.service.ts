@@ -3,6 +3,7 @@ import { InviteUserToRoomDto } from '../dto/invite-user-to-room.dto';
 import {
   GetRoomInvitationsDto,
   ListMyInvitationsQueryDto,
+  ListSentInvitationsQueryDto,
 } from '../dto/get-room-inviations.dto';
 import { CreateInvitationProvider } from './create-invitation.provider';
 import { GetRoomInvitationProvider } from './get-room-invitation.provider';
@@ -28,6 +29,10 @@ export class RoomInvitationService {
 
   getMyInvitations(dto: ListMyInvitationsQueryDto, userId: number) {
     return this.getProvider.forInvitee(dto, userId);
+  }
+
+  getSentInvitations(dto: ListSentInvitationsQueryDto, userId: number) {
+    return this.getProvider.forInviter(dto, userId);
   }
 
   listInvitableRooms(targetUserId: number, userId: number) {
