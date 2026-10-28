@@ -23,6 +23,7 @@ import {
 import {
   CreateMovieCommentDto,
   MovieCommentPageDto,
+  MovieCommentRepliesPageDto,
   UpdateMovieCommentDto,
 } from './movie-comments.dto';
 
@@ -34,12 +35,25 @@ export class MovieCommentsController {
 
   @Get()
   @Auth(AuthType.none)
-  @ApiOperation({ summary: 'Comments on a movie, newest first.' })
+  @ApiOperation({
+    summary: 'Top-level comments on a movie, newest first, with reply counts.',
+  })
   list(
     @Param('movieId', ParseUUIDPipe) movieId: string,
     @Query() query: MovieCommentPageDto,
   ) {
     return this.comments.list(movieId, query);
+  }
+
+  @Get(':commentId/replies')
+  @Auth(AuthType.none)
+  @ApiOperation({ summary: 'Replies to a comment, oldest first.' })
+  listReplies(
+    @Param('movieId', ParseUUIDPipe) movieId: string,
+    @Param('commentId', ParseIntPipe) id: number,
+    @Query() query: MovieCommentRepliesPageDto,
+  ) {
+    return this.comments.listReplies(movieId, id, query);
   }
 
   @Post()

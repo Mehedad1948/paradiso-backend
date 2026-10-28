@@ -8,6 +8,7 @@
   "scripts": {
     "community:migrate": "npm run build && node scripts/migrate-community.cjs",
     "community:seed": "node scripts/seed-community.cjs",
+    "comments:seed": "node scripts/seed-movie-comments.cjs",
     "room:import": "node scripts/import-room-movies.cjs",
     "build": "nest build",
     "openapi:export": "npm run build && node dist/openapi/export.js",

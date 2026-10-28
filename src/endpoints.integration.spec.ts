@@ -35,6 +35,7 @@ import { CommunityPostReaction } from './community/community-post-reaction.entit
 import { UserFollow } from './community/user-follow.entity';
 import { MovieComment } from './movie-comments/movie-comment.entity';
 import { MovieComments1793318400000 } from './movie-comments/migrations/1793318400000-movie-comments';
+import { MovieCommentReplies1793404800000 } from './movie-comments/migrations/1793404800000-movie-comment-replies';
 import {
   RoomChatRead,
   RoomMessage,
@@ -1428,6 +1429,64 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       .expect(200);
     assertOpenApiResponse(document, 'MovieComments_remove', removed.body);
 
+    // Threads: replies hang off top-level comments, one level deep.
+    const rootId = first.body.data[1].id as number;
+    const reply = await request(server)
+      .post(path)
+      .auth(access[0], { type: 'bearer' })
+      .send({ text: 'Agreed', parentId: rootId })
+      .expect(201);
+    expect(reply.body).toMatchObject({ parentId: rootId, replyCount: 0 });
+    const nested = await request(server)
+      .post(path)
+      .auth(access[1], { type: 'bearer' })
+      .send({ text: 'Replying to the reply', parentId: reply.body.id })
+      .expect(201);
+    expect(nested.body.parentId).toBe(rootId);
+    const otherMovie = (
+      await request(server)
+        .post('/movies')
+        .auth(access[0], { type: 'bearer' })
+        .send({ dbId: 9101, title: 'Other comment movie' })
+        .expect(201)
+    ).body.id as string;
+    await request(server)
+      .post('/movies/' + otherMovie + '/comments')
+      .auth(access[0], { type: 'bearer' })
+      .send({ text: 'Wrong thread', parentId: rootId })
+      .expect(404);
+    const threaded = await request(server).get(path).expect(200);
+    expect(threaded.body.total).toBe(4);
+    expect(threaded.body.data.map((c: { id: number }) => c.id)).not.toContain(
+      reply.body.id,
+    );
+    expect(
+      threaded.body.data.find((c: { id: number }) => c.id === rootId)
+        .replyCount,
+    ).toBe(2);
+    const replies = await request(server)
+      .get(path + '/' + rootId + '/replies?limit=1')
+      .expect(200);
+    assertOpenApiResponse(document, 'MovieComments_listReplies', replies.body);
+    expect(replies.body.data.map((c: { text: string }) => c.text)).toEqual([
+      'Agreed',
+    ]);
+    const more = await request(server)
+      .get(path + '/' + rootId + '/replies?after=' + replies.body.nextCursor)
+      .expect(200);
+    expect(more.body).toMatchObject({
+      data: [{ text: 'Replying to the reply' }],
+      nextCursor: null,
+    });
+    await request(server)
+      .get(path + '/' + reply.body.id + '/replies')
+      .expect(404);
+    await request(server)
+      .patch(path + '/' + reply.body.id)
+      .auth(access[0], { type: 'bearer' })
+      .send({ parentId: 1 })
+      .expect(400);
+
     const adminRole = await database
       .getRepository(Role)
       .save({ name: 'admin' });
@@ -1488,13 +1547,17 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       await runner.query(
         'SET LOCAL search_path TO "' + migrationSchema + '", "' + schema + '"',
       );
-      const migration = new MovieComments1793318400000();
-      await migration.up(runner);
+      const migrations = [
+        new MovieComments1793318400000(),
+        new MovieCommentReplies1793404800000(),
+      ];
+      for (const migration of migrations) await migration.up(runner);
       const migrated = await shape(migrationSchema);
       const synced = await shape(schema);
       expect(migrated.indexes).toEqual(synced.indexes);
       expect(comparable(migrated.columns)).toEqual(comparable(synced.columns));
-      await migration.down(runner);
+      for (const migration of migrations.reverse())
+        await migration.down(runner);
     } finally {
       await runner.rollbackTransaction();
       await runner.release();

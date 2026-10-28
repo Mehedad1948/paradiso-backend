@@ -9,7 +9,12 @@ import {
   MinLength,
   ValidateIf,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  PartialType,
+  PickType,
+} from '@nestjs/swagger';
 
 const trim = ({ value }: { value: unknown }) =>
   typeof value === 'string' ? value.trim() : value;
@@ -32,6 +37,24 @@ export class MovieCommentPageDto {
   before?: number;
 }
 
+export class MovieCommentRepliesPageDto {
+  @ApiPropertyOptional({ default: 20, minimum: 1, maximum: 50 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(50)
+  limit: number = 20;
+  @ApiPropertyOptional({
+    minimum: 1,
+    description: 'Return replies newer than this cursor (a reply ID).',
+  })
+  @ValidateIf((_, value) => value !== undefined)
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  after?: number;
+}
+
 export class CreateMovieCommentDto {
   @ApiProperty({ minLength: 1, maxLength: 2000 })
   @Transform(trim)
@@ -46,6 +69,18 @@ export class CreateMovieCommentDto {
   @ValidateIf((_, value) => value !== undefined)
   @IsBoolean()
   spoiler?: boolean;
+  @ApiPropertyOptional({
+    minimum: 1,
+    description:
+      'Reply to this comment on the same movie. Replying to a reply joins the same thread.',
+  })
+  @ValidateIf((_, value) => value !== undefined)
+  @IsInt()
+  @Min(1)
+  parentId?: number;
 }
 
-export class UpdateMovieCommentDto extends PartialType(CreateMovieCommentDto) {}
+// A comment cannot move to another thread once posted.
+export class UpdateMovieCommentDto extends PartialType(
+  PickType(CreateMovieCommentDto, ['text', 'spoiler'] as const),
+) {}

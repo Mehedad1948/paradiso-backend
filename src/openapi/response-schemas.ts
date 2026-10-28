@@ -305,12 +305,18 @@ export const responseSchemas: Record<string, SchemaObject> = {
   MovieComment: object({
     id: integer,
     movieId: uuid,
+    parentId: {
+      ...nullable(integer),
+      description:
+        'The top-level comment this replies to; null for top-level comments.',
+    },
     text: string,
     spoiler: {
       ...boolean,
       description: 'Hide the text behind a reveal until the reader taps it.',
     },
     author: ref('PublicUser'),
+    replyCount: { ...integer, description: 'Always 0 on replies.' },
     createdAt: date,
     updatedAt: { ...date, description: 'Differs from createdAt once edited.' },
   }),
@@ -319,7 +325,16 @@ export const responseSchemas: Record<string, SchemaObject> = {
     object({
       data: array(ref('MovieComment')),
       nextCursor: nullable(integer),
-      total: { ...integer, description: 'All comments on the movie.' },
+      total: {
+        ...integer,
+        description: 'All comments on the movie, replies included.',
+      },
+    }),
+  ),
+  MovieCommentRepliesResponse: envelope(
+    object({
+      data: array(ref('MovieComment')),
+      nextCursor: nullable(integer),
     }),
   ),
   CommunityProfileResponse: envelope(
@@ -820,6 +835,7 @@ export const operationResponses: Record<string, string> = {
   Movies_getMovieById: 'MovieResponse',
   Movies_getMovieDetails: 'MovieDetailsResponse',
   MovieComments_list: 'MovieCommentPageResponse',
+  MovieComments_listReplies: 'MovieCommentRepliesResponse',
   MovieComments_create: 'MovieCommentResponse',
   MovieComments_update: 'MovieCommentResponse',
   MovieComments_remove: 'MessageResponse',

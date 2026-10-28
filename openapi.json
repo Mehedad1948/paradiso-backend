@@ -5706,8 +5706,8 @@
             "required": true,
             "in": "path",
             "schema": {
-              "type": "integer",
-              "minimum": 1
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -5751,8 +5751,8 @@
             "required": true,
             "in": "path",
             "schema": {
-              "type": "integer",
-              "minimum": 1
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -5796,8 +5796,8 @@
             "required": true,
             "in": "path",
             "schema": {
-              "type": "integer",
-              "minimum": 1
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -5967,8 +5967,8 @@
             "required": true,
             "in": "path",
             "schema": {
-              "type": "integer",
-              "minimum": 1
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -6012,8 +6012,8 @@
             "required": true,
             "in": "path",
             "schema": {
-              "type": "integer",
-              "minimum": 1
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -6057,8 +6057,8 @@
             "required": true,
             "in": "path",
             "schema": {
-              "type": "integer",
-              "minimum": 1
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -6112,8 +6112,8 @@
             "required": true,
             "in": "path",
             "schema": {
-              "type": "integer",
-              "minimum": 1
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -6352,8 +6352,8 @@
             "required": true,
             "in": "path",
             "schema": {
-              "type": "integer",
-              "minimum": 1
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -6400,7 +6400,7 @@
             }
           }
         },
-        "summary": "Comments on a movie, newest first.",
+        "summary": "Top-level comments on a movie, newest first, with reply counts.",
         "tags": [
           "MovieComments"
         ],
@@ -6414,8 +6414,8 @@
             "required": true,
             "in": "path",
             "schema": {
-              "type": "integer",
-              "minimum": 1
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -6462,6 +6462,79 @@
         ]
       }
     },
+    "/movies/{movieId}/comments/{commentId}/replies": {
+      "get": {
+        "operationId": "MovieComments_listReplies",
+        "parameters": [
+          {
+            "name": "movieId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "commentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "after",
+            "required": false,
+            "in": "query",
+            "description": "Return replies newer than this cursor (a reply ID).",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovieCommentRepliesResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Replies to a comment, oldest first.",
+        "tags": [
+          "MovieComments"
+        ],
+        "security": []
+      }
+    },
     "/movies/{movieId}/comments/{commentId}": {
       "patch": {
         "operationId": "MovieComments_update",
@@ -6471,8 +6544,8 @@
             "required": true,
             "in": "path",
             "schema": {
-              "type": "integer",
-              "minimum": 1
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -6535,8 +6608,8 @@
             "required": true,
             "in": "path",
             "schema": {
-              "type": "integer",
-              "minimum": 1
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
@@ -7575,6 +7648,11 @@
             "type": "boolean",
             "default": false,
             "description": "Marks the comment as revealing the plot."
+          },
+          "parentId": {
+            "type": "number",
+            "minimum": 1,
+            "description": "Reply to this comment on the same movie. Replying to a reply joins the same thread."
           }
         },
         "required": [
@@ -8250,6 +8328,11 @@
             "type": "string",
             "format": "uuid"
           },
+          "parentId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The top-level comment this replies to; null for top-level comments."
+          },
           "text": {
             "type": "string"
           },
@@ -8259,6 +8342,10 @@
           },
           "author": {
             "$ref": "#/components/schemas/PublicUser"
+          },
+          "replyCount": {
+            "type": "integer",
+            "description": "Always 0 on replies."
           },
           "createdAt": {
             "type": "string",
@@ -8273,9 +8360,11 @@
         "required": [
           "id",
           "movieId",
+          "parentId",
           "text",
           "spoiler",
           "author",
+          "replyCount",
           "createdAt",
           "updatedAt"
         ]
@@ -8290,6 +8379,11 @@
             "type": "string",
             "format": "uuid"
           },
+          "parentId": {
+            "type": "integer",
+            "nullable": true,
+            "description": "The top-level comment this replies to; null for top-level comments."
+          },
           "text": {
             "type": "string"
           },
@@ -8299,6 +8393,10 @@
           },
           "author": {
             "$ref": "#/components/schemas/PublicUser"
+          },
+          "replyCount": {
+            "type": "integer",
+            "description": "Always 0 on replies."
           },
           "createdAt": {
             "type": "string",
@@ -8316,9 +8414,11 @@
         "required": [
           "id",
           "movieId",
+          "parentId",
           "text",
           "spoiler",
           "author",
+          "replyCount",
           "createdAt",
           "updatedAt",
           "apiVersion"
@@ -8339,7 +8439,7 @@
           },
           "total": {
             "type": "integer",
-            "description": "All comments on the movie."
+            "description": "All comments on the movie, replies included."
           },
           "apiVersion": {
             "type": "string"
@@ -8349,6 +8449,29 @@
           "data",
           "nextCursor",
           "total",
+          "apiVersion"
+        ]
+      },
+      "MovieCommentRepliesResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovieComment"
+            }
+          },
+          "nextCursor": {
+            "type": "integer",
+            "nullable": true
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "nextCursor",
           "apiVersion"
         ]
       },
