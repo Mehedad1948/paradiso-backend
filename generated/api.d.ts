@@ -1549,6 +1549,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/movies/{movieId}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Comments on a movie, newest first. */
+        get: operations["MovieComments_list"];
+        put?: never;
+        /** Comment on a movie. At most 5 comments per 60 seconds; more returns 429. */
+        post: operations["MovieComments_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/movies/{movieId}/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete your own comment; admins can delete any. */
+        delete: operations["MovieComments_remove"];
+        options?: never;
+        head?: never;
+        /** Edit your own comment. */
+        patch: operations["MovieComments_update"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1871,6 +1907,22 @@ export interface components {
              */
             all?: true;
         };
+        CreateMovieCommentDto: {
+            text: string;
+            /**
+             * @description Marks the comment as revealing the plot.
+             * @default false
+             */
+            spoiler: boolean;
+        };
+        UpdateMovieCommentDto: {
+            text?: string;
+            /**
+             * @description Marks the comment as revealing the plot.
+             * @default false
+             */
+            spoiler: boolean;
+        };
         CommunityPost: {
             id: number;
             /** @enum {string} */
@@ -2032,6 +2084,46 @@ export interface components {
         CommunityCommentPageResponse: {
             data: components["schemas"]["CommunityComment"][];
             nextCursor: number | null;
+            apiVersion: string;
+        };
+        MovieComment: {
+            id: number;
+            /** Format: uuid */
+            movieId: string;
+            text: string;
+            /** @description Hide the text behind a reveal until the reader taps it. */
+            spoiler: boolean;
+            author: components["schemas"]["PublicUser"];
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description Differs from createdAt once edited.
+             */
+            updatedAt: string;
+        };
+        MovieCommentResponse: {
+            id: number;
+            /** Format: uuid */
+            movieId: string;
+            text: string;
+            /** @description Hide the text behind a reveal until the reader taps it. */
+            spoiler: boolean;
+            author: components["schemas"]["PublicUser"];
+            /** Format: date-time */
+            createdAt: string;
+            /**
+             * Format: date-time
+             * @description Differs from createdAt once edited.
+             */
+            updatedAt: string;
+            apiVersion: string;
+        };
+        MovieCommentPageResponse: {
+            data: components["schemas"]["MovieComment"][];
+            nextCursor: number | null;
+            /** @description All comments on the movie. */
+            total: number;
             apiVersion: string;
         };
         CommunityProfileResponse: {
@@ -6804,6 +6896,144 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    MovieComments_list: {
+        parameters: {
+            query?: {
+                limit?: number;
+                /** @description Return comments older than this cursor (a comment ID). */
+                before?: number;
+            };
+            header?: never;
+            path: {
+                movieId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MovieCommentPageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    MovieComments_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movieId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMovieCommentDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MovieCommentResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    MovieComments_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movieId: number;
+                commentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    MovieComments_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movieId: number;
+                commentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateMovieCommentDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MovieCommentResponse"];
+                };
             };
             /** @description Error response */
             default: {

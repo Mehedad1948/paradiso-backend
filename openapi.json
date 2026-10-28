@@ -6342,6 +6342,245 @@
         ],
         "summary": "remove"
       }
+    },
+    "/movies/{movieId}/comments": {
+      "get": {
+        "operationId": "MovieComments_list",
+        "parameters": [
+          {
+            "name": "movieId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          },
+          {
+            "name": "before",
+            "required": false,
+            "in": "query",
+            "description": "Return comments older than this cursor (a comment ID).",
+            "schema": {
+              "minimum": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovieCommentPageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Comments on a movie, newest first.",
+        "tags": [
+          "MovieComments"
+        ],
+        "security": []
+      },
+      "post": {
+        "operationId": "MovieComments_create",
+        "parameters": [
+          {
+            "name": "movieId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMovieCommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovieCommentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Comment on a movie. At most 5 comments per 60 seconds; more returns 429.",
+        "tags": [
+          "MovieComments"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/movies/{movieId}/comments/{commentId}": {
+      "patch": {
+        "operationId": "MovieComments_update",
+        "parameters": [
+          {
+            "name": "movieId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "commentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMovieCommentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovieCommentResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Edit your own comment.",
+        "tags": [
+          "MovieComments"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "MovieComments_remove",
+        "parameters": [
+          {
+            "name": "movieId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "commentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Delete your own comment; admins can delete any.",
+        "tags": [
+          "MovieComments"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
     }
   },
   "info": {
@@ -7324,6 +7563,41 @@
         },
         "additionalProperties": false
       },
+      "CreateMovieCommentDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "spoiler": {
+            "type": "boolean",
+            "default": false,
+            "description": "Marks the comment as revealing the plot."
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateMovieCommentDto": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "spoiler": {
+            "type": "boolean",
+            "default": false,
+            "description": "Marks the comment as revealing the plot."
+          }
+        },
+        "additionalProperties": false
+      },
       "CommunityPost": {
         "type": "object",
         "properties": {
@@ -7963,6 +8237,118 @@
         "required": [
           "data",
           "nextCursor",
+          "apiVersion"
+        ]
+      },
+      "MovieComment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "movieId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string"
+          },
+          "spoiler": {
+            "type": "boolean",
+            "description": "Hide the text behind a reveal until the reader taps it."
+          },
+          "author": {
+            "$ref": "#/components/schemas/PublicUser"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Differs from createdAt once edited."
+          }
+        },
+        "required": [
+          "id",
+          "movieId",
+          "text",
+          "spoiler",
+          "author",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "MovieCommentResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "movieId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string"
+          },
+          "spoiler": {
+            "type": "boolean",
+            "description": "Hide the text behind a reveal until the reader taps it."
+          },
+          "author": {
+            "$ref": "#/components/schemas/PublicUser"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Differs from createdAt once edited."
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "movieId",
+          "text",
+          "spoiler",
+          "author",
+          "createdAt",
+          "updatedAt",
+          "apiVersion"
+        ]
+      },
+      "MovieCommentPageResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovieComment"
+            }
+          },
+          "nextCursor": {
+            "type": "integer",
+            "nullable": true
+          },
+          "total": {
+            "type": "integer",
+            "description": "All comments on the movie."
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "nextCursor",
+          "total",
           "apiVersion"
         ]
       },

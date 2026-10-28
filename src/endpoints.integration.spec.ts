@@ -33,6 +33,8 @@ import { CommunityPost } from './community/community-post.entity';
 import { CommunityComment } from './community/community-comment.entity';
 import { CommunityPostReaction } from './community/community-post-reaction.entity';
 import { UserFollow } from './community/user-follow.entity';
+import { MovieComment } from './movie-comments/movie-comment.entity';
+import { MovieComments1793318400000 } from './movie-comments/migrations/1793318400000-movie-comments';
 import {
   RoomChatRead,
   RoomMessage,
@@ -111,6 +113,7 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         CommunityComment,
         CommunityPostReaction,
         UserFollow,
+        MovieComment,
         RoomMessage,
         RoomMessageMention,
         RoomMessageMovie,
@@ -1334,6 +1337,168 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     await request(server)
       .get('/movies/' + randomUUID() + '/details')
       .expect(404);
+  });
+
+  it('lets anyone read movie comments and only signed-in authors write them', async () => {
+    const server = app.getHttpServer();
+    const document = createOpenApiDocument(app);
+    const path = '/movies/' + movieId + '/comments';
+    const empty = await request(server).get(path).expect(200);
+    assertOpenApiResponse(document, 'MovieComments_list', empty.body);
+    expect(empty.body).toMatchObject({ data: [], nextCursor: null, total: 0 });
+    await request(server)
+      .get('/movies/' + randomUUID() + '/comments')
+      .expect(404);
+    await request(server).post(path).send({ text: 'Anonymous' }).expect(401);
+    await request(server)
+      .post(path)
+      .auth(access[1], { type: 'bearer' })
+      .send({ text: '   ' })
+      .expect(400);
+    await request(server)
+      .post('/movies/' + randomUUID() + '/comments')
+      .auth(access[1], { type: 'bearer' })
+      .send({ text: 'Lost' })
+      .expect(404);
+    const created = await request(server)
+      .post(path)
+      .auth(access[1], { type: 'bearer' })
+      .send({ text: '  The ending got me  ', spoiler: true })
+      .expect(201);
+    assertOpenApiResponse(document, 'MovieComments_create', created.body);
+    expect(created.body).toMatchObject({
+      movieId,
+      text: 'The ending got me',
+      spoiler: true,
+      author: { id: users[1].id, username: 'User 1', avatar: null },
+    });
+    const commentId = created.body.id as number;
+    for (const text of ['Second', 'Third'])
+      await request(server)
+        .post(path)
+        .auth(access[2], { type: 'bearer' })
+        .send({ text })
+        .expect(201);
+    const first = await request(server)
+      .get(path + '?limit=2')
+      .expect(200);
+    expect(first.body.total).toBe(3);
+    expect(first.body.data.map((c: { text: string }) => c.text)).toEqual([
+      'Third',
+      'Second',
+    ]);
+    expect(JSON.stringify(first.body)).not.toMatch(
+      /private-password-hash|private-code|@example.test/,
+    );
+    const second = await request(server)
+      .get(path + '?limit=2&before=' + first.body.nextCursor)
+      .expect(200);
+    expect(second.body).toMatchObject({ nextCursor: null, total: 3 });
+    expect(second.body.data.map((c: { id: number }) => c.id)).toEqual([
+      commentId,
+    ]);
+
+    await request(server)
+      .patch(path + '/' + commentId)
+      .auth(access[2], { type: 'bearer' })
+      .send({ text: 'Hijacked' })
+      .expect(403);
+    const edited = await request(server)
+      .patch(path + '/' + commentId)
+      .auth(access[1], { type: 'bearer' })
+      .send({ spoiler: false })
+      .expect(200);
+    assertOpenApiResponse(document, 'MovieComments_update', edited.body);
+    expect(edited.body).toMatchObject({
+      text: 'The ending got me',
+      spoiler: false,
+    });
+    // A comment is addressed through its own movie only.
+    await request(server)
+      .delete('/movies/' + randomUUID() + '/comments/' + commentId)
+      .auth(access[1], { type: 'bearer' })
+      .expect(404);
+    await request(server)
+      .delete(path + '/' + commentId)
+      .auth(access[2], { type: 'bearer' })
+      .expect(403);
+    const removed = await request(server)
+      .delete(path + '/' + commentId)
+      .auth(access[1], { type: 'bearer' })
+      .expect(200);
+    assertOpenApiResponse(document, 'MovieComments_remove', removed.body);
+
+    const adminRole = await database
+      .getRepository(Role)
+      .save({ name: 'admin' });
+    const moderator = await database.getRepository(User).save({
+      email: 'moderator@example.test',
+      username: 'Moderator',
+      password: 'private-password-hash',
+      isEmailVerified: true,
+      role: adminRole,
+    });
+    const moderatorToken = (await tokens.generateTokens(moderator)).accessToken;
+    await request(server)
+      .delete(path + '/' + first.body.data[0].id)
+      .auth(moderatorToken, { type: 'bearer' })
+      .expect(200);
+
+    // users[2] has one comment left in the window after moderation.
+    for (let index = 0; index < 4; index++)
+      await request(server)
+        .post(path)
+        .auth(access[2], { type: 'bearer' })
+        .send({ text: 'Burst ' + index })
+        .expect(201);
+    await request(server)
+      .post(path)
+      .auth(access[2], { type: 'bearer' })
+      .send({ text: 'One too many' })
+      .expect(429);
+    await database.getRepository(MovieComment).delete({ movieId });
+    await database.getRepository(User).delete({ id: moderator.id });
+    await database.getRepository(Role).delete({ id: adminRole.id });
+  });
+
+  it('applies the movie comments migration with the same shape as the entity', async () => {
+    const runner = database.createQueryRunner();
+    const migrationSchema = schema + '_movie_comments';
+    const shape = async (target: string) => ({
+      columns: (await runner.query(
+        "SELECT column_name, data_type, is_nullable, column_default, character_maximum_length FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'movie_comment' ORDER BY column_name",
+        [target],
+      )) as { column_name: string; column_default: string | null }[],
+      indexes: (await runner.query(
+        "SELECT indexname FROM pg_indexes WHERE schemaname = $1 AND tablename = 'movie_comment' AND indexname LIKE 'IDX_%' ORDER BY indexname",
+        [target],
+      )) as unknown[],
+    });
+    // Serial defaults name their sequence by schema; compare the rest.
+    const comparable = (
+      rows: { column_name: string; column_default: string | null }[],
+    ) =>
+      rows.map((row) =>
+        row.column_name === 'id' ? { ...row, column_default: null } : row,
+      );
+    await runner.connect();
+    await runner.startTransaction();
+    try {
+      await runner.query('CREATE SCHEMA "' + migrationSchema + '"');
+      await runner.query(
+        'SET LOCAL search_path TO "' + migrationSchema + '", "' + schema + '"',
+      );
+      const migration = new MovieComments1793318400000();
+      await migration.up(runner);
+      const migrated = await shape(migrationSchema);
+      const synced = await shape(schema);
+      expect(migrated.indexes).toEqual(synced.indexes);
+      expect(comparable(migrated.columns)).toEqual(comparable(synced.columns));
+      await migration.down(runner);
+    } finally {
+      await runner.rollbackTransaction();
+      await runner.release();
+    }
   });
 
   it('runs room chat: mentions, replies, movie cards, reactions, polls, pins, sync and unread', async () => {

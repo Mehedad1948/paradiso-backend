@@ -302,6 +302,26 @@ export const responseSchemas: Record<string, SchemaObject> = {
       nextCursor: nullable(integer),
     }),
   ),
+  MovieComment: object({
+    id: integer,
+    movieId: uuid,
+    text: string,
+    spoiler: {
+      ...boolean,
+      description: 'Hide the text behind a reveal until the reader taps it.',
+    },
+    author: ref('PublicUser'),
+    createdAt: date,
+    updatedAt: { ...date, description: 'Differs from createdAt once edited.' },
+  }),
+  MovieCommentResponse: {},
+  MovieCommentPageResponse: envelope(
+    object({
+      data: array(ref('MovieComment')),
+      nextCursor: nullable(integer),
+      total: { ...integer, description: 'All comments on the movie.' },
+    }),
+  ),
   CommunityProfileResponse: envelope(
     object({
       ...publicUser.properties,
@@ -743,6 +763,7 @@ responseSchemas.CommunityCommentResponse = envelope(
   responseSchemas.CommunityComment,
 );
 responseSchemas.ChatMessageResponse = envelope(responseSchemas.ChatMessage);
+responseSchemas.MovieCommentResponse = envelope(responseSchemas.MovieComment);
 
 // Stable operation IDs are also the keys in generated frontend contracts.
 // Adding a route without a response contract causes export/build checks to fail.
@@ -798,6 +819,10 @@ export const operationResponses: Record<string, string> = {
   Movies_getMovies: 'MovieListResponse',
   Movies_getMovieById: 'MovieResponse',
   Movies_getMovieDetails: 'MovieDetailsResponse',
+  MovieComments_list: 'MovieCommentPageResponse',
+  MovieComments_create: 'MovieCommentResponse',
+  MovieComments_update: 'MovieCommentResponse',
+  MovieComments_remove: 'MessageResponse',
   Movies_updateMovieById: 'UpdatedMovieResponse',
   Movies_createMovie: 'CreatedMovieResponse',
   Movies_searchMoviesFromTmdb: 'TmdbSearchResponse',

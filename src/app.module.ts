@@ -13,6 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import jwtConfig from './auth/config/jwt.config';
 import { AccessTokenGuard } from './auth/guards/access-token/access-token.guard';
 import { AuthenticationGuard } from './auth/guards/authentication/authentication.guard';
+import { MovieCommentsModule } from './movie-comments/movie-comments.module';
 import { RolesGuard } from './auth/guards/roles/roles.guard';
 import { DataResponseInterceptor } from './common/interceptor/data-response/data-response.interceptor';
 import appConfig from './config/app.config';
@@ -72,6 +73,7 @@ const ENV = process.env.NODE_ENV || 'development';
     WatchlistModule,
     FavoritesModule,
     NotificationsModule,
+    MovieCommentsModule,
   ],
   controllers: [AppController],
   providers: [
