@@ -19,10 +19,19 @@ export function toMovieExtras(details: TmdbMovieWithExtras): MovieExtras {
   const directors = (details.credits?.crew ?? [])
     .filter((member) => member.job === 'Director')
     .map((member) => member.name);
-  const trailers = (details.videos?.results ?? []).filter(
-    (video) => video.site === 'YouTube' && video.type === 'Trailer',
-  );
-  const trailer = trailers.find((video) => video.official) ?? trailers[0];
+  const trailer = (details.videos?.results ?? [])
+    .filter(
+      (video) =>
+        video.site === 'YouTube' &&
+        (video.type === 'Trailer' || video.type === 'Teaser'),
+    )
+    // Trailer over teaser, then official, then English over untagged.
+    .sort(
+      (a, b) =>
+        Number(b.type === 'Trailer') - Number(a.type === 'Trailer') ||
+        Number(!!b.official) - Number(!!a.official) ||
+        Number(b.iso_639_1 === 'en') - Number(a.iso_639_1 === 'en'),
+    )[0];
   return {
     runtime: details.runtime || null,
     tagline: details.tagline || null,

@@ -57,6 +57,20 @@ describe('toMovieExtras', () => {
     expect(extras.detailsFetchedAt).toBeInstanceOf(Date);
   });
 
+  it('falls back to a teaser when a film has no trailer', () => {
+    const extras = toMovieExtras(
+      tmdb({
+        videos: {
+          results: [
+            { key: 'clip', site: 'YouTube', type: 'Clip', official: true },
+            { key: 'teaser', site: 'YouTube', type: 'Teaser' },
+          ],
+        },
+      }),
+    );
+    expect(extras.trailerKey).toBe('teaser');
+  });
+
   it('stores nulls rather than empty values for missing data', () => {
     expect(
       toMovieExtras(

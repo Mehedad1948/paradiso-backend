@@ -38,6 +38,7 @@ export interface TmdbMovieWithExtras extends TmdbMovie {
       site?: string;
       type?: string;
       official?: boolean;
+      iso_639_1?: string | null;
     }[];
   };
 }
@@ -115,6 +116,8 @@ export class MovieDbService {
       throw new BadRequestException('Invalid TMDb movie ID');
     return this.get<TmdbMovieWithExtras>('movie/' + movieId, {
       append_to_response: 'credits,videos',
+      // language=en-US alone hides trailers tagged in a film's own language.
+      include_video_language: 'en,null',
     });
   }
 }
