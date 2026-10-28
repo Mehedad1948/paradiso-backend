@@ -151,6 +151,11 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         videos: {
           results: [{ key: 'abc123', site: 'YouTube', type: 'Trailer' }],
         },
+        images: {
+          backdrops: [
+            { file_path: '/still.jpg', iso_639_1: null, vote_average: 5 },
+          ],
+        },
       } as unknown as TmdbMovieWithExtras);
     app = module.createNestApplication();
     app.useGlobalPipes(
@@ -1295,6 +1300,7 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       tagline: 'A tagline',
       director: 'A Director',
       cast: [{ name: 'Lead', character: 'Hero', profile_path: '/p.jpg' }],
+      backdrops: ['/backdrop.jpg', '/still.jpg'],
       trailerKey: 'abc123',
     });
     expect(first.body).not.toHaveProperty('detailsFetchedAt');
@@ -1308,7 +1314,13 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       await request(server).get('/movies?limit=100').expect(200)
     ).body.data.find((movie: { id: string }) => movie.id === id);
     expect(listed).toMatchObject({ runtime: 136 });
-    for (const key of ['cast', 'tagline', 'director', 'trailerKey'])
+    for (const key of [
+      'cast',
+      'backdrops',
+      'tagline',
+      'director',
+      'trailerKey',
+    ])
       expect(listed).not.toHaveProperty(key);
 
     catalogueDetails.mockRejectedValueOnce(new ServiceUnavailableException());

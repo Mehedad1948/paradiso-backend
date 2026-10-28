@@ -9619,6 +9619,14 @@
             "type": "string",
             "nullable": true
           },
+          "backdrops": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 8,
+            "description": "Gallery of TMDb backdrop paths, backdrop_path first; empty when unknown. Prefix https://image.tmdb.org/t/p/w780."
+          },
           "vote_average": {
             "type": "number",
             "nullable": true
@@ -9687,6 +9695,7 @@
           "runtime",
           "poster_path",
           "backdrop_path",
+          "backdrops",
           "vote_average",
           "imdbRate",
           "imdbLink",

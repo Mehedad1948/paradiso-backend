@@ -2439,6 +2439,8 @@ export interface components {
             runtime: number | null;
             poster_path: string | null;
             backdrop_path: string | null;
+            /** @description Gallery of TMDb backdrop paths, backdrop_path first; empty when unknown. Prefix https://image.tmdb.org/t/p/w780. */
+            backdrops: string[];
             vote_average: number | null;
             imdbRate: number | null;
             imdbLink: string | null;

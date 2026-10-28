@@ -17,6 +17,7 @@ export type MovieDetails = Pick<
   | 'runtime'
   | 'poster_path'
   | 'backdrop_path'
+  | 'backdrops'
   | 'vote_average'
   | 'imdbRate'
   | 'imdbLink'
@@ -69,6 +70,7 @@ export class MovieDetailsProvider {
         'movie.runtime',
         'movie.poster_path',
         'movie.backdrop_path',
+        'movie.backdrops',
         'movie.vote_average',
         'movie.imdbRate',
         'movie.imdbLink',
@@ -135,6 +137,7 @@ export class MovieDetailsProvider {
       runtime: movie.runtime,
       poster_path: movie.poster_path ?? null,
       backdrop_path: movie.backdrop_path,
+      backdrops: movie.backdrops ?? [],
       vote_average: movie.vote_average ?? null,
       imdbRate: movie.imdbRate ?? null,
       imdbLink: movie.imdbLink ?? null,

@@ -1,7 +1,7 @@
 import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Movie } from '../movie.entity';
-import { CAST_LIMIT, toMovieExtras } from '../tmdb-extras';
+import { BACKDROP_LIMIT, CAST_LIMIT, toMovieExtras } from '../tmdb-extras';
 import { MovieDetailsProvider } from './movie-details.provider';
 import { MovieDbService, TmdbMovieWithExtras } from './MovieDb.serviec';
 
@@ -35,6 +35,19 @@ const tmdb = (extra: Partial<TmdbMovieWithExtras> = {}) =>
         { key: 'official', site: 'YouTube', type: 'Trailer', official: true },
       ],
     },
+    images: {
+      backdrops: [
+        { file_path: '/titled.jpg', iso_639_1: 'en', vote_average: 9 },
+        { file_path: '/low.jpg', iso_639_1: null, vote_average: 4 },
+        { file_path: '/backdrop.jpg', iso_639_1: null, vote_average: 5 },
+        { file_path: '/high.jpg', iso_639_1: null, vote_average: 6 },
+        ...Array.from({ length: 10 }, (_, index) => ({
+          file_path: '/extra' + index + '.jpg',
+          iso_639_1: null,
+          vote_average: 1,
+        })),
+      ],
+    },
     ...extra,
   }) as TmdbMovieWithExtras;
 
@@ -49,6 +62,14 @@ describe('toMovieExtras', () => {
       trailerKey: 'official',
     });
     expect(extras.cast).toHaveLength(CAST_LIMIT);
+    // Main backdrop first, then textless by rating, titled stills last.
+    expect(extras.backdrops).toHaveLength(BACKDROP_LIMIT);
+    expect(extras.backdrops!.slice(0, 3)).toEqual([
+      '/backdrop.jpg',
+      '/high.jpg',
+      '/low.jpg',
+    ]);
+    expect(extras.backdrops).not.toContain('/titled.jpg');
     expect(extras.cast![0]).toEqual({
       name: 'Actor 0',
       character: null,
@@ -77,8 +98,10 @@ describe('toMovieExtras', () => {
         tmdb({
           runtime: 0,
           tagline: '',
+          backdrop_path: undefined,
           credits: undefined,
           videos: undefined,
+          images: undefined,
         }),
       ),
     ).toMatchObject({
@@ -86,6 +109,7 @@ describe('toMovieExtras', () => {
       tagline: null,
       director: null,
       cast: [],
+      backdrops: [],
       trailerKey: null,
     });
   });
@@ -164,7 +188,11 @@ describe('MovieDetailsProvider', () => {
     );
     const failed = await provider.getDetails('movie-1');
     expect(failed.complete).toBe(false);
-    expect(failed.details).toMatchObject({ title: 'The Matrix', cast: [] });
+    expect(failed.details).toMatchObject({
+      title: 'The Matrix',
+      cast: [],
+      backdrops: [],
+    });
     expect((await provider.getDetails('movie-1')).details.runtime).toBe(136);
   });
 

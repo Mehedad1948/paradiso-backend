@@ -53,6 +53,9 @@ const {
 const {
   MovieCommentReplies1793404800000,
 } = require('../dist/movie-comments/migrations/1793404800000-movie-comment-replies');
+const {
+  MovieBackdrops1793491200000,
+} = require('../dist/movies/migrations/1793491200000-movie-backdrops');
 
 const migrations = [
   Community1790985600000,
@@ -71,6 +74,7 @@ const migrations = [
   MovieDetails1793232000000,
   MovieComments1793318400000,
   MovieCommentReplies1793404800000,
+  MovieBackdrops1793491200000,
 ];
 
 async function main() {

@@ -75,6 +75,10 @@ export class Movie {
   @Column({ type: 'varchar', nullable: true, select: false })
   backdrop_path: string | null;
 
+  // TMDb file paths, main backdrop first.
+  @Column({ type: 'jsonb', nullable: true, select: false })
+  backdrops: string[] | null;
+
   @Column({ type: 'varchar', nullable: true, select: false })
   director: string | null;
 

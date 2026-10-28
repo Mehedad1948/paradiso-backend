@@ -71,6 +71,12 @@ const movieDetails = object({
   runtime: { ...nullable(integer), description: 'Minutes.' },
   poster_path: nullable(string),
   backdrop_path: nullable(string),
+  backdrops: {
+    ...array(string),
+    maxItems: 8,
+    description:
+      'Gallery of TMDb backdrop paths, backdrop_path first; empty when unknown. Prefix https://image.tmdb.org/t/p/w780.',
+  },
   vote_average: nullable(number),
   imdbRate: nullable(number),
   imdbLink: nullable(string),

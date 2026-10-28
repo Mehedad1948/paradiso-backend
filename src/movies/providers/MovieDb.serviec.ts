@@ -41,6 +41,14 @@ export interface TmdbMovieWithExtras extends TmdbMovie {
       iso_639_1?: string | null;
     }[];
   };
+  images?: {
+    backdrops?: {
+      file_path: string;
+      iso_639_1?: string | null;
+      vote_average?: number;
+      vote_count?: number;
+    }[];
+  };
 }
 
 @Injectable()
@@ -140,9 +148,11 @@ export class MovieDbService {
     if (!Number.isSafeInteger(movieId) || movieId < 1)
       throw new BadRequestException('Invalid TMDb movie ID');
     return this.get<TmdbMovieWithExtras>('movie/' + movieId, {
-      append_to_response: 'credits,videos',
-      // language=en-US alone hides trailers tagged in a film's own language.
+      append_to_response: 'credits,videos,images',
+      // language=en-US alone hides trailers tagged in a film's own language
+      // and every textless (untagged) image.
       include_video_language: 'en,null',
+      include_image_language: 'null,en',
     });
   }
 }
