@@ -3,6 +3,10 @@ import { TmdbMovieWithExtras } from './providers/MovieDb.serviec';
 
 export const CAST_LIMIT = 8;
 export const BACKDROP_LIMIT = 8;
+// Bump whenever toMovieExtras stores something new, so rows written by older
+// code (including a build still serving during a deploy) are refreshed.
+// 1: backdrop gallery.
+export const DETAILS_VERSION = 1;
 
 export type MovieExtras = Pick<
   Movie,
@@ -14,6 +18,7 @@ export type MovieExtras = Pick<
   | 'cast'
   | 'trailerKey'
   | 'detailsFetchedAt'
+  | 'detailsVersion'
 >;
 
 // Keeps only what the details screen shows, so a row stays around 1 KB.
@@ -60,5 +65,6 @@ export function toMovieExtras(details: TmdbMovieWithExtras): MovieExtras {
     })),
     trailerKey: trailer?.key.slice(0, 32) ?? null,
     detailsFetchedAt: new Date(),
+    detailsVersion: DETAILS_VERSION,
   };
 }

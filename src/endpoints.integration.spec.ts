@@ -57,6 +57,8 @@ import {
   MovieDbService,
   TmdbMovieWithExtras,
 } from './movies/providers/MovieDb.serviec';
+import { MovieDetailsProvider } from './movies/providers/movie-details.provider';
+import { DETAILS_VERSION } from './movies/tmdb-extras';
 import { createOpenApiDocument, setupOpenApi } from './openapi/document';
 import { assertOpenApiResponse } from '../test/openapi-contract';
 
@@ -1352,6 +1354,79 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       .expect(404);
   });
 
+  it('refreshes details stored before the gallery, on read and by backfill', async () => {
+    const server = app.getHttpServer();
+    const movies = database.getRepository(Movie);
+    const provider = app.get(MovieDetailsProvider);
+    const create = async (dbId: number) =>
+      (
+        await request(server)
+          .post('/movies')
+          .auth(access[0], { type: 'bearer' })
+          .send({ dbId, title: 'Gallery movie ' + dbId })
+          .expect(201)
+      ).body.id as string;
+    const viewed = await create(9301);
+    const backfilled = await create(9302);
+    const empty = await create(9303);
+    // Rows a pre-gallery build filled: details stamped, no gallery stored.
+    await movies.update([viewed, backfilled], {
+      runtime: 99,
+      backdrop_path: '/backdrop.jpg',
+      backdrops: null,
+      detailsFetchedAt: new Date(),
+      detailsVersion: 0,
+    });
+    // A film TMDb has no images for, checked yesterday by current code.
+    await movies.update(empty, {
+      backdrops: [],
+      detailsFetchedAt: new Date(Date.now() - 86_400_000),
+      detailsVersion: DETAILS_VERSION,
+    });
+    catalogueDetails.mockClear();
+    await request(server)
+      .get('/movies/' + viewed + '/details')
+      .expect(200)
+      .expect((response) =>
+        expect(response.body.backdrops).toEqual([
+          '/backdrop.jpg',
+          '/still.jpg',
+        ]),
+      );
+    await request(server)
+      .get('/movies/' + empty + '/details')
+      .expect(200)
+      .expect((response) => expect(response.body.backdrops).toEqual([]));
+    expect(catalogueDetails).toHaveBeenCalledTimes(1);
+
+    catalogueDetails.mockClear();
+    // Other suites' movies may still be unfilled; all of them are refreshed.
+    const first = await provider.refreshOutdated(0);
+    expect(first).toMatchObject({ failed: [], missing: [] });
+    expect(first.refreshed).toBe(first.outdated);
+    expect(catalogueDetails).toHaveBeenCalledTimes(first.outdated);
+    expect(
+      await movies.findOne({
+        where: { id: backfilled },
+        select: { id: true, backdrops: true, detailsVersion: true },
+      }),
+    ).toMatchObject({
+      backdrops: ['/backdrop.jpg', '/still.jpg'],
+      detailsVersion: DETAILS_VERSION,
+    });
+    // Safe to re-run: nothing is outdated any more.
+    catalogueDetails.mockClear();
+    expect(await provider.refreshOutdated(0)).toMatchObject({ outdated: 0 });
+    expect(catalogueDetails).not.toHaveBeenCalled();
+    // Past the retry window, the empty film is asked about once more.
+    await movies.update(empty, {
+      detailsFetchedAt: new Date(Date.now() - 8 * 86_400_000),
+    });
+    expect((await provider.findOutdated()).map(({ id }) => id)).toEqual([
+      empty,
+    ]);
+  });
+
   it('lets anyone read movie comments and only signed-in authors write them', async () => {
     const server = app.getHttpServer();
     const document = createOpenApiDocument(app);
@@ -2143,8 +2218,8 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
 
   describe('inviting users to rooms from their profile', () => {
     const server = () => app.getHttpServer();
-    let people: User[] = [];
-    let token: string[] = [];
+    const people: User[] = [];
+    const token: string[] = [];
     const as = (index: number) => ({
       get: (path: string) =>
         request(server()).get(path).auth(token[index], { type: 'bearer' }),

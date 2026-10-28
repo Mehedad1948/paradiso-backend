@@ -93,6 +93,11 @@ export class Movie {
   @Column({ type: 'timestamptz', nullable: true, select: false })
   detailsFetchedAt: Date | null;
 
+  // DETAILS_VERSION of the code that stored the details. Rows below the
+  // current version predate a stored field and are refreshed on next view.
+  @Column({ type: 'smallint', default: 0, select: false })
+  detailsVersion: number;
+
   @ManyToOne(() => User, { eager: true })
   addedBy: User;
 

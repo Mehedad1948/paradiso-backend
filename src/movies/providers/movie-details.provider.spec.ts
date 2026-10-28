@@ -1,8 +1,17 @@
 import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Movie } from '../movie.entity';
-import { BACKDROP_LIMIT, CAST_LIMIT, toMovieExtras } from '../tmdb-extras';
-import { MovieDetailsProvider } from './movie-details.provider';
+import {
+  BACKDROP_LIMIT,
+  CAST_LIMIT,
+  DETAILS_VERSION,
+  toMovieExtras,
+} from '../tmdb-extras';
+import {
+  EMPTY_GALLERY_RETRY_MS,
+  isOutdated,
+  MovieDetailsProvider,
+} from './movie-details.provider';
 import { MovieDbService, TmdbMovieWithExtras } from './MovieDb.serviec';
 
 const tmdb = (extra: Partial<TmdbMovieWithExtras> = {}) =>
@@ -76,6 +85,7 @@ describe('toMovieExtras', () => {
       profile_path: null,
     });
     expect(extras.detailsFetchedAt).toBeInstanceOf(Date);
+    expect(extras.detailsVersion).toBe(DETAILS_VERSION);
   });
 
   it('falls back to a teaser when a film has no trailer', () => {
@@ -118,6 +128,7 @@ describe('toMovieExtras', () => {
 describe('MovieDetailsProvider', () => {
   let row: Partial<Movie>;
   let repository: { createQueryBuilder: jest.Mock; update: jest.Mock };
+  let outdatedRows: Partial<Movie>[];
   let catalogue: { getMovieDetailsWithExtras: jest.Mock };
   let provider: MovieDetailsProvider;
 
@@ -129,13 +140,18 @@ describe('MovieDetailsProvider', () => {
       overview: null as unknown as string,
       runtime: null,
       detailsFetchedAt: null,
+      detailsVersion: 0,
       genres: [{ id: 'g1', name: 'Action', tmdbId: 28, movies: [] }],
     };
+    outdatedRows = [];
     const query = {
       leftJoin: () => query,
       select: () => query,
       where: () => query,
+      andWhere: () => query,
+      orderBy: () => query,
       getOne: jest.fn(() => Promise.resolve(row ? { ...row } : null)),
+      getMany: jest.fn(() => Promise.resolve(outdatedRows)),
     };
     repository = {
       createQueryBuilder: jest.fn(() => query),
@@ -216,5 +232,102 @@ describe('MovieDetailsProvider', () => {
     await expect(provider.getDetails('missing')).rejects.toBeInstanceOf(
       NotFoundException,
     );
+  });
+
+  // A row filled before the gallery existed: details stored, no backdrops.
+  const filledBeforeGallery = (fetchedAt = new Date()) => ({
+    runtime: 136,
+    backdrop_path: '/backdrop.jpg',
+    backdrops: null,
+    detailsFetchedAt: fetchedAt,
+    detailsVersion: 0,
+  });
+
+  it('refreshes details stored by older code on read', async () => {
+    Object.assign(row, filledBeforeGallery());
+    const { details, complete } = await provider.getDetails('movie-1');
+    expect(complete).toBe(true);
+    expect(details.backdrops?.[0]).toBe('/backdrop.jpg');
+    expect(details.backdrops).toHaveLength(BACKDROP_LIMIT);
+    expect(row.detailsVersion).toBe(DETAILS_VERSION);
+    await provider.getDetails('movie-1');
+    expect(catalogue.getMovieDetailsWithExtras).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call TMDb for current details', async () => {
+    Object.assign(row, {
+      detailsFetchedAt: new Date(Date.now() - 30 * 86_400_000),
+      detailsVersion: DETAILS_VERSION,
+      backdrops: ['/stored.jpg'],
+    });
+    const { details } = await provider.getDetails('movie-1');
+    expect(details.backdrops).toEqual(['/stored.jpg']);
+    expect(catalogue.getMovieDetailsWithExtras).not.toHaveBeenCalled();
+  });
+
+  it('asks again about a film without backdrops only after the retry window', async () => {
+    catalogue.getMovieDetailsWithExtras.mockResolvedValue(
+      tmdb({ backdrop_path: undefined, images: { backdrops: [] } }),
+    );
+    expect((await provider.getDetails('movie-1')).details.backdrops).toEqual(
+      [],
+    );
+    await provider.getDetails('movie-1');
+    expect(catalogue.getMovieDetailsWithExtras).toHaveBeenCalledTimes(1);
+    const fetchedAt = row.detailsFetchedAt!.getTime();
+    expect(
+      isOutdated(row as Movie, fetchedAt + EMPTY_GALLERY_RETRY_MS - 1),
+    ).toBe(false);
+    expect(isOutdated(row as Movie, fetchedAt + EMPTY_GALLERY_RETRY_MS)).toBe(
+      true,
+    );
+    // A film that has a gallery is never asked again.
+    expect(
+      isOutdated(
+        { ...(row as Movie), backdrops: ['/a.jpg'] },
+        fetchedAt + 10 * EMPTY_GALLERY_RETRY_MS,
+      ),
+    ).toBe(false);
+  });
+
+  it('serves stored details uncached when a refresh fails', async () => {
+    Object.assign(row, filledBeforeGallery());
+    catalogue.getMovieDetailsWithExtras.mockRejectedValueOnce(
+      new ServiceUnavailableException(),
+    );
+    const failed = await provider.getDetails('movie-1');
+    expect(failed.complete).toBe(false);
+    expect(failed.details).toMatchObject({ runtime: 136, backdrops: [] });
+    expect(row.detailsVersion).toBe(0);
+  });
+
+  it('backfills outdated movies one at a time and reports each outcome', async () => {
+    outdatedRows = [
+      { id: 'a', dbId: 1, title: 'Gallery' },
+      { id: 'b', dbId: 2, title: 'No images' },
+      { id: 'c', dbId: 3, title: 'Gone' },
+      { id: 'd', dbId: 4, title: 'Flaky' },
+    ];
+    catalogue.getMovieDetailsWithExtras
+      .mockResolvedValueOnce(tmdb())
+      .mockResolvedValueOnce(
+        tmdb({ backdrop_path: undefined, images: undefined }),
+      )
+      .mockRejectedValueOnce(new NotFoundException())
+      .mockRejectedValueOnce(new ServiceUnavailableException());
+    const summary = await provider.refreshOutdated(0);
+    expect(summary).toEqual({
+      outdated: 4,
+      refreshed: 1,
+      empty: [{ id: 'b', dbId: 2, title: 'No images' }],
+      missing: [{ id: 'c', dbId: 3, title: 'Gone' }],
+      failed: [{ id: 'd', dbId: 4, title: 'Flaky' }],
+    });
+    expect(catalogue.getMovieDetailsWithExtras.mock.calls).toEqual([
+      [1],
+      [2],
+      [3],
+      [4],
+    ]);
   });
 });

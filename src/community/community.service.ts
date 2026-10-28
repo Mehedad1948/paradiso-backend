@@ -130,7 +130,7 @@ export class CommunityService {
   private async engagement(ids: number[], userId?: number) {
     const stats = new Map<number, PostEngagement>();
     if (ids.length === 0) return stats;
-    const rows = (await this.reactions.query(
+    const rows = await this.reactions.query(
       `SELECT p.id,
         (SELECT count(*) FROM community_post_reaction r WHERE r."postId" = p.id AND r.value = 1)::int AS "likeCount",
         (SELECT count(*) FROM community_post_reaction r WHERE r."postId" = p.id AND r.value = -1)::int AS "dislikeCount",
@@ -140,7 +140,7 @@ export class CommunityService {
         EXISTS (SELECT 1 FROM community_post q WHERE q."quotedPostId" = p.id AND q.text = '' AND q."authorId" = $2::int) AS "reposted"
        FROM community_post p WHERE p.id = ANY($1::int[])`,
       [ids, userId ?? null],
-    )) as (PostEngagement & { id: number })[];
+    );
     for (const row of rows) stats.set(row.id, row);
     return stats;
   }

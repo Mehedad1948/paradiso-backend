@@ -100,7 +100,9 @@ describe('OpenAPI frontend contract', () => {
         }),
         expect.objectContaining({
           name: 'sortBy',
-          schema: expect.objectContaining({ enum: ['rate', 'userRate'] }),
+          schema: expect.objectContaining({
+            enum: ['rate', 'userRate', 'controversy'],
+          }),
         }),
         expect.objectContaining({
           name: 'isWatchTogether',
