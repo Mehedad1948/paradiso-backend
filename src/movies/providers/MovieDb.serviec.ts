@@ -93,13 +93,38 @@ export class MovieDbService {
     }
   }
 
-  searchMovies(query: string, page = 1) {
-    return this.get<{
+  // Erotic titles are hidden from search. TMDb has no erotic genre: such
+  // films carry the adult flag or an "erotic ..." keyword, and search
+  // results omit keywords, so each hit is checked (and cached) separately.
+  private readonly eroticVerdicts = new Map<number, boolean>();
+
+  async searchMovies(query: string, page = 1) {
+    const response = await this.get<{
       results: TmdbMovie[];
       page: number;
       total_pages: number;
       total_results: number;
-    }>('search/movie', { query, page });
+    }>('search/movie', { query, page, include_adult: 'false' });
+    const candidates = response.results.filter((movie) => !movie.adult);
+    const erotic = await Promise.all(
+      candidates.map((movie) => this.isErotic(movie.id)),
+    );
+    return {
+      ...response,
+      results: candidates.filter((_, index) => !erotic[index]),
+    };
+  }
+  private async isErotic(movieId: number): Promise<boolean> {
+    const cached = this.eroticVerdicts.get(movieId);
+    if (cached !== undefined) return cached;
+    // Fails closed: a lookup error propagates rather than leaking the title.
+    const { keywords = [] } = await this.get<{
+      keywords?: { id: number; name: string }[];
+    }>('movie/' + movieId + '/keywords');
+    const verdict = keywords.some(({ name }) => /erotic/i.test(name));
+    if (this.eroticVerdicts.size >= 10_000) this.eroticVerdicts.clear();
+    this.eroticVerdicts.set(movieId, verdict);
+    return verdict;
   }
   async getGenres(): Promise<TmdbGenre[]> {
     return (await this.get<{ genres: TmdbGenre[] }>('genre/movie/list')).genres;
