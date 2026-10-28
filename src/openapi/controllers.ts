@@ -23,6 +23,7 @@ import { WatchlistController } from '../watchlist/watchlist.controller';
 import { FavoritesController } from '../favorites/favorites.controller';
 import { NotificationsController } from '../notifications/notifications.controller';
 import { MovieCommentsController } from '../movie-comments/movie-comments.controller';
+import { PeopleController } from '../people/people.controller';
 
 // Keep this list in sync with application controllers. Both runtime docs and the
 // offline exporter use their real route and DTO metadata.
@@ -52,4 +53,5 @@ export const apiControllers = [
   FavoritesController,
   NotificationsController,
   MovieCommentsController,
+  PeopleController,
 ];

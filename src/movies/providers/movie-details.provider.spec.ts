@@ -25,15 +25,31 @@ const tmdb = (extra: Partial<TmdbMovieWithExtras> = {}) =>
     genres: [],
     credits: {
       cast: Array.from({ length: 20 }, (_, index) => ({
+        id: 100 + index,
         name: 'Actor ' + index,
         character: index ? 'Role ' + index : '',
         profile_path: index ? '/p' + index + '.jpg' : undefined,
       })),
       crew: [
-        { name: 'Lana Wachowski', job: 'Director' },
-        { name: 'Lilly Wachowski', job: 'Director' },
-        { name: 'Lana Wachowski', job: 'Director' },
-        { name: 'Joel Silver', job: 'Producer' },
+        { id: 9339, name: 'Lana Wachowski', job: 'Director' },
+        {
+          id: 9340,
+          name: 'Lilly Wachowski',
+          job: 'Director',
+          profile_path: '/lilly.jpg',
+        },
+        { id: 9339, name: 'Lana Wachowski', job: 'Director' },
+        { id: 9339, name: 'Lana Wachowski', job: 'Writer' },
+        {
+          id: 9340,
+          name: 'Lilly Wachowski',
+          job: 'Writer',
+          profile_path: '/lilly.jpg',
+        },
+        { id: 9339, name: 'Lana Wachowski', job: 'Writer' },
+        { id: 1, name: 'Bill Pope', job: 'Director of Photography' },
+        { id: 2, name: 'Don Davis', job: 'Original Music Composer' },
+        { id: 3, name: 'Joel Silver', job: 'Producer' },
       ],
     },
     videos: {
@@ -80,12 +96,61 @@ describe('toMovieExtras', () => {
     ]);
     expect(extras.backdrops).not.toContain('/titled.jpg');
     expect(extras.cast![0]).toEqual({
+      id: 100,
       name: 'Actor 0',
       character: null,
       profile_path: null,
     });
     expect(extras.detailsFetchedAt).toBeInstanceOf(Date);
     expect(extras.detailsVersion).toBe(DETAILS_VERSION);
+  });
+
+  it('lists every director and merges key crew jobs per person', () => {
+    const extras = toMovieExtras(tmdb());
+    expect(extras.directors).toEqual([
+      { id: 9339, name: 'Lana Wachowski', profile_path: null },
+      { id: 9340, name: 'Lilly Wachowski', profile_path: '/lilly.jpg' },
+    ]);
+    // Producers are not key crew; each person appears once.
+    expect(extras.crew).toEqual([
+      {
+        id: 9339,
+        name: 'Lana Wachowski',
+        profile_path: null,
+        jobs: ['Writer'],
+      },
+      {
+        id: 9340,
+        name: 'Lilly Wachowski',
+        profile_path: '/lilly.jpg',
+        jobs: ['Writer'],
+      },
+      {
+        id: 1,
+        name: 'Bill Pope',
+        profile_path: null,
+        jobs: ['Director of Photography'],
+      },
+      {
+        id: 2,
+        name: 'Don Davis',
+        profile_path: null,
+        jobs: ['Original Music Composer'],
+      },
+    ]);
+    const writer = toMovieExtras(
+      tmdb({
+        credits: {
+          crew: [
+            { id: 7, name: 'Both', job: 'Writer' },
+            { id: 7, name: 'Both', job: 'Screenplay' },
+          ],
+        },
+      }),
+    );
+    expect(writer.crew).toEqual([
+      expect.objectContaining({ id: 7, jobs: ['Screenplay', 'Writer'] }),
+    ]);
   });
 
   it('falls back to a teaser when a film has no trailer', () => {
@@ -118,6 +183,8 @@ describe('toMovieExtras', () => {
       runtime: null,
       tagline: null,
       director: null,
+      directors: [],
+      crew: [],
       cast: [],
       backdrops: [],
       trailerKey: null,
@@ -176,8 +243,10 @@ describe('MovieDetailsProvider', () => {
       runtime: 136,
       overview: 'A hacker learns the truth.',
       director: 'Lana Wachowski, Lilly Wachowski',
+      directors: [{ id: 9339 }, { id: 9340 }],
       genres: [{ id: 'g1', name: 'Action', tmdbId: 28 }],
     });
+    expect(first.details.cast[0]).toMatchObject({ id: 100 });
     expect(first.details).not.toHaveProperty('detailsFetchedAt');
     await provider.getDetails('movie-1');
     expect(catalogue.getMovieDetailsWithExtras).toHaveBeenCalledTimes(1);
@@ -252,6 +321,31 @@ describe('MovieDetailsProvider', () => {
     expect(row.detailsVersion).toBe(DETAILS_VERSION);
     await provider.getDetails('movie-1');
     expect(catalogue.getMovieDetailsWithExtras).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes rows stored before person IDs and serves them meanwhile', async () => {
+    Object.assign(row, {
+      detailsFetchedAt: new Date(),
+      detailsVersion: 1,
+      backdrops: ['/stored.jpg'],
+      director: 'Old Name',
+      cast: [{ name: 'Old', character: null, profile_path: null }],
+    });
+    catalogue.getMovieDetailsWithExtras.mockRejectedValueOnce(
+      new ServiceUnavailableException(),
+    );
+    const stale = await provider.getDetails('movie-1');
+    expect(stale.complete).toBe(false);
+    expect(stale.details).toMatchObject({
+      director: 'Old Name',
+      directors: [],
+      crew: [],
+      cast: [{ id: null, name: 'Old' }],
+    });
+    const fresh = await provider.getDetails('movie-1');
+    expect(fresh.details.cast[0].id).toBe(100);
+    expect(fresh.details.directors).toHaveLength(2);
+    expect(row.detailsVersion).toBe(DETAILS_VERSION);
   });
 
   it('does not call TMDb for current details', async () => {

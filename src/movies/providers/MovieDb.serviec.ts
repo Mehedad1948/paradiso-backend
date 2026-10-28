@@ -3,6 +3,7 @@ import {
   BadRequestException,
   GatewayTimeoutException,
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -15,6 +16,7 @@ export interface TmdbGenre {
 export interface TmdbMovie {
   id: number;
   title: string;
+  original_title?: string;
   overview: string;
   release_date: string;
   poster_path: string;
@@ -29,8 +31,18 @@ export interface TmdbMovie {
 }
 export interface TmdbMovieWithExtras extends TmdbMovie {
   credits?: {
-    cast?: { name: string; character?: string; profile_path?: string }[];
-    crew?: { name: string; job?: string }[];
+    cast?: {
+      id: number;
+      name: string;
+      character?: string;
+      profile_path?: string | null;
+    }[];
+    crew?: {
+      id: number;
+      name: string;
+      job?: string;
+      profile_path?: string | null;
+    }[];
   };
   videos?: {
     results?: {
@@ -51,9 +63,50 @@ export interface TmdbMovieWithExtras extends TmdbMovie {
   };
 }
 
+interface TmdbPersonCredit {
+  id: number;
+  title?: string;
+  original_title?: string;
+  release_date?: string;
+  poster_path?: string | null;
+  vote_average?: number;
+  vote_count?: number;
+  adult?: boolean;
+  popularity?: number;
+}
+export interface TmdbPerson {
+  id: number;
+  name: string;
+  biography?: string;
+  birthday?: string | null;
+  deathday?: string | null;
+  place_of_birth?: string | null;
+  profile_path?: string | null;
+  known_for_department?: string | null;
+  adult?: boolean;
+  movie_credits?: {
+    cast?: (TmdbPersonCredit & { character?: string | null })[];
+    crew?: (TmdbPersonCredit & { job?: string; department?: string })[];
+  };
+  external_ids?: { imdb_id?: string | null };
+}
+
+export const DEFAULT_LANGUAGE = 'en-US';
+// 429s are retried this many times, waiting Retry-After (capped) or backoff.
+export const RATE_LIMIT_RETRIES = 2;
+const RETRY_AFTER_CAP_MS = 5000;
+const RETRY_BACKOFF_MS = 500;
+
 @Injectable()
 export class MovieDbService {
+  private readonly logger = new Logger('TMDb');
+
   constructor(private readonly configService: ConfigService) {}
+
+  // Overridable so tests do not wait out real backoff.
+  protected wait(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
 
   private async get<T>(
     endpoint: string,
@@ -69,22 +122,33 @@ export class MovieDbService {
       'https://api.themoviedb.org/3';
     const url = new URL(baseUrl.replace(/\/$/, '') + '/' + endpoint);
     url.searchParams.set('api_key', apiKey);
-    url.searchParams.set('language', 'en-US');
+    url.searchParams.set('language', DEFAULT_LANGUAGE);
     for (const [key, value] of Object.entries(params))
       url.searchParams.set(key, String(value));
     let res: Response;
-    try {
-      res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    } catch (error) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        'name' in error &&
-        (error.name === 'TimeoutError' || error.name === 'AbortError')
-      ) {
-        throw new GatewayTimeoutException('Movie catalogue timed out');
+    for (let attempt = 0; ; attempt++) {
+      const started = Date.now();
+      try {
+        res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      } catch (error) {
+        const timedOut =
+          typeof error === 'object' &&
+          error !== null &&
+          'name' in error &&
+          (error.name === 'TimeoutError' || error.name === 'AbortError');
+        // Path only: the query string carries the API key.
+        this.logger.warn(
+          `GET ${endpoint} ${timedOut ? 'timed out' : 'failed'} after ${Date.now() - started}ms`,
+        );
+        if (timedOut)
+          throw new GatewayTimeoutException('Movie catalogue timed out');
+        throw new BadGatewayException('Movie catalogue is unavailable');
       }
-      throw new BadGatewayException('Movie catalogue is unavailable');
+      this.logger.log(
+        `GET ${endpoint} ${res.status} ${Date.now() - started}ms`,
+      );
+      if (res.status !== 429 || attempt >= RATE_LIMIT_RETRIES) break;
+      await this.wait(retryDelay(res.headers.get('retry-after'), attempt));
     }
     if (res.status === 404)
       throw new NotFoundException('Movie not found in catalogue');
@@ -155,4 +219,36 @@ export class MovieDbService {
       include_image_language: 'null,en',
     });
   }
+  // Profile, filmography and IMDb ID in one request.
+  getPerson(
+    personId: number,
+    language = DEFAULT_LANGUAGE,
+  ): Promise<TmdbPerson> {
+    if (!Number.isSafeInteger(personId) || personId < 1)
+      throw new BadRequestException('Invalid TMDb person ID');
+    return this.get<TmdbPerson>('person/' + personId, {
+      append_to_response: 'movie_credits,external_ids',
+      language,
+    });
+  }
+  // Just the profile, for the English biography fallback.
+  getPersonProfile(personId: number, language = DEFAULT_LANGUAGE) {
+    return this.get<Pick<TmdbPerson, 'id' | 'biography'>>(
+      'person/' + personId,
+      { language },
+    );
+  }
+}
+
+// Retry-After is seconds or an HTTP date; absent or invalid falls back to
+// exponential backoff.
+function retryDelay(header: string | null, attempt: number): number {
+  const backoff = RETRY_BACKOFF_MS * 2 ** attempt;
+  if (!header) return backoff;
+  const seconds = Number(header);
+  const ms = Number.isFinite(seconds)
+    ? seconds * 1000
+    : Date.parse(header) - Date.now();
+  if (Number.isNaN(ms)) return backoff;
+  return Math.min(Math.max(ms, 0), RETRY_AFTER_CAP_MS);
 }

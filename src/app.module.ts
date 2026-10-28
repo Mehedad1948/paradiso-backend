@@ -21,6 +21,7 @@ import databaseConfigs from './config/database.configs';
 import environmentValidation from './config/environment.validation';
 import { MailModule } from './mail/mail.module';
 import { MoviesModule } from './movies/movies.module';
+import { PeopleModule } from './people/people.module';
 import { RatingsModule } from './ratings/ratings.module';
 import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
@@ -59,6 +60,7 @@ const ENV = process.env.NODE_ENV || 'development';
     }),
     UsersModule,
     MoviesModule,
+    PeopleModule,
     RatingsModule,
     RolesModule,
     AuthModule,

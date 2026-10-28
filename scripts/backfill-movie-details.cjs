@@ -1,7 +1,7 @@
 // Refreshes stored TMDb details (backdrop gallery included) for catalogue
 // movies whose rows are outdated, through the same code path as
 // GET /movies/:id/details. Requires `npm run build` and the
-// MovieDetailsVersion migration.
+// MovieDetailsVersion and MovieCreditIds migrations.
 //   node scripts/backfill-movie-details.cjs          preview: list outdated movies
 //   node scripts/backfill-movie-details.cjs --apply  refresh them, ~4 per second
 // Re-running is safe: refreshed movies are no longer outdated, so a second

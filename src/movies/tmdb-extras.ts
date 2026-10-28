@@ -1,12 +1,20 @@
-import { Movie } from './movie.entity';
+import { Movie, MovieCrewMember, MovieKeyCrewMember } from './movie.entity';
 import { TmdbMovieWithExtras } from './providers/MovieDb.serviec';
 
 export const CAST_LIMIT = 8;
 export const BACKDROP_LIMIT = 8;
+export const KEY_CREW_LIMIT = 8;
+// Key crew jobs, in the order the details screen lists them.
+export const KEY_CREW_JOBS = [
+  'Screenplay',
+  'Writer',
+  'Director of Photography',
+  'Original Music Composer',
+];
 // Bump whenever toMovieExtras stores something new, so rows written by older
 // code (including a build still serving during a deploy) are refreshed.
-// 1: backdrop gallery.
-export const DETAILS_VERSION = 1;
+// 1: backdrop gallery. 2: person IDs, directors and key crew.
+export const DETAILS_VERSION = 2;
 
 export type MovieExtras = Pick<
   Movie,
@@ -15,6 +23,8 @@ export type MovieExtras = Pick<
   | 'backdrop_path'
   | 'backdrops'
   | 'director'
+  | 'directors'
+  | 'crew'
   | 'cast'
   | 'trailerKey'
   | 'detailsFetchedAt'
@@ -23,9 +33,20 @@ export type MovieExtras = Pick<
 
 // Keeps only what the details screen shows, so a row stays around 1 KB.
 export function toMovieExtras(details: TmdbMovieWithExtras): MovieExtras {
-  const directors = (details.credits?.crew ?? [])
-    .filter((member) => member.job === 'Director')
-    .map((member) => member.name);
+  const crew = details.credits?.crew ?? [];
+  const directors = new Map<number, MovieCrewMember>();
+  for (const member of crew)
+    if (member.job === 'Director' && !directors.has(member.id))
+      directors.set(member.id, toPerson(member));
+  // TMDb lists a person once per job; merge them, ordered by KEY_CREW_JOBS.
+  const keyCrew = new Map<number, MovieKeyCrewMember>();
+  for (const job of KEY_CREW_JOBS)
+    for (const member of crew) {
+      if (member.job !== job) continue;
+      const entry = keyCrew.get(member.id);
+      if (!entry) keyCrew.set(member.id, { ...toPerson(member), jobs: [job] });
+      else if (!entry.jobs.includes(job)) entry.jobs.push(job);
+    }
   const trailer = (details.videos?.results ?? [])
     .filter(
       (video) =>
@@ -57,8 +78,14 @@ export function toMovieExtras(details: TmdbMovieWithExtras): MovieExtras {
     tagline: details.tagline || null,
     backdrop_path: details.backdrop_path || null,
     backdrops,
-    director: [...new Set(directors)].join(', ') || null,
+    director:
+      [...new Set([...directors.values()].map(({ name }) => name))].join(
+        ', ',
+      ) || null,
+    directors: [...directors.values()],
+    crew: [...keyCrew.values()].slice(0, KEY_CREW_LIMIT),
     cast: (details.credits?.cast ?? []).slice(0, CAST_LIMIT).map((member) => ({
+      id: member.id,
       name: member.name,
       character: member.character || null,
       profile_path: member.profile_path || null,
@@ -68,3 +95,13 @@ export function toMovieExtras(details: TmdbMovieWithExtras): MovieExtras {
     detailsVersion: DETAILS_VERSION,
   };
 }
+
+const toPerson = (member: {
+  id: number;
+  name: string;
+  profile_path?: string | null;
+}): MovieCrewMember => ({
+  id: member.id,
+  name: member.name,
+  profile_path: member.profile_path || null,
+});

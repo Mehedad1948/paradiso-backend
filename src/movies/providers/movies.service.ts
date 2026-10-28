@@ -12,6 +12,7 @@ import { GetRatingDto } from '../../ratings/dtos/get-rating.dto';
 import { GetRoomRatingDto } from '../../rooms/dtos/get-room-ratings';
 import { MovieExtras } from '../tmdb-extras';
 import { MovieDetailsProvider } from './movie-details.provider';
+import { ResolvedMovie, ResolveMovieProvider } from './resolve-movie.provider';
 
 @Injectable()
 export class MoviesService {
@@ -20,7 +21,16 @@ export class MoviesService {
     private readonly getMovieProvider: GetMovieProvider,
     private readonly updateMovieProvider: UpdateMovieProvider,
     private readonly movieDetailsProvider: MovieDetailsProvider,
+    private readonly resolveMovieProvider: ResolveMovieProvider,
   ) {}
+
+  public resolveMovie(
+    tmdbId: number,
+    userId: number,
+    isWatchedTogether = false,
+  ): Promise<ResolvedMovie> {
+    return this.resolveMovieProvider.resolve(tmdbId, userId, isWatchedTogether);
+  }
 
   public async createMovie(
     createMovieDto: CreateMovieDto,

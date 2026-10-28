@@ -1,5 +1,7 @@
 import {
+  BadGatewayException,
   INestApplication,
+  NotFoundException,
   ServiceUnavailableException,
   ValidationPipe,
 } from '@nestjs/common';
@@ -147,8 +149,10 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         backdrop_path: '/backdrop.jpg',
         genres: [],
         credits: {
-          cast: [{ name: 'Lead', character: 'Hero', profile_path: '/p.jpg' }],
-          crew: [{ name: 'A Director', job: 'Director' }],
+          cast: [
+            { id: 77, name: 'Lead', character: 'Hero', profile_path: '/p.jpg' },
+          ],
+          crew: [{ id: 88, name: 'A Director', job: 'Director' }],
         },
         videos: {
           results: [{ key: 'abc123', site: 'YouTube', type: 'Trailer' }],
@@ -1301,7 +1305,11 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       runtime: 136,
       tagline: 'A tagline',
       director: 'A Director',
-      cast: [{ name: 'Lead', character: 'Hero', profile_path: '/p.jpg' }],
+      directors: [{ id: 88, name: 'A Director', profile_path: null }],
+      crew: [],
+      cast: [
+        { id: 77, name: 'Lead', character: 'Hero', profile_path: '/p.jpg' },
+      ],
       backdrops: ['/backdrop.jpg', '/still.jpg'],
       trailerKey: 'abc123',
     });
@@ -1352,6 +1360,135 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     await request(server)
       .get('/movies/' + randomUUID() + '/details')
       .expect(404);
+  });
+
+  it('resolves a TMDb film to one movie, even under concurrent calls', async () => {
+    const server = app.getHttpServer();
+    const document = createOpenApiDocument(app);
+    await request(server)
+      .post('/movies/resolve')
+      .send({ tmdbId: 4242 })
+      .expect(401);
+    await request(server)
+      .post('/movies/resolve')
+      .auth(access[0], { type: 'bearer' })
+      .send({ tmdbId: 0 })
+      .expect(400);
+    const resolved = await request(server)
+      .post('/movies/resolve')
+      .auth(access[0], { type: 'bearer' })
+      .send({ tmdbId: 123 })
+      .expect(200);
+    assertOpenApiResponse(document, 'Movies_resolveMovie', resolved.body);
+    expect(resolved.body.id).toBe(movieId);
+
+    catalogueDetails.mockClear();
+    // Both callers miss the library before either inserts.
+    const slow = () =>
+      new Promise((resolve) =>
+        setTimeout(
+          () =>
+            resolve({
+              id: 4242,
+              title: 'Raced film',
+              release_date: '2020-02-02',
+              genres: [{ id: 28, name: 'Action' }],
+              credits: { cast: [], crew: [] },
+            }),
+          100,
+        ),
+      );
+    catalogueDetails.mockImplementationOnce(slow).mockImplementationOnce(slow);
+    const [first, second] = await Promise.all(
+      [0, 1].map((index) =>
+        request(server)
+          .post('/movies/resolve')
+          .auth(access[index], { type: 'bearer' })
+          .send({ tmdbId: 4242 })
+          .expect(200),
+      ),
+    );
+    expect(catalogueDetails).toHaveBeenCalledTimes(2);
+    expect(first.body.id).toBe(second.body.id);
+    const stored = await database.getRepository(Movie).find({
+      where: { dbId: 4242 },
+      relations: { genres: true },
+    });
+    expect(stored).toHaveLength(1);
+    expect(stored[0]).toMatchObject({
+      id: first.body.id,
+      title: 'Raced film',
+      genres: [{ tmdbId: 28 }],
+    });
+    // Imported with its details, so opening it needs no catalogue call.
+    catalogueDetails.mockClear();
+    await request(server)
+      .get('/movies/' + first.body.id + '/details')
+      .expect(200);
+    expect(catalogueDetails).not.toHaveBeenCalled();
+  });
+
+  it('serves people from TMDb with credits matched to the library', async () => {
+    const server = app.getHttpServer();
+    const document = createOpenApiDocument(app);
+    const credit = (id: number, release_date: string, extra = {}) => ({
+      id,
+      title: 'Film ' + id,
+      release_date,
+      poster_path: null,
+      vote_average: 8,
+      vote_count: 10,
+      ...extra,
+    });
+    const person = jest
+      .spyOn(MovieDbService.prototype, 'getPerson')
+      .mockResolvedValue({
+        id: 525,
+        name: 'Christopher Nolan',
+        biography: 'Biography.',
+        birthday: '1970-07-30',
+        deathday: null,
+        place_of_birth: 'London, England, UK',
+        profile_path: '/nolan.jpg',
+        known_for_department: 'Directing',
+        external_ids: { imdb_id: 'nm0634240' },
+        movie_credits: {
+          cast: [credit(55, '2001-01-01', { character: 'Himself' })],
+          crew: [
+            credit(123, '2010-07-15', { job: 'Director' }),
+            credit(123, '2010-07-15', { job: 'Writer' }),
+            credit(123, '2010-07-15', { job: 'Producer' }),
+            credit(99999, '', { job: 'Director' }),
+          ],
+        },
+      });
+    try {
+      const response = await request(server)
+        .get('/people/525')
+        .expect(200)
+        .expect('Cache-Control', /public/);
+      assertOpenApiResponse(document, 'People_getPerson', response.body);
+      expect(response.body).toMatchObject({
+        id: 525,
+        knownForDepartment: 'Directing',
+        imdbId: 'nm0634240',
+        credits: {
+          directing: [
+            { tmdbId: 99999, movieId: null, release_date: null },
+            { tmdbId: 123, movieId },
+          ],
+          acting: [],
+          crew: [{ tmdbId: 123, movieId, jobs: ['Writer', 'Producer'] }],
+        },
+      });
+      await request(server).get('/people/abc').expect(400);
+      person.mockRejectedValueOnce(new NotFoundException());
+      await request(server).get('/people/526').expect(404);
+      person.mockRejectedValueOnce(new BadGatewayException());
+      await request(server).get('/people/527').expect(502);
+    } finally {
+      person.mockRestore();
+    }
   });
 
   it('refreshes details stored before the gallery, on read and by backfill', async () => {

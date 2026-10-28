@@ -60,6 +60,64 @@ const movieProperties: Properties = {
   genres: array(ref('Genre')),
 };
 const movie = object(movieProperties);
+// TMDb people; id is the TMDb person ID for /people/{tmdbPersonId}.
+const personProperties: Properties = {
+  id: integer,
+  name: string,
+  profile_path: nullable(string),
+};
+const creditItem = object(
+  {
+    tmdbId: integer,
+    movieId: {
+      ...nullable(uuid),
+      description: 'Our movie ID when the film is in the library, else null.',
+    },
+    title: string,
+    release_date: nullable(string),
+    poster_path: nullable(string),
+    vote_average: nullable(number),
+    character: { ...nullable(string), description: 'Acting credits only.' },
+    jobs: {
+      ...array(string),
+      minItems: 1,
+      description: 'Crew credits only: every job on the film, merged.',
+    },
+  },
+  ['tmdbId', 'movieId', 'title', 'release_date', 'poster_path', 'vote_average'],
+);
+const creditList = (description: string): SchemaObject => ({
+  ...array(ref('CreditItem')),
+  description,
+});
+const person = object({
+  ...personProperties,
+  biography: {
+    ...string,
+    description:
+      'In the requested language, falling back to en-US; empty when unknown.',
+  },
+  birthday: nullable(string),
+  deathday: nullable(string),
+  placeOfBirth: nullable(string),
+  knownForDepartment: {
+    ...nullable(string),
+    description:
+      'TMDb department, e.g. Directing or Acting; pick the first tab from it.',
+  },
+  imdbId: nullable(string),
+  credits: object({
+    directing: creditList(
+      'Films directed. Unreleased (no release_date) first, then newest first.',
+    ),
+    acting: creditList(
+      'Acting roles, several roles in one film joined with " / ". Self appearances are left out. Same order.',
+    ),
+    crew: creditList(
+      'Other crew work, one entry per film with jobs merged. Same order.',
+    ),
+  }),
+});
 const movieDetails = object({
   id: uuid,
   dbId: nullable(integer),
@@ -81,10 +139,36 @@ const movieDetails = object({
   imdbRate: nullable(number),
   imdbLink: nullable(string),
   genres: array(ref('Genre')),
-  director: nullable(string),
+  director: {
+    ...nullable(string),
+    deprecated: true,
+    description:
+      'Comma-separated director names. Deprecated: read directors instead.',
+  },
+  directors: {
+    ...array(ref('MovieCrewMember')),
+    description:
+      'Every credited director (co-directors included); empty when unknown.',
+  },
+  crew: {
+    ...array(
+      object({
+        ...personProperties,
+        jobs: { ...array(string), minItems: 1 },
+      }),
+    ),
+    maxItems: 8,
+    description:
+      'Key crew (Screenplay, Writer, Director of Photography, Original Music Composer), one entry per person with every job they held.',
+  },
   cast: {
     ...array(
       object({
+        id: {
+          ...nullable(integer),
+          description:
+            'TMDb person ID for /people/{tmdbPersonId}; null only while stored details predate person IDs.',
+        },
         name: string,
         character: nullable(string),
         profile_path: nullable(string),
@@ -455,6 +539,10 @@ export const responseSchemas: Record<string, SchemaObject> = {
   Movie: movie,
   MovieResponse: envelope(movie),
   MovieDetailsResponse: envelope(movieDetails),
+  MovieCrewMember: object(personProperties),
+  CreditItem: creditItem,
+  PersonResponse: envelope(person),
+  ResolvedMovieResponse: envelope(object({ id: uuid })),
   MovieListResponse: envelope(page(ref('Movie'))),
   CreatedMovieResponse: envelope(
     object({ ...movieProperties, addedBy: object({ id: integer }) }, [
@@ -847,6 +935,8 @@ export const operationResponses: Record<string, string> = {
   MovieComments_remove: 'MessageResponse',
   Movies_updateMovieById: 'UpdatedMovieResponse',
   Movies_createMovie: 'CreatedMovieResponse',
+  Movies_resolveMovie: 'ResolvedMovieResponse',
+  People_getPerson: 'PersonResponse',
   Movies_searchMoviesFromTmdb: 'TmdbSearchResponse',
   Movies_getTmdbGenres: 'TmdbGenresResponse',
   Movies_getTmdbMovieDetails: 'TmdbMovieResponse',

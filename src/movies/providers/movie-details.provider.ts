@@ -1,7 +1,12 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
-import { Movie } from '../movie.entity';
+import {
+  Movie,
+  MovieCastMember,
+  MovieCrewMember,
+  MovieKeyCrewMember,
+} from '../movie.entity';
 import { DETAILS_VERSION, toMovieExtras } from '../tmdb-extras';
 import { MovieDbService } from './MovieDb.serviec';
 
@@ -22,9 +27,13 @@ export type MovieDetails = Pick<
   | 'imdbRate'
   | 'imdbLink'
   | 'director'
-  | 'cast'
   | 'trailerKey'
-> & { genres: { id: string; name: string; tmdbId: number }[] };
+> & {
+  genres: { id: string; name: string; tmdbId: number }[];
+  directors: MovieCrewMember[];
+  crew: MovieKeyCrewMember[];
+  cast: (Omit<MovieCastMember, 'id'> & { id: number | null })[];
+};
 
 // complete is false while the catalogue could not be reached, so callers
 // know not to cache a response that is still missing its stored details.
@@ -160,6 +169,8 @@ export class MovieDetailsProvider {
         'movie.imdbRate',
         'movie.imdbLink',
         'movie.director',
+        'movie.directors',
+        'movie.crew',
         'movie.cast',
         'movie.trailerKey',
         'movie.detailsFetchedAt',
@@ -236,7 +247,15 @@ export class MovieDetailsProvider {
         tmdbId,
       })),
       director: movie.director,
-      cast: movie.cast ?? [],
+      directors: movie.directors ?? [],
+      crew: movie.crew ?? [],
+      // Cast stored before DETAILS_VERSION 2 has no person IDs.
+      cast: (movie.cast ?? []).map((member) => ({
+        id: member.id ?? null,
+        name: member.name,
+        character: member.character,
+        profile_path: member.profile_path,
+      })),
       trailerKey: movie.trailerKey,
     };
   }

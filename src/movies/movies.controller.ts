@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
@@ -19,6 +21,8 @@ import { CreateMovieDto } from './dtos/create-movie.dto';
 import { GetMovieDto } from './dtos/get-movie.dto';
 import { MovieDbService } from './providers/MovieDb.serviec';
 import { MoviesService } from './providers/movies.service';
+import { ResolveMovieDto } from './dtos/resolve-movie.dto';
+import { ActiveUser } from '../auth/decorator/active-user.decorator';
 
 @Controller('movies')
 export class MoviesController {
@@ -59,6 +63,19 @@ export class MoviesController {
         : 'no-store',
     );
     return details;
+  }
+
+  // Our ID for a TMDb film, importing it on first use. Idempotent, so
+  // repeated or concurrent calls for one film return the same movie.
+  @Post('resolve')
+  @HttpCode(HttpStatus.OK)
+  @Auth(AuthType.Bearer)
+  async resolveMovie(
+    @Body() { tmdbId }: ResolveMovieDto,
+    @ActiveUser('sub') userId: number,
+  ) {
+    const { id } = await this.movieService.resolveMovie(tmdbId, userId);
+    return { id };
   }
 
   // Local DB: Update movie

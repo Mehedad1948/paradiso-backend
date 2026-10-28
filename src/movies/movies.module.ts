@@ -13,6 +13,7 @@ import { GenresModule } from '../genres/genres.module';
 import { RoomsModule } from '../rooms/rooms.module';
 import { RatingsModule } from '../ratings/ratings.module';
 import { MovieDetailsProvider } from './providers/movie-details.provider';
+import { ResolveMovieProvider } from './providers/resolve-movie.provider';
 
 @Module({
   controllers: [MoviesController],
@@ -23,6 +24,7 @@ import { MovieDetailsProvider } from './providers/movie-details.provider';
     UpdateMovieProvider,
     MovieDbService,
     MovieDetailsProvider,
+    ResolveMovieProvider,
   ],
   imports: [
     TypeOrmModule.forFeature([Movie]),
@@ -32,6 +34,6 @@ import { MovieDetailsProvider } from './providers/movie-details.provider';
     UsersModule,
     GenresModule,
   ],
-  exports: [MoviesService, MovieDbService],
+  exports: [MoviesService, MovieDbService, ResolveMovieProvider],
 })
 export class MoviesModule {}

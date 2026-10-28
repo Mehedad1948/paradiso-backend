@@ -896,6 +896,53 @@
         "summary": "get Movie Details"
       }
     },
+    "/movies/resolve": {
+      "post": {
+        "operationId": "Movies_resolveMovie",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveMovieDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolvedMovieResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Movies"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "summary": "resolve Movie"
+      }
+    },
     "/movies/tmdb/search": {
       "get": {
         "operationId": "Movies_searchMoviesFromTmdb",
@@ -6654,6 +6701,60 @@
           }
         ]
       }
+    },
+    "/people/{tmdbPersonId}": {
+      "get": {
+        "operationId": "People_getPerson",
+        "parameters": [
+          {
+            "name": "tmdbPersonId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "language",
+            "required": false,
+            "in": "query",
+            "description": "TMDb language for the biography and titles. An empty biography falls back to en-US.",
+            "schema": {
+              "pattern": "^[a-z]{2}(-[A-Z]{2})?$",
+              "default": "en-US",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "People"
+        ],
+        "security": [],
+        "summary": "get Person"
+      }
     }
   },
   "info": {
@@ -6792,6 +6893,20 @@
             "nullable": true
           }
         },
+        "additionalProperties": false
+      },
+      "ResolveMovieDto": {
+        "type": "object",
+        "properties": {
+          "tmdbId": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "tmdbId"
+        ],
         "additionalProperties": false
       },
       "UpdateMovieDto": {
@@ -9647,13 +9762,60 @@
           },
           "director": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "deprecated": true,
+            "description": "Comma-separated director names. Deprecated: read directors instead."
+          },
+          "directors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovieCrewMember"
+            },
+            "description": "Every credited director (co-directors included); empty when unknown."
+          },
+          "crew": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "integer"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "profile_path": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "jobs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "minItems": 1
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "profile_path",
+                "jobs"
+              ]
+            },
+            "maxItems": 8,
+            "description": "Key crew (Screenplay, Writer, Director of Photography, Original Music Composer), one entry per person with every job they held."
           },
           "cast": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
+                "id": {
+                  "type": "integer",
+                  "nullable": true,
+                  "description": "TMDb person ID for /people/{tmdbPersonId}; null only while stored details predate person IDs."
+                },
                 "name": {
                   "type": "string"
                 },
@@ -9667,6 +9829,7 @@
                 }
               },
               "required": [
+                "id",
                 "name",
                 "character",
                 "profile_path"
@@ -9701,8 +9864,183 @@
           "imdbLink",
           "genres",
           "director",
+          "directors",
+          "crew",
           "cast",
           "trailerKey",
+          "apiVersion"
+        ]
+      },
+      "MovieCrewMember": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "profile_path": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "profile_path"
+        ]
+      },
+      "CreditItem": {
+        "type": "object",
+        "properties": {
+          "tmdbId": {
+            "type": "integer"
+          },
+          "movieId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Our movie ID when the film is in the library, else null."
+          },
+          "title": {
+            "type": "string"
+          },
+          "release_date": {
+            "type": "string",
+            "nullable": true
+          },
+          "poster_path": {
+            "type": "string",
+            "nullable": true
+          },
+          "vote_average": {
+            "type": "number",
+            "nullable": true
+          },
+          "character": {
+            "type": "string",
+            "nullable": true,
+            "description": "Acting credits only."
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Crew credits only: every job on the film, merged."
+          }
+        },
+        "required": [
+          "tmdbId",
+          "movieId",
+          "title",
+          "release_date",
+          "poster_path",
+          "vote_average"
+        ]
+      },
+      "PersonResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "profile_path": {
+            "type": "string",
+            "nullable": true
+          },
+          "biography": {
+            "type": "string",
+            "description": "In the requested language, falling back to en-US; empty when unknown."
+          },
+          "birthday": {
+            "type": "string",
+            "nullable": true
+          },
+          "deathday": {
+            "type": "string",
+            "nullable": true
+          },
+          "placeOfBirth": {
+            "type": "string",
+            "nullable": true
+          },
+          "knownForDepartment": {
+            "type": "string",
+            "nullable": true,
+            "description": "TMDb department, e.g. Directing or Acting; pick the first tab from it."
+          },
+          "imdbId": {
+            "type": "string",
+            "nullable": true
+          },
+          "credits": {
+            "type": "object",
+            "properties": {
+              "directing": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CreditItem"
+                },
+                "description": "Films directed. Unreleased (no release_date) first, then newest first."
+              },
+              "acting": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CreditItem"
+                },
+                "description": "Acting roles, several roles in one film joined with \" / \". Self appearances are left out. Same order."
+              },
+              "crew": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/CreditItem"
+                },
+                "description": "Other crew work, one entry per film with jobs merged. Same order."
+              }
+            },
+            "required": [
+              "directing",
+              "acting",
+              "crew"
+            ]
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "profile_path",
+          "biography",
+          "birthday",
+          "deathday",
+          "placeOfBirth",
+          "knownForDepartment",
+          "imdbId",
+          "credits",
+          "apiVersion"
+        ]
+      },
+      "ResolvedMovieResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
           "apiVersion"
         ]
       },

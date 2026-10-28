@@ -273,6 +273,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/movies/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** resolve Movie */
+        post: operations["Movies_resolveMovie"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/movies/tmdb/search": {
         parameters: {
             query?: never;
@@ -1602,6 +1619,23 @@ export interface paths {
         patch: operations["MovieComments_update"];
         trace?: never;
     };
+    "/people/{tmdbPersonId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** get Person */
+        get: operations["People_getPerson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1637,6 +1671,10 @@ export interface components {
             name?: string;
             /** Format: int32 */
             tmdbId?: number | null;
+        };
+        ResolveMovieDto: {
+            /** Format: int32 */
+            tmdbId: number;
         };
         UpdateMovieDto: {
             title?: string;
@@ -2445,15 +2483,78 @@ export interface components {
             imdbRate: number | null;
             imdbLink: string | null;
             genres: components["schemas"]["Genre"][];
+            /**
+             * @deprecated
+             * @description Comma-separated director names. Deprecated: read directors instead.
+             */
             director: string | null;
+            /** @description Every credited director (co-directors included); empty when unknown. */
+            directors: components["schemas"]["MovieCrewMember"][];
+            /** @description Key crew (Screenplay, Writer, Director of Photography, Original Music Composer), one entry per person with every job they held. */
+            crew: {
+                id: number;
+                name: string;
+                profile_path: string | null;
+                jobs: string[];
+            }[];
             /** @description Top-billed cast in billing order; empty when unknown. */
             cast: {
+                /** @description TMDb person ID for /people/{tmdbPersonId}; null only while stored details predate person IDs. */
+                id: number | null;
                 name: string;
                 character: string | null;
                 profile_path: string | null;
             }[];
             /** @description YouTube video key: https://www.youtube.com/watch?v={key} */
             trailerKey: string | null;
+            apiVersion: string;
+        };
+        MovieCrewMember: {
+            id: number;
+            name: string;
+            profile_path: string | null;
+        };
+        CreditItem: {
+            tmdbId: number;
+            /**
+             * Format: uuid
+             * @description Our movie ID when the film is in the library, else null.
+             */
+            movieId: string | null;
+            title: string;
+            release_date: string | null;
+            poster_path: string | null;
+            vote_average: number | null;
+            /** @description Acting credits only. */
+            character?: string | null;
+            /** @description Crew credits only: every job on the film, merged. */
+            jobs?: string[];
+        };
+        PersonResponse: {
+            id: number;
+            name: string;
+            profile_path: string | null;
+            /** @description In the requested language, falling back to en-US; empty when unknown. */
+            biography: string;
+            birthday: string | null;
+            deathday: string | null;
+            placeOfBirth: string | null;
+            /** @description TMDb department, e.g. Directing or Acting; pick the first tab from it. */
+            knownForDepartment: string | null;
+            imdbId: string | null;
+            credits: {
+                /** @description Films directed. Unreleased (no release_date) first, then newest first. */
+                directing: components["schemas"]["CreditItem"][];
+                /** @description Acting roles, several roles in one film joined with " / ". Self appearances are left out. Same order. */
+                acting: components["schemas"]["CreditItem"][];
+                /** @description Other crew work, one entry per film with jobs merged. Same order. */
+                crew: components["schemas"]["CreditItem"][];
+            };
+            apiVersion: string;
+        };
+        ResolvedMovieResponse: {
+            /** Format: uuid */
+            id: string;
             apiVersion: string;
         };
         MovieListResponse: {
@@ -3728,6 +3829,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MovieDetailsResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Movies_resolveMovie: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResolveMovieDto"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResolvedMovieResponse"];
                 };
             };
             /** @description Error response */
@@ -7103,6 +7237,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MovieCommentResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    People_getPerson: {
+        parameters: {
+            query?: {
+                /** @description TMDb language for the biography and titles. An empty biography falls back to en-US. */
+                language?: string;
+            };
+            header?: never;
+            path: {
+                tmdbPersonId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonResponse"];
                 };
             };
             /** @description Error response */

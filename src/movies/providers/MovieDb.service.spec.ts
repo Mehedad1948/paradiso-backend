@@ -1,14 +1,23 @@
 import {
   BadGatewayException,
+  BadRequestException,
   GatewayTimeoutException,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MovieDbService } from './MovieDb.serviec';
+import { MovieDbService, RATE_LIMIT_RETRIES } from './MovieDb.serviec';
 
 describe('Movie catalogue failure handling', () => {
-  const service = new MovieDbService(
+  const waits: number[] = [];
+  // Records backoff instead of sleeping through it.
+  class TestMovieDbService extends MovieDbService {
+    protected wait(ms: number) {
+      waits.push(ms);
+      return Promise.resolve();
+    }
+  }
+  const service = new TestMovieDbService(
     new ConfigService({
       appConfig: {
         tmdbApiKey: 'test-only',
@@ -16,7 +25,10 @@ describe('Movie catalogue failure handling', () => {
       },
     }),
   );
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    jest.restoreAllMocks();
+    waits.length = 0;
+  });
   it.each([
     [404, NotFoundException],
     [429, ServiceUnavailableException],
@@ -32,6 +44,50 @@ describe('Movie catalogue failure handling', () => {
       );
     },
   );
+  it('retries rate limits, honouring Retry-After, then succeeds', async () => {
+    const fetch = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(
+        new Response('', { status: 429, headers: { 'Retry-After': '2' } }),
+      )
+      .mockResolvedValueOnce(new Response('', { status: 429 }))
+      .mockResolvedValueOnce(Response.json({ id: 1, title: 'Found' }));
+    await expect(service.getMovieDetails(1)).resolves.toMatchObject({
+      title: 'Found',
+    });
+    expect(fetch).toHaveBeenCalledTimes(3);
+    // Retry-After in seconds, then exponential backoff without the header.
+    expect(waits).toEqual([2000, 1000]);
+  });
+  it('gives up on a rate limit after the retries', async () => {
+    const fetch = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response('', { status: 429, headers: { 'Retry-After': '600' } }),
+        ),
+      );
+    await expect(service.getMovieDetails(1)).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    expect(fetch).toHaveBeenCalledTimes(RATE_LIMIT_RETRIES + 1);
+    // Long Retry-After values are capped so a request never hangs.
+    expect(Math.max(...waits)).toBe(5000);
+  });
+  it('asks for a person, credits and external IDs in one request', async () => {
+    const fetch = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(Response.json({ id: 525, name: 'Someone' }));
+    await service.getPerson(525, 'fr-FR');
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const url = new URL(fetch.mock.calls[0][0] as URL);
+    expect(url.pathname).toBe('/3/person/525');
+    expect(url.searchParams.get('append_to_response')).toBe(
+      'movie_credits,external_ids',
+    );
+    expect(url.searchParams.get('language')).toBe('fr-FR');
+    expect(() => service.getPerson(0)).toThrow(BadRequestException);
+  });
   it('bounds requests and reports timeouts', async () => {
     const fetch = jest
       .spyOn(globalThis, 'fetch')

@@ -16,10 +16,23 @@ import {
 } from 'typeorm';
 import { Room } from '../rooms/room.entity';
 
+// id is the TMDb person ID; rows stored before DETAILS_VERSION 2 lack it.
 export interface MovieCastMember {
+  id?: number;
   name: string;
   character: string | null;
   profile_path: string | null;
+}
+
+export interface MovieCrewMember {
+  id: number;
+  name: string;
+  profile_path: string | null;
+}
+
+// One entry per person, with every key job they held on the film.
+export interface MovieKeyCrewMember extends MovieCrewMember {
+  jobs: string[];
 }
 
 @Entity()
@@ -79,8 +92,16 @@ export class Movie {
   @Column({ type: 'jsonb', nullable: true, select: false })
   backdrops: string[] | null;
 
+  // Deprecated: names from directors, kept until clients read directors.
   @Column({ type: 'varchar', nullable: true, select: false })
   director: string | null;
+
+  @Column({ type: 'jsonb', nullable: true, select: false })
+  directors: MovieCrewMember[] | null;
+
+  // Writers, cinematographer and composer; directors are listed apart.
+  @Column({ type: 'jsonb', nullable: true, select: false })
+  crew: MovieKeyCrewMember[] | null;
 
   @Column({ type: 'jsonb', nullable: true, select: false })
   cast: MovieCastMember[] | null;

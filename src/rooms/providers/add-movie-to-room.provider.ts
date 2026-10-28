@@ -5,13 +5,11 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MovieDbService } from '../../movies/providers/MovieDb.serviec';
 import { MoviesService } from '../../movies/providers/movies.service';
 import { EntityManager, Repository } from 'typeorm';
 import { Room } from '../room.entity';
 import { lockRoom } from './room-transaction';
 import { Movie } from '../../movies/movie.entity';
-import { toMovieExtras } from '../../movies/tmdb-extras';
 import { CreateCustomMovieDto } from '../../movies/dtos/create-custom-movie.dto';
 import { NotificationsService } from '../../notifications/notifications.service';
 
@@ -20,7 +18,6 @@ export class AddMovieToRoomProvider {
   constructor(
     @Inject(forwardRef(() => MoviesService))
     private readonly movieService: MoviesService,
-    private readonly movieDbService: MovieDbService,
     @InjectRepository(Room) private readonly roomRepository: Repository<Room>,
     private readonly notifications: NotificationsService,
   ) {}
@@ -67,23 +64,11 @@ export class AddMovieToRoomProvider {
     dbId: number,
     isWatchedTogether = false,
   ) {
-    let movie = await this.movieService.getMovieWithMovieDbId(dbId);
-    if (!movie) {
-      // The same request stores the details screen's data, so it never
-      // has to call the catalogue for this movie again.
-      const details = await this.movieDbService.getMovieDetailsWithExtras(dbId);
-      try {
-        movie = await this.movieService.createMovie(
-          { ...details, dbId: details.id, isWatchedTogether },
-          toMovieExtras(details),
-        );
-      } catch (error) {
-        // Another room may import the same catalogue movie concurrently.
-        if (!(error instanceof ConflictException)) throw error;
-        movie = await this.movieService.getMovieWithMovieDbId(dbId);
-        if (!movie) throw error;
-      }
-    }
+    const movie = await this.movieService.resolveMovie(
+      dbId,
+      userId,
+      isWatchedTogether,
+    );
     const movieId = movie.id;
     return this.roomRepository.manager.transaction(async (manager) => {
       await lockRoom(manager, roomId);
