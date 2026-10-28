@@ -43,6 +43,9 @@ const {
 const {
   FavoriteNotes1793145600000,
 } = require('../dist/favorites/migrations/1793145600000-favorite-notes');
+const {
+  MovieDetails1793232000000,
+} = require('../dist/movies/migrations/1793232000000-movie-details');
 
 const migrations = [
   Community1790985600000,
@@ -58,6 +61,7 @@ const migrations = [
   Notifications1792972800000,
   RoomUserInvitations1793059200000,
   FavoriteNotes1793145600000,
+  MovieDetails1793232000000,
 ];
 
 async function main() {

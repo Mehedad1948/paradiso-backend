@@ -256,6 +256,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/movies/{id}/details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** get Movie Details */
+        get: operations["Movies_getMovieDetails"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/movies/tmdb/search": {
         parameters: {
             query?: never;
@@ -2254,6 +2271,7 @@ export interface components {
             imdbRate: number | null;
             imdbLink: string | null;
             isWatchedTogether: boolean;
+            runtime: number | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -2275,12 +2293,41 @@ export interface components {
             imdbRate: number | null;
             imdbLink: string | null;
             isWatchedTogether: boolean;
+            runtime: number | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
             addedBy: components["schemas"]["PublicUser"] | (never | null);
             genres: components["schemas"]["Genre"][];
+            apiVersion: string;
+        };
+        MovieDetailsResponse: {
+            /** Format: uuid */
+            id: string;
+            dbId: number | null;
+            title: string;
+            original_title: string | null;
+            tagline: string | null;
+            overview: string | null;
+            release_date: string | null;
+            /** @description Minutes. */
+            runtime: number | null;
+            poster_path: string | null;
+            backdrop_path: string | null;
+            vote_average: number | null;
+            imdbRate: number | null;
+            imdbLink: string | null;
+            genres: components["schemas"]["Genre"][];
+            director: string | null;
+            /** @description Top-billed cast in billing order; empty when unknown. */
+            cast: {
+                name: string;
+                character: string | null;
+                profile_path: string | null;
+            }[];
+            /** @description YouTube video key: https://www.youtube.com/watch?v={key} */
+            trailerKey: string | null;
             apiVersion: string;
         };
         MovieListResponse: {
@@ -2303,6 +2350,7 @@ export interface components {
             imdbRate?: number | null;
             imdbLink?: string | null;
             isWatchedTogether: boolean;
+            runtime?: number | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -2355,6 +2403,7 @@ export interface components {
             imdbRate: number | null;
             imdbLink: string | null;
             isWatchedTogether: boolean;
+            runtime: number | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -2377,6 +2426,7 @@ export interface components {
             imdbRate: number | null;
             imdbLink: string | null;
             isWatchedTogether: boolean;
+            runtime: number | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -2411,6 +2461,7 @@ export interface components {
                 imdbRate: number | null;
                 imdbLink: string | null;
                 isWatchedTogether: boolean;
+                runtime: number | null;
                 /** Format: date-time */
                 createdAt: string;
                 /** Format: date-time */
@@ -3520,6 +3571,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UpdatedMovieResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Movies_getMovieDetails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MovieDetailsResponse"];
                 };
             };
             /** @description Error response */

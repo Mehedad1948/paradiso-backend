@@ -12,6 +12,7 @@ import { QueryFailedError, Repository } from 'typeorm';
 import { CreateMovieDto } from '../dtos/create-movie.dto';
 import { Movie } from '../movie.entity';
 import { GenresService } from '../../genres/providers/genres.service';
+import { MovieExtras } from '../tmdb-extras';
 
 @Injectable()
 export class CreateMovieProvider {
@@ -21,7 +22,7 @@ export class CreateMovieProvider {
     private readonly movieRepository: Repository<Movie>,
     private readonly genresService: GenresService,
   ) {}
-  async createMovie(dto: CreateMovieDto): Promise<Movie> {
+  async createMovie(dto: CreateMovieDto, extras?: MovieExtras): Promise<Movie> {
     const userId = this.request[REQUEST_USER_KEY]?.sub;
     if (!userId) throw new UnauthorizedException();
     const genres = dto.genres?.length
@@ -38,12 +39,14 @@ export class CreateMovieProvider {
       release_date: dto.release_date,
       video: dto.video,
       poster_path: dto.poster_path,
+      backdrop_path: dto.backdrop_path,
       vote_average: dto.vote_average,
       imdbRate: dto.imdbRate,
       imdbLink: dto.imdbLink,
       isWatchedTogether: dto.isWatchedTogether ?? false,
       addedBy: { id: userId },
       genres,
+      ...extras,
     });
     try {
       return await this.movieRepository.save(movie);

@@ -16,6 +16,12 @@ import {
 } from 'typeorm';
 import { Room } from '../rooms/room.entity';
 
+export interface MovieCastMember {
+  name: string;
+  character: string | null;
+  profile_path: string | null;
+}
+
 @Entity()
 @Unique(['dbId'])
 @Index('IDX_movie_created_id', ['createdAt', 'id'])
@@ -56,6 +62,32 @@ export class Movie {
 
   @Column({ default: false })
   isWatchedTogether: boolean;
+
+  // Minutes. Small enough to ride along with every list that loads a movie.
+  @Column({ type: 'integer', nullable: true })
+  runtime: number | null;
+
+  // The columns below only feed the details screen, so default selects (and
+  // with them every list that loads whole movies) leave them out.
+  @Column({ type: 'varchar', nullable: true, select: false })
+  tagline: string | null;
+
+  @Column({ type: 'varchar', nullable: true, select: false })
+  backdrop_path: string | null;
+
+  @Column({ type: 'varchar', nullable: true, select: false })
+  director: string | null;
+
+  @Column({ type: 'jsonb', nullable: true, select: false })
+  cast: MovieCastMember[] | null;
+
+  // YouTube video key.
+  @Column({ type: 'varchar', length: 32, nullable: true, select: false })
+  trailerKey: string | null;
+
+  // Set once TMDb details were stored; null rows are filled on first view.
+  @Column({ type: 'timestamptz', nullable: true, select: false })
+  detailsFetchedAt: Date | null;
 
   @ManyToOne(() => User, { eager: true })
   addedBy: User;

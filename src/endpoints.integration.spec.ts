@@ -1,4 +1,8 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import {
+  INestApplication,
+  ServiceUnavailableException,
+  ValidationPipe,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getDataSourceToken } from '@nestjs/typeorm';
 import { DataSource, In, IsNull, MoreThan } from 'typeorm';
@@ -46,6 +50,10 @@ import { RoomChat1792368000000 } from './room-chat/migrations/1792368000000-room
 import { OnboardingGenres1792627200000 } from './users/migrations/1792627200000-onboarding-genres';
 import { GenerateTokensProvider } from './auth/providers/generate-tokens.provider';
 import { MailService } from './mail/providers/mail.service';
+import {
+  MovieDbService,
+  TmdbMovieWithExtras,
+} from './movies/providers/MovieDb.serviec';
 import { createOpenApiDocument, setupOpenApi } from './openapi/document';
 import { assertOpenApiResponse } from '../test/openapi-contract';
 
@@ -63,6 +71,7 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
   let publicRoom: number;
   let privateRoom: number;
   let movieId: string;
+  let catalogueDetails: jest.SpyInstance;
 
   beforeAll(async () => {
     const host = process.env.DATABASE_HOST ?? 'localhost';
@@ -120,6 +129,25 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       .useValue(mail)
       .compile();
     tokens = module.get(GenerateTokensProvider);
+    // Details reads fill from TMDb; never reach the real catalogue in tests.
+    catalogueDetails = jest
+      .spyOn(MovieDbService.prototype, 'getMovieDetailsWithExtras')
+      .mockResolvedValue({
+        id: 1,
+        title: 'Catalogue title',
+        overview: 'Catalogue summary',
+        runtime: 136,
+        tagline: 'A tagline',
+        backdrop_path: '/backdrop.jpg',
+        genres: [],
+        credits: {
+          cast: [{ name: 'Lead', character: 'Hero', profile_path: '/p.jpg' }],
+          crew: [{ name: 'A Director', job: 'Director' }],
+        },
+        videos: {
+          results: [{ key: 'abc123', site: 'YouTube', type: 'Trailer' }],
+        },
+      } as unknown as TmdbMovieWithExtras);
     app = module.createNestApplication();
     app.useGlobalPipes(
       new ValidationPipe({
@@ -1030,6 +1058,7 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     const reads: [string, string][] = [
       ['/movies', 'Movies_getMovies'],
       ['/movies/' + movieId, 'Movies_getMovieById'],
+      ['/movies/' + movieId + '/details', 'Movies_getMovieDetails'],
       ['/rooms', 'Rooms_getRooms'],
       ['/rooms/' + publicRoom, 'Rooms_getRoomById'],
       ['/rooms/' + publicRoom + '/rating', 'Rooms_getRoomRatings'],
@@ -1238,6 +1267,75 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       ]),
     );
   });
+  it('serves movie details from one stored fill and keeps lists lean', async () => {
+    const server = app.getHttpServer();
+    const document = createOpenApiDocument(app);
+    catalogueDetails.mockClear();
+    const id = (
+      await request(server)
+        .post('/movies')
+        .auth(access[0], { type: 'bearer' })
+        .send({ dbId: 9001, title: 'Details movie', overview: 'Our summary' })
+        .expect(201)
+    ).body.id as string;
+    const first = await request(server)
+      .get('/movies/' + id + '/details')
+      .expect(200)
+      .expect('Cache-Control', /public, max-age=3600/);
+    assertOpenApiResponse(document, 'Movies_getMovieDetails', first.body);
+    expect(first.body).toMatchObject({
+      id,
+      title: 'Details movie',
+      overview: 'Our summary',
+      runtime: 136,
+      tagline: 'A tagline',
+      director: 'A Director',
+      cast: [{ name: 'Lead', character: 'Hero', profile_path: '/p.jpg' }],
+      trailerKey: 'abc123',
+    });
+    expect(first.body).not.toHaveProperty('detailsFetchedAt');
+    expect(first.body).not.toHaveProperty('addedBy');
+    await request(server)
+      .get('/movies/' + id + '/details')
+      .expect(200)
+      .expect((response) => expect(response.body.runtime).toBe(136));
+    expect(catalogueDetails).toHaveBeenCalledTimes(1);
+    const listed = (
+      await request(server).get('/movies?limit=100').expect(200)
+    ).body.data.find((movie: { id: string }) => movie.id === id);
+    expect(listed).toMatchObject({ runtime: 136 });
+    for (const key of ['cast', 'tagline', 'director', 'trailerKey'])
+      expect(listed).not.toHaveProperty(key);
+
+    catalogueDetails.mockRejectedValueOnce(new ServiceUnavailableException());
+    const pending = (
+      await request(server)
+        .post('/movies')
+        .auth(access[0], { type: 'bearer' })
+        .send({ dbId: 9002, title: 'Offline catalogue movie' })
+        .expect(201)
+    ).body.id as string;
+    await request(server)
+      .get('/movies/' + pending + '/details')
+      .expect(200)
+      .expect('Cache-Control', 'no-store')
+      .expect((response) =>
+        expect(response.body).toMatchObject({ runtime: null, cast: [] }),
+      );
+    await request(server)
+      .get('/movies/' + pending + '/details')
+      .expect(200)
+      .expect((response) =>
+        expect(response.body).toMatchObject({
+          runtime: 136,
+          overview: 'Catalogue summary',
+        }),
+      );
+    await request(server)
+      .get('/movies/' + randomUUID() + '/details')
+      .expect(404);
+  });
+
   it('runs room chat: mentions, replies, movie cards, reactions, polls, pins, sync and unread', async () => {
     const server = app.getHttpServer();
     const document = createOpenApiDocument(app);

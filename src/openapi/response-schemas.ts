@@ -53,12 +53,45 @@ const movieProperties: Properties = {
   imdbRate: nullable(number),
   imdbLink: nullable(string),
   isWatchedTogether: boolean,
+  runtime: nullable(integer),
   createdAt: date,
   updatedAt: date,
   addedBy: nullable(ref('PublicUser')),
   genres: array(ref('Genre')),
 };
 const movie = object(movieProperties);
+const movieDetails = object({
+  id: uuid,
+  dbId: nullable(integer),
+  title: string,
+  original_title: nullable(string),
+  tagline: nullable(string),
+  overview: nullable(string),
+  release_date: nullable(string),
+  runtime: { ...nullable(integer), description: 'Minutes.' },
+  poster_path: nullable(string),
+  backdrop_path: nullable(string),
+  vote_average: nullable(number),
+  imdbRate: nullable(number),
+  imdbLink: nullable(string),
+  genres: array(ref('Genre')),
+  director: nullable(string),
+  cast: {
+    ...array(
+      object({
+        name: string,
+        character: nullable(string),
+        profile_path: nullable(string),
+      }),
+    ),
+    maxItems: 8,
+    description: 'Top-billed cast in billing order; empty when unknown.',
+  },
+  trailerKey: {
+    ...nullable(string),
+    description: 'YouTube video key: https://www.youtube.com/watch?v={key}',
+  },
+});
 const invitationStatus: SchemaObject = {
   type: 'string',
   enum: [
@@ -380,6 +413,7 @@ export const responseSchemas: Record<string, SchemaObject> = {
   }),
   Movie: movie,
   MovieResponse: envelope(movie),
+  MovieDetailsResponse: envelope(movieDetails),
   MovieListResponse: envelope(page(ref('Movie'))),
   CreatedMovieResponse: envelope(
     object({ ...movieProperties, addedBy: object({ id: integer }) }, [
@@ -763,6 +797,7 @@ export const operationResponses: Record<string, string> = {
   GoogleAuthentication_authenticate: 'ErrorResponse',
   Movies_getMovies: 'MovieListResponse',
   Movies_getMovieById: 'MovieResponse',
+  Movies_getMovieDetails: 'MovieDetailsResponse',
   Movies_updateMovieById: 'UpdatedMovieResponse',
   Movies_createMovie: 'CreatedMovieResponse',
   Movies_searchMoviesFromTmdb: 'TmdbSearchResponse',

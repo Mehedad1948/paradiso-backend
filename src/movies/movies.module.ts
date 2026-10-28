@@ -12,6 +12,7 @@ import { MovieDbService } from './providers/MovieDb.serviec';
 import { GenresModule } from '../genres/genres.module';
 import { RoomsModule } from '../rooms/rooms.module';
 import { RatingsModule } from '../ratings/ratings.module';
+import { MovieDetailsProvider } from './providers/movie-details.provider';
 
 @Module({
   controllers: [MoviesController],
@@ -21,6 +22,7 @@ import { RatingsModule } from '../ratings/ratings.module';
     GetMovieProvider,
     UpdateMovieProvider,
     MovieDbService,
+    MovieDetailsProvider,
   ],
   imports: [
     TypeOrmModule.forFeature([Movie]),

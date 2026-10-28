@@ -10,6 +10,8 @@ import { GetMovieDto } from '../dtos/get-movie.dto';
 import { Paginated } from '../../common/pagination/interfaces/paginated.interface';
 import { GetRatingDto } from '../../ratings/dtos/get-rating.dto';
 import { GetRoomRatingDto } from '../../rooms/dtos/get-room-ratings';
+import { MovieExtras } from '../tmdb-extras';
+import { MovieDetailsProvider } from './movie-details.provider';
 
 @Injectable()
 export class MoviesService {
@@ -17,10 +19,18 @@ export class MoviesService {
     private readonly createMovieProvider: CreateMovieProvider,
     private readonly getMovieProvider: GetMovieProvider,
     private readonly updateMovieProvider: UpdateMovieProvider,
+    private readonly movieDetailsProvider: MovieDetailsProvider,
   ) {}
 
-  public async createMovie(createMovieDto: CreateMovieDto): Promise<Movie> {
-    return await this.createMovieProvider.createMovie(createMovieDto);
+  public async createMovie(
+    createMovieDto: CreateMovieDto,
+    extras?: MovieExtras,
+  ): Promise<Movie> {
+    return await this.createMovieProvider.createMovie(createMovieDto, extras);
+  }
+
+  public async getMovieDetails(id: string) {
+    return await this.movieDetailsProvider.getDetails(id);
   }
 
   public async updateMovie(

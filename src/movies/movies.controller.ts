@@ -8,7 +8,9 @@ import {
   Post,
   Put,
   Query,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { UpdateMovieDto } from './dtos/update-movie.dto';
 import { TmdbSearchDto } from './dtos/tmdb-search.dto';
 import { Auth } from '../auth/decorator/auth.decorator';
@@ -37,6 +39,26 @@ export class MoviesController {
   @Auth(AuthType.none)
   async getMovieById(@Param('id', ParseUUIDPipe) id: string) {
     return await this.movieService.getMovieById(id);
+  }
+
+  // Local DB: Everything the movie details screen shows, in one small read.
+  // Lists stay lean; clients load this when a poster is opened.
+  @Get(':id/details')
+  @Auth(AuthType.none)
+  async getMovieDetails(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { details, complete } = await this.movieService.getMovieDetails(id);
+    // Catalogue data rarely changes; let clients and CDNs reuse it, except
+    // while the stored details are still missing.
+    res.setHeader(
+      'Cache-Control',
+      complete
+        ? 'public, max-age=3600, stale-while-revalidate=86400'
+        : 'no-store',
+    );
+    return details;
   }
 
   // Local DB: Update movie

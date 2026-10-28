@@ -24,6 +24,22 @@ export interface TmdbMovie {
   vote_average: number;
   vote_count: number;
   genres: TmdbGenre[];
+  runtime?: number | null;
+  tagline?: string | null;
+}
+export interface TmdbMovieWithExtras extends TmdbMovie {
+  credits?: {
+    cast?: { name: string; character?: string; profile_path?: string }[];
+    crew?: { name: string; job?: string }[];
+  };
+  videos?: {
+    results?: {
+      key: string;
+      site?: string;
+      type?: string;
+      official?: boolean;
+    }[];
+  };
 }
 
 @Injectable()
@@ -91,5 +107,14 @@ export class MovieDbService {
     if (!Number.isSafeInteger(movieId) || movieId < 1)
       throw new BadRequestException('Invalid TMDb movie ID');
     return this.get<TmdbMovie>('movie/' + movieId);
+  }
+  // One request for everything the details screen stores; never sent to
+  // clients as-is because full credits run to hundreds of kilobytes.
+  getMovieDetailsWithExtras(movieId: number): Promise<TmdbMovieWithExtras> {
+    if (!Number.isSafeInteger(movieId) || movieId < 1)
+      throw new BadRequestException('Invalid TMDb movie ID');
+    return this.get<TmdbMovieWithExtras>('movie/' + movieId, {
+      append_to_response: 'credits,videos',
+    });
   }
 }
