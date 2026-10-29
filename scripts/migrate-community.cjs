@@ -106,7 +106,8 @@ async function main() {
       });
     }
     console.log(
-      'Preview only. Use --apply with a direct database URL after testing on an isolated branch.',
+      'Preview only. Use --apply with a direct database URL after testing on an isolated branch. ' +
+        'In Windows PowerShell 5.1 "npm run ... -- --apply" drops the flag; run "node scripts/migrate-community.cjs --apply" instead.',
     );
     return;
   }
@@ -124,6 +125,28 @@ async function main() {
     throw new Error('Set DATABASE_URL_UNPOOLED or NEON_DB/DATABASE_URL.');
   if (new URL(url).hostname.includes('-pooler'))
     throw new Error('Schema migrations require a direct database URL.');
+  // The app reads NEON_DB || DATABASE_URL (src/config/database.configs.ts).
+  // Migrating a different database than the one the app uses leaves the app
+  // without its tables (500s), so refuse unless told otherwise.
+  const where = (value) => {
+    const parsed = new URL(value);
+    return {
+      host: parsed.hostname.replace('-pooler', ''),
+      database: parsed.pathname.slice(1),
+    };
+  };
+  const target = where(url);
+  console.log(`Target database: ${target.host} / ${target.database}`);
+  const appUrl = process.env.NEON_DB || process.env.DATABASE_URL;
+  if (appUrl && !process.argv.includes('--allow-different-database')) {
+    const app = where(appUrl);
+    if (app.host !== target.host || app.database !== target.database)
+      throw new Error(
+        `The app connects to ${app.host} / ${app.database}, not the target above. ` +
+          'Point DATABASE_URL_UNPOOLED at the app database (its NEON_DB host without "-pooler"), ' +
+          'or pass --allow-different-database if this is deliberate.',
+      );
+  }
   const db = new DataSource({
     type: 'postgres',
     url,
