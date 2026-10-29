@@ -74,55 +74,68 @@ must not be worked around. Prepare the command, explain it, and let the user
 run it (or add a permission rule). Never print or repeat connection strings or
 passwords; if the user pastes one, suggest rotating it.
 
-## Frontend handoff (required in the final response)
+## Final response format (every task)
 
-The user pastes this backend's final response to a separate frontend agent. So
-whenever a task adds, changes or removes anything in the HTTP API (routes,
-request or response fields, query params, status codes, auth, validation,
-behaviour), end the final response with a **Frontend handoff** section. It
-must stand alone: the frontend agent has not seen this conversation or the
-backend code. Skip it only when the API is untouched, and then say so in one
-line.
+The final response has up to two parts, in this order.
 
-Keep it structured and concise: facts, not narrative. Use this shape, omitting
-empty parts:
+### 1. Brief for the user
+
+Concise, for the person who reads it now: what changed and why, how it was
+verified (what ran, what did not), decisions that go beyond the request, and
+anything the user must do next (migrations to apply, deploys, rotated secrets,
+open questions). Short sections or bullets; no narrative of the process.
+
+### 2. Frontend agent handoff (only when the HTTP API changed)
+
+The user copies this part to a **separate frontend coding agent**, an AI that
+has not seen this conversation or this repository. Write it as a spec addressed
+to that agent, not as a status report for a team: state exactly what the API now
+does and what it should change in the frontend. Put it **last**, under a heading
+the user can copy from, and make it self-contained.
+
+Include it whenever routes, DTOs, request or response fields, query params,
+status codes, auth, validation or observable behaviour changed. If the API is
+untouched, write one line: "No API changes, no frontend handoff."
+
+Shape (omit empty parts):
 
 ```
-## Frontend handoff
+## Handoff for the frontend agent
 
-Types: openapi.json and generated/api.d.ts are regenerated (or: not needed).
-Deploy order: <e.g. migration must be applied to the app DB first / none>.
+Context: <one or two sentences: the feature and the user-visible goal>
+Status: <live | deployed but migration pending | local only>. Types: regenerate
+from openapi.json (or: no regeneration needed).
 
-### New endpoints
-- METHOD /path (auth: public | any user | admin)
-  Request: <body or query fields, types, limits, defaults>
-  200: <response shape, nullability, ordering, omitted cases>
-  Errors: <status: when>, ...
-  Type: operations['<OperationId>'] / components['schemas']['<Name>']
+### API contract
+- METHOD /path  (auth: public | signed-in | admin)
+  Request: <body/query fields with types, limits, defaults; "none">
+  Response 200: <shape, nullability, ordering, what is omitted>
+  Errors: <status: condition (message format)>, ...
+  Generated type: operations['<OperationId>'] / components['schemas']['<Name>']
 
-### Changed endpoints
-- METHOD /path: <what changed; old -> new>. Breaking: yes/no.
+### Changes to existing endpoints
+- METHOD /path: <old -> new>. Breaking: yes/no.
 
-### Removed / deprecated
-- ...
+### Rules the types do not express
+- <ordering, omitted items, null vs missing, id kinds (library uuid vs TMDb id),
+  caching and who invalidates, fallbacks, error message formats>
 
-### Behaviour the frontend must know
-- <caching, ordering, fallbacks, what is hidden from public reads, ids vs TMDb ids, ...>
-
-### Suggested frontend work
-- <concrete next steps, e.g. replace the page-by-page scan with GET /x>
+### Tasks for the frontend agent
+1. <imperative, concrete: "Replace X with GET /y", "Add admin screen Z using ...">
+2. ...
+Do not: <things it must not assume or change, e.g. do not add client-side caching
+the spec forbids>
 ```
 
-Rules for the section:
+Rules for the handoff:
 
-- Use real field names, types, limits and status codes taken from the code and
-  `openapi.json`, not from memory. Name the generated type for each endpoint.
+- Take field names, types, limits and status codes from the code and
+  `openapi.json`, not from memory. Name the generated type for every endpoint.
 - Mark every breaking change and every new required field explicitly.
-- State anything the frontend cannot infer from types: ordering, which items
-  are omitted, null versus missing, cache expectations, id kinds (library uuid
-  versus TMDb id), error message formats.
-- Mention what is not yet live (migration not applied, not deployed) so the
-  frontend does not build against a 500.
+- Say what is not yet live (migration not applied, not deployed) so the
+  frontend agent does not build against a 500.
+- Tasks are imperative and ordered; each is something the agent can do without
+  asking back.
 - No secrets, connection strings or local file paths in it.
 
 ## Other conventions
