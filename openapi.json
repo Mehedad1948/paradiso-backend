@@ -2403,6 +2403,8 @@
         "summary": "create Room"
       },
       "get": {
+        "deprecated": true,
+        "description": "Deprecated. Use GET /rooms/public for the public list (no session needed) and GET /rooms/mine for the caller's rooms.",
         "operationId": "Rooms_getRooms",
         "parameters": [
           {
@@ -2487,6 +2489,7 @@
             }
           }
         },
+        "summary": "Deprecated: list rooms.",
         "tags": [
           "Rooms"
         ],
@@ -2494,8 +2497,7 @@
           {
             "accessToken": []
           }
-        ],
-        "summary": "get Rooms"
+        ]
       }
     },
     "/rooms/join": {
@@ -2543,6 +2545,152 @@
           }
         ],
         "summary": "join Room"
+      }
+    },
+    "/rooms/public": {
+      "get": {
+        "description": "Every public room, newest first. No session needed, and the body is the same for every caller (an Authorization header is ignored). Private rooms are never listed; members find them in GET /rooms/mine. users lists all members so a client can tell whether the signed-in user already joined. Cacheable: Cache-Control public, max-age=30, s-maxage=60, stale-while-revalidate=300, with a weak ETag (304 on If-None-Match).",
+        "operationId": "Rooms_getPublicRooms",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "format": "int32",
+              "nullable": true,
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 1000000,
+              "format": "int32",
+              "nullable": true,
+              "default": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRoomListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List public rooms.",
+        "tags": [
+          "Rooms"
+        ],
+        "security": []
+      }
+    },
+    "/rooms/mine": {
+      "get": {
+        "description": "Rooms the caller owns or belongs to, public and private, with unreadCount. Never cacheable: Cache-Control private, no-store.",
+        "operationId": "Rooms_getMyRooms",
+        "parameters": [
+          {
+            "name": "startDate",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "nullable": true,
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "date-time",
+              "nullable": true,
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "format": "int32",
+              "nullable": true,
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 1000000,
+              "format": "int32",
+              "nullable": true,
+              "default": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "List my rooms.",
+        "tags": [
+          "Rooms"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
       }
     },
     "/rooms/{id}": {
@@ -12442,6 +12590,96 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RoomListItem"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          },
+          "links": {
+            "$ref": "#/components/schemas/PaginationLinks"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "links",
+          "apiVersion"
+        ]
+      },
+      "PublicRoomListItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "image": {
+            "type": "string",
+            "nullable": true
+          },
+          "isPublic": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "themeColor": {
+            "type": "string",
+            "nullable": true
+          },
+          "owner": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "username": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "username"
+            ]
+          },
+          "users": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicUser"
+            }
+          },
+          "movieCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "image",
+          "isPublic",
+          "themeColor",
+          "owner",
+          "users",
+          "movieCount"
+        ]
+      },
+      "PublicRoomListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicRoomListItem"
             }
           },
           "meta": {

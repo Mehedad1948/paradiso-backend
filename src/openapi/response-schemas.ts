@@ -809,6 +809,14 @@ export const responseSchemas: Record<string, SchemaObject> = {
     ),
   }),
   RoomListResponse: envelope(page(ref('RoomListItem'))),
+  PublicRoomListItem: object({
+    ...roomProperties,
+    isPublic: { type: 'boolean', enum: [true] },
+    owner: object({ id: integer, username: string }),
+    users: array(ref('PublicUser')),
+    movieCount: integer,
+  }),
+  PublicRoomListResponse: envelope(page(ref('PublicRoomListItem'))),
   RoomResponse: envelope(
     object({
       ...roomProperties,
@@ -1178,6 +1186,8 @@ export const operationResponses: Record<string, string> = {
   Rooms_createRoom: 'CreatedRoomResponse',
   Rooms_joinRoom: 'MessageResponse',
   Rooms_getRooms: 'RoomListResponse',
+  Rooms_getPublicRooms: 'PublicRoomListResponse',
+  Rooms_getMyRooms: 'RoomListResponse',
   Rooms_getRoomById: 'RoomResponse',
   Rooms_updateRoom: 'RoomResponse',
   Rooms_addMovieToRoom: 'AddedRoomMovieResponse',

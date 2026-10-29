@@ -9,11 +9,18 @@ import {
   Query,
   UseGuards,
   ParseIntPipe,
+  Res,
 } from '@nestjs/common';
+import { ApiOperation } from '@nestjs/swagger';
+import { Response } from 'express';
 import { Auth } from '../auth/decorator/auth.decorator';
 import { AuthType } from '../auth/enums/auth.decorator';
 import { CreateRoomDto } from './dtos/create-room.dto';
-import { GetRoomDto } from './dtos/get-room.dto';
+import {
+  GetMyRoomsDto,
+  GetPublicRoomsDto,
+  GetRoomDto,
+} from './dtos/get-room.dto';
 import { RoomsService } from './providers/rooms.service';
 import { JoinRoomDto } from './dtos/join-room.dto';
 import { RoomMemberGuard } from './guards/RoomMember/roomMember.guard';
@@ -48,8 +55,50 @@ export class RoomsController {
 
   @Auth(AuthType.Bearer)
   @Get()
+  @ApiOperation({
+    deprecated: true,
+    summary: 'Deprecated: list rooms.',
+    description:
+      "Deprecated. Use GET /rooms/public for the public list (no session needed) and GET /rooms/mine for the caller's rooms.",
+  })
   async getRooms(@Query() getRoomDto: GetRoomDto) {
     return this.roomsService.getAllRooms(getRoomDto);
+  }
+
+  // /rooms/public and /rooms/mine must stay above /rooms/:id.
+  @Get('public')
+  @Auth(AuthType.none)
+  @ApiOperation({
+    summary: 'List public rooms.',
+    description:
+      'Every public room, newest first. No session needed, and the body is the same for every caller (an Authorization header is ignored). Private rooms are never listed; members find them in GET /rooms/mine. users lists all members so a client can tell whether the signed-in user already joined. Cacheable: Cache-Control public, max-age=30, s-maxage=60, stale-while-revalidate=300, with a weak ETag (304 on If-None-Match).',
+  })
+  async getPublicRooms(
+    @Query() query: GetPublicRoomsDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.roomsService.getPublicRooms(query);
+    res.setHeader(
+      'Cache-Control',
+      'public, max-age=30, s-maxage=60, stale-while-revalidate=300',
+    );
+    res.setHeader('Vary', 'Accept-Encoding');
+    return result;
+  }
+
+  @Get('mine')
+  @Auth(AuthType.Bearer)
+  @ApiOperation({
+    summary: 'List my rooms.',
+    description:
+      'Rooms the caller owns or belongs to, public and private, with unreadCount. Never cacheable: Cache-Control private, no-store.',
+  })
+  async getMyRooms(
+    @Query() query: GetMyRoomsDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    res.setHeader('Cache-Control', 'private, no-store');
+    return this.roomsService.getMyRooms(query);
   }
 
   @Auth(AuthType.Bearer)

@@ -1,5 +1,6 @@
 import { AuthenticatedRequest } from '../../auth/interfaces/authenticated-request.interface';
 import {
+  BadRequestException,
   ConflictException,
   forwardRef,
   Inject,
@@ -13,7 +14,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { REQUEST_USER_KEY } from '../../auth/constants/auth.constants';
 import { PaginationProvider } from '../../common/pagination/providers/pagination.provider';
 import { Repository } from 'typeorm';
-import { GetRoomDto } from '../dtos/get-room.dto';
+import {
+  GetMyRoomsDto,
+  GetPublicRoomsDto,
+  GetRoomDto,
+} from '../dtos/get-room.dto';
 import { Room } from '../room.entity';
 import { GetRoomRatingDto } from '../dtos/get-room-ratings';
 import { MoviesService } from '../../movies/providers/movies.service';
@@ -90,6 +95,61 @@ export class GetRoomProvider {
       ) {
         throw error;
       }
+      throw new InternalServerErrorException('Failed to get rooms');
+    }
+  }
+
+  async getMyRooms(roomQuery: GetMyRoomsDto) {
+    return this.getRooms({ ...roomQuery, usersRoom: 'true' });
+  }
+
+  // Same body for every caller: no per-viewer fields, never a private room.
+  async getPublicRooms(roomQuery: GetPublicRoomsDto) {
+    try {
+      const query = this.roomRepository
+        .createQueryBuilder('room')
+        .leftJoin('room.owner', 'owner')
+        .leftJoin('room.users', 'user')
+        .select([
+          'room.id',
+          'room.name',
+          'room.description',
+          'room.image',
+          'room.isPublic',
+          'room.themeColor',
+          'owner.id',
+          'owner.username',
+          'user.id',
+          'user.username',
+          'user.avatar',
+        ])
+        .loadRelationCountAndMap('room.movieCount', 'room.movies')
+        .where('room.isPublic = :isPublic', { isPublic: true })
+        // Rooms have no createdAt; ids grow with creation time.
+        .orderBy('room.id', 'DESC')
+        .addOrderBy('user.id', 'ASC');
+
+      const rooms = await this.paginationProvider.paginateQuery(
+        { limit: roomQuery.limit, page: roomQuery.page },
+        query,
+      );
+
+      return {
+        ...rooms,
+        data: rooms.data.map((room) => ({
+          id: room.id,
+          name: room.name,
+          description: room.description ?? null,
+          image: room.image ?? null,
+          isPublic: true as const,
+          themeColor: room.themeColor ?? null,
+          owner: { id: room.owner.id, username: room.owner.username },
+          users: room.users,
+          movieCount: (room as Room & { movieCount: number }).movieCount,
+        })),
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
       throw new InternalServerErrorException('Failed to get rooms');
     }
   }

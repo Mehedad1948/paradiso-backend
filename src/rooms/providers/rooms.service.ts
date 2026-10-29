@@ -1,6 +1,10 @@
 import { Injectable, Query } from '@nestjs/common';
 import { CreateRoomDto } from '../dtos/create-room.dto';
-import { GetRoomDto } from '../dtos/get-room.dto';
+import {
+  GetMyRoomsDto,
+  GetPublicRoomsDto,
+  GetRoomDto,
+} from '../dtos/get-room.dto';
 import { CreateRoomProvider } from './create-room.provider';
 import { GetRoomProvider } from './get-room.provider';
 import { JoinRoomProvider } from './join-room-provider';
@@ -37,6 +41,14 @@ export class RoomsService {
 
   async getAllRooms(@Query() getRoomDto: GetRoomDto) {
     return await this.getRoomProvider.getRooms(getRoomDto);
+  }
+
+  async getMyRooms(getMyRoomsDto: GetMyRoomsDto) {
+    return await this.getRoomProvider.getMyRooms(getMyRoomsDto);
+  }
+
+  async getPublicRooms(getPublicRoomsDto: GetPublicRoomsDto) {
+    return await this.getRoomProvider.getPublicRooms(getPublicRoomsDto);
   }
 
   async findRoomById(roomId: number) {

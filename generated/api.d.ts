@@ -675,7 +675,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** get Rooms */
+        /**
+         * Deprecated: list rooms.
+         * @deprecated
+         * @description Deprecated. Use GET /rooms/public for the public list (no session needed) and GET /rooms/mine for the caller's rooms.
+         */
         get: operations["Rooms_getRooms"];
         put?: never;
         /** create Room */
@@ -697,6 +701,46 @@ export interface paths {
         put?: never;
         /** join Room */
         post: operations["Rooms_joinRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List public rooms.
+         * @description Every public room, newest first. No session needed, and the body is the same for every caller (an Authorization header is ignored). Private rooms are never listed; members find them in GET /rooms/mine. users lists all members so a client can tell whether the signed-in user already joined. Cacheable: Cache-Control public, max-age=30, s-maxage=60, stale-while-revalidate=300, with a weak ETag (304 on If-None-Match).
+         */
+        get: operations["Rooms_getPublicRooms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rooms/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List my rooms.
+         * @description Rooms the caller owns or belongs to, public and private, with unreadCount. Never cacheable: Cache-Control private, no-store.
+         */
+        get: operations["Rooms_getMyRooms"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3231,6 +3275,27 @@ export interface components {
             links: components["schemas"]["PaginationLinks"];
             apiVersion: string;
         };
+        PublicRoomListItem: {
+            id: number;
+            name: string;
+            description: string | null;
+            image: string | null;
+            /** @enum {boolean} */
+            isPublic: true;
+            themeColor: string | null;
+            owner: {
+                id: number;
+                username: string;
+            };
+            users: components["schemas"]["PublicUser"][];
+            movieCount: number;
+        };
+        PublicRoomListResponse: {
+            data: components["schemas"]["PublicRoomListItem"][];
+            meta: components["schemas"]["PaginationMeta"];
+            links: components["schemas"]["PaginationLinks"];
+            apiVersion: string;
+        };
         RoomResponse: {
             id: number;
             name: string;
@@ -5252,6 +5317,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessageResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Rooms_getPublicRooms: {
+        parameters: {
+            query?: {
+                limit?: number | null;
+                page?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRoomListResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Rooms_getMyRooms: {
+        parameters: {
+            query?: {
+                startDate?: string | null;
+                endDate?: string | null;
+                limit?: number | null;
+                page?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomListResponse"];
                 };
             };
             /** @description Error response */

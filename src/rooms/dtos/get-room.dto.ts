@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IntersectionType } from '@nestjs/swagger';
+import { IntersectionType, OmitType } from '@nestjs/swagger';
 import { IsDate, IsOptional, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PaginationQueryDto } from '../../common/pagination/dtos/pagination-query.dto';
@@ -27,3 +27,9 @@ export class GetRoomDto extends IntersectionType(
   GetRoomBaseDto,
   PaginationQueryDto,
 ) {}
+
+// GET /rooms/public: page and limit only.
+export class GetPublicRoomsDto extends PaginationQueryDto {}
+
+// GET /rooms/mine: always the caller's rooms, so no usersRoom switch.
+export class GetMyRoomsDto extends OmitType(GetRoomDto, ['usersRoom']) {}

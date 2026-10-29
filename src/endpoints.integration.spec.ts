@@ -799,6 +799,77 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     ).toEqual([users[0].id, users[1].id].sort());
   });
 
+  it('serves public rooms without a session and keeps private rooms out', async () => {
+    // `links` hold absolute URLs, so keep one port for comparable bodies/ETags.
+    const server = app.getHttpServer();
+    if (!server.listening)
+      await new Promise<void>((resolve) => server.listen(0, resolve));
+    const anonymous = await request(server).get('/rooms/public').expect(200);
+    expect(anonymous.headers['cache-control']).toBe(
+      'public, max-age=30, s-maxage=60, stale-while-revalidate=300',
+    );
+    expect(anonymous.headers.vary).toContain('Accept-Encoding');
+    expect(anonymous.headers.etag).toMatch(/^W\//);
+    const ids = anonymous.body.data.map((room: { id: number }) => room.id);
+    expect(ids).toContain(publicRoom);
+    expect(ids).not.toContain(privateRoom);
+    expect(ids).toEqual([...ids].sort((a, b) => b - a));
+    for (const room of anonymous.body.data) {
+      expect(room.isPublic).toBe(true);
+      expect(typeof room.movieCount).toBe('number');
+      expect(room).not.toHaveProperty('unreadCount');
+      expect(room).not.toHaveProperty('movies');
+    }
+
+    // The owner is a member of the private room and still must not see it.
+    const withToken = await request(server)
+      .get('/rooms/public')
+      .auth(access[0], { type: 'bearer' })
+      .expect(200);
+    expect(withToken.body).toEqual(anonymous.body);
+    await request(server)
+      .get('/rooms/public')
+      .auth('not-a-token', { type: 'bearer' })
+      .expect(200);
+
+    await request(server)
+      .get('/rooms/public')
+      .set('If-None-Match', anonymous.headers.etag)
+      .expect(304);
+
+    for (const query of [
+      'page=0',
+      'limit=0',
+      'limit=101',
+      'page=x',
+      'limit=1.5',
+    ])
+      await request(server)
+        .get('/rooms/public?' + query)
+        .expect(400);
+    const limited = await request(server)
+      .get('/rooms/public?limit=1')
+      .expect(200);
+    expect(limited.body.data).toHaveLength(1);
+    expect(limited.body.meta.itemsPerPage).toBe(1);
+  });
+
+  it("lists the caller's own rooms, public and private, only with a session", async () => {
+    await request(app.getHttpServer()).get('/rooms/mine').expect(401);
+    const mine = await request(app.getHttpServer())
+      .get('/rooms/mine')
+      .auth(access[0], { type: 'bearer' })
+      .expect(200);
+    expect(mine.headers['cache-control']).toBe('private, no-store');
+    const ids = mine.body.data.map((room: { id: number }) => room.id);
+    expect(ids).toEqual(expect.arrayContaining([publicRoom, privateRoom]));
+    expect(mine.body.data[0]).toHaveProperty('unreadCount');
+    await request(app.getHttpServer())
+      .get('/rooms/mine?limit=101')
+      .auth(access[0], { type: 'bearer' })
+      .expect(400);
+  });
+
   it('validates IDs, nested genres, body booleans, ratings and pagination', async () => {
     await request(app.getHttpServer()).get('/movies/not-a-uuid').expect(400);
     await request(app.getHttpServer()).get('/movies?limit=101').expect(400);
@@ -1082,6 +1153,8 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       ['/movies/' + movieId, 'Movies_getMovieById'],
       ['/movies/' + movieId + '/details', 'Movies_getMovieDetails'],
       ['/rooms', 'Rooms_getRooms'],
+      ['/rooms/public', 'Rooms_getPublicRooms'],
+      ['/rooms/mine', 'Rooms_getMyRooms'],
       ['/rooms/' + publicRoom, 'Rooms_getRoomById'],
       ['/rooms/' + publicRoom + '/rating', 'Rooms_getRoomRatings'],
       ['/ratings', 'Ratings_getRatings'],
