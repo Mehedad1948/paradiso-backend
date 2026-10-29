@@ -1,5 +1,6 @@
 import { Movie, MovieCrewMember, MovieKeyCrewMember } from './movie.entity';
 import { TmdbMovieWithExtras } from './providers/MovieDb.serviec';
+import { isArchiveFootage } from './content-filter';
 
 export const CAST_LIMIT = 8;
 export const BACKDROP_LIMIT = 8;
@@ -84,12 +85,15 @@ export function toMovieExtras(details: TmdbMovieWithExtras): MovieExtras {
       ) || null,
     directors: [...directors.values()],
     crew: [...keyCrew.values()].slice(0, KEY_CREW_LIMIT),
-    cast: (details.credits?.cast ?? []).slice(0, CAST_LIMIT).map((member) => ({
-      id: member.id,
-      name: member.name,
-      character: member.character || null,
-      profile_path: member.profile_path || null,
-    })),
+    cast: (details.credits?.cast ?? [])
+      .filter((member) => !isArchiveFootage(member.character))
+      .slice(0, CAST_LIMIT)
+      .map((member) => ({
+        id: member.id,
+        name: member.name,
+        character: member.character || null,
+        profile_path: member.profile_path || null,
+      })),
     trailerKey: trailer?.key.slice(0, 32) ?? null,
     detailsFetchedAt: new Date(),
     detailsVersion: DETAILS_VERSION,

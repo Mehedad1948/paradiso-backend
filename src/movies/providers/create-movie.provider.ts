@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   UnauthorizedException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { REQUEST } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -13,6 +14,8 @@ import { CreateMovieDto } from '../dtos/create-movie.dto';
 import { Movie } from '../movie.entity';
 import { GenresService } from '../../genres/providers/genres.service';
 import { MovieExtras } from '../tmdb-extras';
+import { isAdultContent } from '../content-filter';
+import { ContentBlocksService } from './content-blocks.service';
 
 @Injectable()
 export class CreateMovieProvider {
@@ -21,10 +24,17 @@ export class CreateMovieProvider {
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
     private readonly genresService: GenresService,
+    private readonly contentBlocks: ContentBlocksService,
   ) {}
   async createMovie(dto: CreateMovieDto, extras?: MovieExtras): Promise<Movie> {
     const userId = this.request[REQUEST_USER_KEY]?.sub;
     if (!userId) throw new UnauthorizedException();
+    if (
+      isAdultContent(dto) ||
+      (dto.dbId != null &&
+        (await this.contentBlocks.isBlocked('movie', dto.dbId)))
+    )
+      throw new UnprocessableEntityException('This title is not available');
     const genres = dto.genres?.length
       ? await this.genresService.findGenresWithTmdbIds(
           dto.genres.map((g) => g.id),

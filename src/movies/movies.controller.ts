@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
   Param,
   ParseIntPipe,
   ParseUUIDPipe,
@@ -23,12 +24,15 @@ import { MovieDbService } from './providers/MovieDb.serviec';
 import { MoviesService } from './providers/movies.service';
 import { ResolveMovieDto } from './dtos/resolve-movie.dto';
 import { ActiveUser } from '../auth/decorator/active-user.decorator';
+import { ContentBlocksService } from './providers/content-blocks.service';
+import { isAdultContent } from './content-filter';
 
 @Controller('movies')
 export class MoviesController {
   constructor(
     private readonly movieService: MoviesService,
     private readonly movieDbService: MovieDbService,
+    private readonly contentBlocks: ContentBlocksService,
   ) {}
 
   // Local DB: Get all movies
@@ -99,7 +103,18 @@ export class MoviesController {
   @Get('/tmdb/search')
   @Auth(AuthType.none)
   async searchMoviesFromTmdb(@Query() query: TmdbSearchDto) {
-    return await this.movieDbService.searchMovies(query.query, query.page);
+    const response = await this.movieDbService.searchMovies(
+      query.query,
+      query.page,
+    );
+    return {
+      ...response,
+      results: await this.contentBlocks.without(
+        'movie',
+        response.results,
+        (movie) => movie.id,
+      ),
+    };
   }
 
   // TMDb: Get genres (no auth)
@@ -113,6 +128,11 @@ export class MoviesController {
   @Get('/tmdb/:movieId')
   @Auth(AuthType.none)
   async getTmdbMovieDetails(@Param('movieId', ParseIntPipe) movieId: number) {
-    return await this.movieDbService.getMovieDetails(movieId);
+    if (await this.contentBlocks.isBlocked('movie', movieId))
+      throw new NotFoundException('Movie not found in catalogue');
+    const movie = await this.movieDbService.getMovieDetails(movieId);
+    if (isAdultContent(movie))
+      throw new NotFoundException('Movie not found in catalogue');
+    return movie;
   }
 }

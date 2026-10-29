@@ -1,3 +1,4 @@
+import { isAdultContent, isArchiveFootage } from '../movies/content-filter';
 import { TmdbPerson } from '../movies/providers/MovieDb.serviec';
 
 export interface CreditItem {
@@ -46,10 +47,13 @@ export function toPersonProfile(
   biography = person.biography ?? '',
 ): PersonProfile {
   const cast = (person.movie_credits?.cast ?? []).filter(
-    (credit) => !credit.adult && !SELF_CREDIT.test(credit.character ?? ''),
+    (credit) =>
+      !isAdultContent(credit) &&
+      !SELF_CREDIT.test(credit.character ?? '') &&
+      !isArchiveFootage(credit.character),
   );
   const crew = (person.movie_credits?.crew ?? []).filter(
-    (credit) => !credit.adult,
+    (credit) => !isAdultContent(credit),
   );
   const acting = new Map<number, CreditItem>();
   for (const credit of cast) {
@@ -117,17 +121,20 @@ export const creditTmdbIds = ({ directing, acting, crew }: PersonCredits) => [
   ...new Set([...directing, ...acting, ...crew].map((item) => item.tmdbId)),
 ];
 
-// Copies the cached credits with library IDs filled in; the cached profile
-// itself is never changed.
+// Copies the cached credits with library IDs filled in and blocked films
+// left out; the cached profile itself is never changed.
 export function withLibraryIds(
   profile: PersonProfile,
   movieIds: Map<number, string>,
+  blocked: Set<number> = new Set(),
 ): PersonProfile {
   const fill = (items: CreditItem[]) =>
-    items.map((item) => ({
-      ...item,
-      movieId: movieIds.get(item.tmdbId) ?? null,
-    }));
+    items
+      .filter((item) => !blocked.has(item.tmdbId))
+      .map((item) => ({
+        ...item,
+        movieId: movieIds.get(item.tmdbId) ?? null,
+      }));
   return {
     ...profile,
     credits: {

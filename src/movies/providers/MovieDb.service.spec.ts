@@ -132,11 +132,20 @@ describe('Movie catalogue search filtering', () => {
           : {
               page: 1,
               total_pages: 1,
-              total_results: 3,
+              total_results: 4,
               results: [
                 { id: 1, title: 'Kept', adult: false },
                 { id: 2, title: 'Adult', adult: true },
-                { id: 3, title: 'Erotic', adult: false },
+                // Only its keywords give it away.
+                { id: 3, title: 'Innocent title', adult: false },
+                // Unflagged, but its text does; no keyword lookup needed.
+                {
+                  id: 4,
+                  title: 'Busty Blondes',
+                  overview: 'Topless antics.',
+                  adult: false,
+                  vote_count: 1,
+                },
               ],
             };
         return Promise.resolve(Response.json(body));

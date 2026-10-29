@@ -348,6 +348,25 @@ describe('MovieDetailsProvider', () => {
     expect(row.detailsVersion).toBe(DETAILS_VERSION);
   });
 
+  it('leaves archive-footage credits out of stored cast lists', async () => {
+    Object.assign(row, {
+      detailsFetchedAt: new Date(),
+      detailsVersion: DETAILS_VERSION,
+      backdrops: ['/stored.jpg'],
+      cast: [
+        { id: 1, name: 'Lead', character: 'Hero', profile_path: null },
+        {
+          id: 2,
+          name: 'Clip',
+          character: 'Herself (archive footage)',
+          profile_path: null,
+        },
+      ],
+    });
+    const { details } = await provider.getDetails('movie-1');
+    expect(details.cast.map((member) => member.name)).toEqual(['Lead']);
+  });
+
   it('does not call TMDb for current details', async () => {
     Object.assign(row, {
       detailsFetchedAt: new Date(Date.now() - 30 * 86_400_000),

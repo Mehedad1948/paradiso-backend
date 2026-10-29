@@ -13,6 +13,8 @@ import {
   toPersonProfile,
   withLibraryIds,
 } from './person-credits';
+import { isAdultPerson } from '../movies/content-filter';
+import { ContentBlocksService } from '../movies/providers/content-blocks.service';
 
 // Served as-is while fresh, served and refreshed in the background while
 // stale, fetched again once expired.
@@ -41,6 +43,7 @@ export class PeopleService {
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
     private readonly movieDbService: MovieDbService,
+    private readonly contentBlocks: ContentBlocksService,
   ) {}
 
   async getPerson(
@@ -48,6 +51,8 @@ export class PeopleService {
     language = DEFAULT_LANGUAGE,
     now = Date.now(),
   ): Promise<PersonProfile> {
+    if (await this.contentBlocks.isBlocked('person', personId))
+      throw new NotFoundException('Person not found');
     const key = personId + ':' + language;
     let entry = this.cache.get(key);
     const age = entry ? now - entry.storedAt : Infinity;
@@ -66,10 +71,12 @@ export class PeopleService {
         );
     }
     if (!entry.profile) throw new NotFoundException('Person not found');
-    return withLibraryIds(
-      entry.profile,
-      await this.libraryIds(creditTmdbIds(entry.profile.credits)),
-    );
+    const tmdbIds = creditTmdbIds(entry.profile.credits);
+    const [movieIds, blocked] = await Promise.all([
+      this.libraryIds(tmdbIds),
+      this.contentBlocks.blocked('movie', tmdbIds),
+    ]);
+    return withLibraryIds(entry.profile, movieIds, blocked);
   }
 
   private load(
@@ -102,13 +109,28 @@ export class PeopleService {
       if (error instanceof NotFoundException) return null;
       throw error;
     }
-    // Adult performers stay hidden, like adult titles in search.
-    if (person.adult) return null;
     let biography = person.biography?.trim() ?? '';
-    if (!biography && language !== DEFAULT_LANGUAGE)
-      biography =
-        (await this.movieDbService.getPersonProfile(personId, DEFAULT_LANGUAGE))
-          .biography ?? '';
+    // The rules read English, so other languages are checked against the
+    // en-US biography too; it is also the fallback for an empty one.
+    const english =
+      language === DEFAULT_LANGUAGE
+        ? biography
+        : ((
+            await this.movieDbService.getPersonProfile(
+              personId,
+              DEFAULT_LANGUAGE,
+            )
+          ).biography?.trim() ?? '');
+    const credits = [
+      ...(person.movie_credits?.cast ?? []),
+      ...(person.movie_credits?.crew ?? []),
+    ];
+    if (
+      isAdultPerson({ ...person, credits }) ||
+      isAdultPerson({ biography: english, credits })
+    )
+      return null;
+    biography ||= english;
     return toPersonProfile(person, biography);
   }
 

@@ -4,6 +4,8 @@ import { MoviesService } from './providers/movies.service';
 import { CreateMovieProvider } from './providers/create-movie.provider';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Movie } from './movie.entity';
+import { ContentBlock } from './content-block.entity';
+import { ContentBlocksService } from './providers/content-blocks.service';
 import { GetMovieProvider } from './providers/get-movie.provider';
 import { UpdateMovieProvider } from './providers/update-movie.provider';
 import { PaginationModule } from '../common/pagination/dtos/pagination.module';
@@ -25,15 +27,21 @@ import { ResolveMovieProvider } from './providers/resolve-movie.provider';
     MovieDbService,
     MovieDetailsProvider,
     ResolveMovieProvider,
+    ContentBlocksService,
   ],
   imports: [
-    TypeOrmModule.forFeature([Movie]),
+    TypeOrmModule.forFeature([Movie, ContentBlock]),
     forwardRef(() => RoomsModule),
     forwardRef(() => RatingsModule),
     PaginationModule,
     UsersModule,
     GenresModule,
   ],
-  exports: [MoviesService, MovieDbService, ResolveMovieProvider],
+  exports: [
+    MoviesService,
+    MovieDbService,
+    ResolveMovieProvider,
+    ContentBlocksService,
+  ],
 })
 export class MoviesModule {}

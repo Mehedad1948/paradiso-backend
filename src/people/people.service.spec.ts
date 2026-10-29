@@ -13,6 +13,7 @@ import {
   MovieDbService,
   TmdbPerson,
 } from '../movies/providers/MovieDb.serviec';
+import { ContentBlocksService } from '../movies/providers/content-blocks.service';
 import { PeopleController } from './people.controller';
 import {
   PERSON_EXPIRED_MS,
@@ -48,6 +49,8 @@ const nolan = (extra: Partial<TmdbPerson> = {}): TmdbPerson => ({
       film(11, '2003-01-01', { character: 'Self - Host' }),
       film(12, '1998-04-24', { character: 'Man in Bar' }),
       film(12, '1998-04-24', { character: 'Narrator' }),
+      film(13, '2015-01-01', { character: 'Himself (archive footage)' }),
+      film(14, '2016-01-01', { character: 'Bartender (archive footage)' }),
     ],
     crew: [
       film(27205, '2010-07-15', { job: 'Director' }),
@@ -126,6 +129,8 @@ describe('PeopleService', () => {
   let getMany: jest.Mock;
   let where: jest.Mock;
   let service: PeopleService;
+  let blockedPeople: Set<number>;
+  let blockedMovies: Set<number>;
 
   beforeEach(() => {
     catalogue = {
@@ -141,9 +146,26 @@ describe('PeopleService', () => {
     const repository = {
       createQueryBuilder: () => ({ select: () => ({ where }) }),
     };
+    blockedPeople = new Set();
+    blockedMovies = new Set();
+    const contentBlocks = {
+      isBlocked: (kind: string, id: number) =>
+        Promise.resolve(
+          (kind === 'person' ? blockedPeople : blockedMovies).has(id),
+        ),
+      blocked: (kind: string, ids: number[]) =>
+        Promise.resolve(
+          new Set(
+            ids.filter((id) =>
+              (kind === 'person' ? blockedPeople : blockedMovies).has(id),
+            ),
+          ),
+        ),
+    };
     service = new PeopleService(
       repository as unknown as Repository<Movie>,
       catalogue as unknown as MovieDbService,
+      contentBlocks as unknown as ContentBlocksService,
     );
   });
 
@@ -256,6 +278,42 @@ describe('PeopleService', () => {
     // Already English: nothing to fall back to.
     expect((await service.getPerson(525)).biography).toBe('');
     expect(catalogue.getPersonProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides blocked people and blocked films', async () => {
+    blockedMovies.add(27205);
+    const person = await service.getPerson(525);
+    expect(person.credits.directing.map((item) => item.tmdbId)).not.toContain(
+      27205,
+    );
+    expect(person.credits.crew).toEqual([]);
+    blockedPeople.add(525);
+    await expect(service.getPerson(525)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it.each([
+    ['an erotic actress', 'American erotic film actress and nude model.'],
+    ['a model', 'Blonde model who appeared in magazine spreads.'],
+    ['a Playboy Playmate', 'She was Playboy Playmate of the Month.'],
+    ['an adult film performer', 'She began in adult films in 2001.'],
+  ])('hides %s by biography', async (_, biography) => {
+    catalogue.getPerson.mockResolvedValue(nolan({ biography }));
+    await expect(service.getPerson(525)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  it('checks the English biography when another language is asked for', async () => {
+    catalogue.getPerson.mockResolvedValue(nolan({ biography: 'Mannequin.' }));
+    catalogue.getPersonProfile.mockResolvedValue({
+      id: 525,
+      biography: 'A lingerie model.',
+    });
+    await expect(service.getPerson(525, 'fr-FR')).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it('hides adult performers', async () => {

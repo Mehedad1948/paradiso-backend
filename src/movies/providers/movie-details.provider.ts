@@ -8,6 +8,7 @@ import {
   MovieKeyCrewMember,
 } from '../movie.entity';
 import { DETAILS_VERSION, toMovieExtras } from '../tmdb-extras';
+import { isArchiveFootage } from '../content-filter';
 import { MovieDbService } from './MovieDb.serviec';
 
 export type MovieDetails = Pick<
@@ -249,13 +250,16 @@ export class MovieDetailsProvider {
       director: movie.director,
       directors: movie.directors ?? [],
       crew: movie.crew ?? [],
-      // Cast stored before DETAILS_VERSION 2 has no person IDs.
-      cast: (movie.cast ?? []).map((member) => ({
-        id: member.id ?? null,
-        name: member.name,
-        character: member.character,
-        profile_path: member.profile_path,
-      })),
+      // Cast stored before DETAILS_VERSION 2 has no person IDs, and cast
+      // stored before the archive-footage rule may still list such credits.
+      cast: (movie.cast ?? [])
+        .filter((member) => !isArchiveFootage(member.character))
+        .map((member) => ({
+          id: member.id ?? null,
+          name: member.name,
+          character: member.character,
+          profile_path: member.profile_path,
+        })),
       trailerKey: movie.trailerKey,
     };
   }

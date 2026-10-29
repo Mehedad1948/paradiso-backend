@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Genre } from '../../genres/genre.entity';
 import { Movie } from '../movie.entity';
+import { isAdultContent } from '../content-filter';
 import { toMovieExtras } from '../tmdb-extras';
 import { MovieDbService } from './MovieDb.serviec';
+import { ContentBlocksService } from './content-blocks.service';
 
 export type ResolvedMovie = Pick<
   Movie,
@@ -17,6 +19,7 @@ export class ResolveMovieProvider {
     @InjectRepository(Movie)
     private readonly movieRepository: Repository<Movie>,
     private readonly movieDbService: MovieDbService,
+    private readonly contentBlocks: ContentBlocksService,
   ) {}
 
   // Our movie for a TMDb ID, imported on first use. Safe under concurrent
@@ -27,11 +30,16 @@ export class ResolveMovieProvider {
     userId: number,
     isWatchedTogether = false,
   ): Promise<ResolvedMovie> {
+    if (await this.contentBlocks.isBlocked('movie', tmdbId))
+      throw new UnprocessableEntityException('This title is not available');
     const existing = await this.find(tmdbId);
     if (existing) return existing;
     // The same request stores the details screen's data, so it never has to
     // call the catalogue for this movie again.
     const details = await this.movieDbService.getMovieDetailsWithExtras(tmdbId);
+    // Search and person pages hide these; a direct ID must not import them.
+    if (isAdultContent(details))
+      throw new UnprocessableEntityException('This title is not available');
     return this.movieRepository.manager.transaction(async (manager) => {
       const inserted = await manager
         .createQueryBuilder()

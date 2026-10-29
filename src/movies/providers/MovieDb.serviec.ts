@@ -8,6 +8,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { isAdultContent } from '../content-filter';
 
 export interface TmdbGenre {
   id: number;
@@ -30,6 +31,8 @@ export interface TmdbMovie {
   tagline?: string | null;
 }
 export interface TmdbMovieWithExtras extends TmdbMovie {
+  keywords?: { keywords?: { name: string }[] };
+  production_companies?: { name: string }[];
   credits?: {
     cast?: {
       id: number;
@@ -66,6 +69,7 @@ export interface TmdbMovieWithExtras extends TmdbMovie {
 interface TmdbPersonCredit {
   id: number;
   title?: string;
+  overview?: string;
   original_title?: string;
   release_date?: string;
   poster_path?: string | null;
@@ -177,7 +181,9 @@ export class MovieDbService {
       total_pages: number;
       total_results: number;
     }>('search/movie', { query, page, include_adult: 'false' });
-    const candidates = response.results.filter((movie) => !movie.adult);
+    const candidates = response.results.filter(
+      (movie) => !isAdultContent(movie),
+    );
     const erotic = await Promise.all(
       candidates.map((movie) => this.isErotic(movie.id)),
     );
@@ -212,7 +218,8 @@ export class MovieDbService {
     if (!Number.isSafeInteger(movieId) || movieId < 1)
       throw new BadRequestException('Invalid TMDb movie ID');
     return this.get<TmdbMovieWithExtras>('movie/' + movieId, {
-      append_to_response: 'credits,videos,images',
+      // keywords and production_companies feed isAdultContent on import.
+      append_to_response: 'credits,videos,images,keywords',
       // language=en-US alone hides trailers tagged in a film's own language
       // and every textless (untagged) image.
       include_video_language: 'en,null',

@@ -13,6 +13,7 @@ import { GetRoomRatingDto } from '../../rooms/dtos/get-room-ratings';
 import { MovieExtras } from '../tmdb-extras';
 import { MovieDetailsProvider } from './movie-details.provider';
 import { ResolvedMovie, ResolveMovieProvider } from './resolve-movie.provider';
+import { ContentBlocksService } from './content-blocks.service';
 
 @Injectable()
 export class MoviesService {
@@ -22,6 +23,7 @@ export class MoviesService {
     private readonly updateMovieProvider: UpdateMovieProvider,
     private readonly movieDetailsProvider: MovieDetailsProvider,
     private readonly resolveMovieProvider: ResolveMovieProvider,
+    private readonly contentBlocks: ContentBlocksService,
   ) {}
 
   public resolveMovie(
@@ -39,8 +41,28 @@ export class MoviesService {
     return await this.createMovieProvider.createMovie(createMovieDto, extras);
   }
 
+  // Blocked people are left out of the credits; the stored row keeps them,
+  // so unblocking someone needs no refresh.
   public async getMovieDetails(id: string) {
-    return await this.movieDetailsProvider.getDetails(id);
+    const result = await this.movieDetailsProvider.getDetails(id);
+    const { details } = result;
+    const blocked = await this.contentBlocks.blocked('person', [
+      ...details.cast.map((member) => member.id ?? 0),
+      ...details.directors.map((member) => member.id),
+      ...details.crew.map((member) => member.id),
+    ]);
+    if (!blocked.size) return result;
+    const keep = (member: { id: number | null }) =>
+      member.id === null || !blocked.has(member.id);
+    return {
+      ...result,
+      details: {
+        ...details,
+        cast: details.cast.filter(keep),
+        directors: details.directors.filter(keep),
+        crew: details.crew.filter(keep),
+      },
+    };
   }
 
   public async updateMovie(

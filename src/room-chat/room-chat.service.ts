@@ -5,11 +5,14 @@ import {
   HttpStatus,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, In, LessThan, Repository } from 'typeorm';
 import { Movie } from '../movies/movie.entity';
 import { MovieDbService } from '../movies/providers/MovieDb.serviec';
+import { ContentBlocksService } from '../movies/providers/content-blocks.service';
+import { isAdultContent } from '../movies/content-filter';
 import { Room } from '../rooms/room.entity';
 import { User } from '../users/user.entity';
 import {
@@ -58,6 +61,7 @@ export class RoomChatService {
     private readonly messages: Repository<RoomMessage>,
     private readonly movieDb: MovieDbService,
     private readonly notifications: NotificationsService,
+    private readonly contentBlocks: ContentBlocksService,
   ) {}
 
   private get manager() {
@@ -424,11 +428,14 @@ export class RoomChatService {
         this.card(movie, !!movie.rooms?.length),
       ]),
     );
+    const unknown = tmdbIds.filter((id) => !cards.has(id));
+    if ((await this.contentBlocks.blocked('movie', unknown)).size)
+      throw new UnprocessableEntityException('This title is not available');
     const fetched = await Promise.all(
-      tmdbIds
-        .filter((id) => !cards.has(id))
-        .map((id) => this.movieDb.getMovieDetails(id)),
+      unknown.map((id) => this.movieDb.getMovieDetails(id)),
     );
+    if (fetched.some(isAdultContent))
+      throw new UnprocessableEntityException('This title is not available');
     for (const movie of fetched)
       cards.set(movie.id, {
         movieId: null,

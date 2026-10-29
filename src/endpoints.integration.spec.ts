@@ -17,6 +17,7 @@ import { compare } from 'bcrypt';
 import { User } from './users/user.entity';
 import { Role } from './roles/role.entity';
 import { Movie } from './movies/movie.entity';
+import { ContentBlock } from './movies/content-block.entity';
 import { Room } from './rooms/room.entity';
 import { WatchlistItem } from './watchlist/watchlist-item.entity';
 import { FavoriteMovie } from './favorites/favorite-movie.entity';
@@ -104,6 +105,7 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         User,
         Role,
         Movie,
+        ContentBlock,
         Room,
         RoomBan,
         WatchlistItem,
@@ -1381,6 +1383,25 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
       .expect(200);
     assertOpenApiResponse(document, 'Movies_resolveMovie', resolved.body);
     expect(resolved.body.id).toBe(movieId);
+
+    // Titles TMDb leaves unflagged are still refused, and nothing is stored.
+    catalogueDetails.mockResolvedValueOnce({
+      id: 1777892,
+      title: 'Busty Blondes with Natural Racks',
+      overview: 'Topless antics.',
+      adult: false,
+      vote_count: 1,
+      genres: [],
+      production_companies: [{ name: 'Mr. Skin' }],
+    });
+    await request(server)
+      .post('/movies/resolve')
+      .auth(access[0], { type: 'bearer' })
+      .send({ tmdbId: 1777892 })
+      .expect(422);
+    expect(await database.getRepository(Movie).countBy({ dbId: 1777892 })).toBe(
+      0,
+    );
 
     catalogueDetails.mockClear();
     // Both callers miss the library before either inserts.
