@@ -20,8 +20,9 @@ import { RatingsService } from '../../ratings/providers/ratings.service';
 import { RoomsService } from '../../rooms/providers/rooms.service';
 import { Room } from '../../rooms/room.entity';
 import { Rating } from '../../ratings/rating.entity';
-import { Repository, SelectQueryBuilder } from 'typeorm';
+import { Brackets, Repository, SelectQueryBuilder } from 'typeorm';
 import { GetMovieDto } from '../dtos/get-movie.dto';
+import { escapeLike } from '../escape-like';
 import { Movie } from '../movie.entity';
 import { GetRoomRatingDto } from '../../rooms/dtos/get-room-ratings';
 
@@ -146,6 +147,15 @@ export class GetMovieProvider {
       .orderBy('movie.createdAt', 'DESC')
       .addOrderBy('movie.id', 'DESC');
     this.dates(query, filters);
+    if (filters.search)
+      query.andWhere(
+        new Brackets((titles) =>
+          titles
+            .where('movie.title ILIKE :search')
+            .orWhere('movie.original_title ILIKE :search'),
+        ),
+        { search: `%${escapeLike(filters.search)}%` },
+      );
     return this.paginationProvider.paginateQuery(filters, query);
   }
 

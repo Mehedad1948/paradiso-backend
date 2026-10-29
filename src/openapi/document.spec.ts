@@ -232,6 +232,103 @@ describe('OpenAPI frontend contract', () => {
     );
   });
 
+  it('documents the curation endpoints, their bodies and every field', () => {
+    const schemas = document.components!.schemas!;
+    const operations: [string, 'get' | 'put'][] = [
+      ['/curations/landing-grid', 'get'],
+      ['/curations/editors-picks', 'get'],
+      ['/admin/curations/landing-grid', 'get'],
+      ['/admin/curations/landing-grid', 'put'],
+      ['/admin/curations/editors-picks', 'get'],
+      ['/admin/curations/editors-picks', 'put'],
+    ];
+    for (const [path, method] of operations) {
+      const operation = document.paths[path]?.[method];
+      expect(operation).toBeDefined();
+      expect(operation!.summary).toBeTruthy();
+      expect(operation!.description).toBeTruthy();
+      if (path.startsWith('/admin/')) {
+        expect(operation!.security).toEqual([{ accessToken: [] }]);
+        expect(operation!.description).toContain('Requires role: admin');
+      } else {
+        expect(operation!.security).toEqual([]);
+      }
+    }
+    expect(
+      document.paths['/admin/curations/landing-grid'].put!.requestBody,
+    ).toMatchObject({
+      content: {
+        'application/json': {
+          schema: { $ref: '#/components/schemas/ReplaceLandingGridRequest' },
+        },
+      },
+    });
+    expect(schemas.ReplaceLandingGridRequest).toMatchObject({
+      required: ['items'],
+      additionalProperties: false,
+      properties: { items: { maxItems: 27 } },
+    });
+    expect(schemas.LandingGridItemRequest).toMatchObject({
+      required: ['slot', 'movieId'],
+      additionalProperties: false,
+      properties: {
+        slot: { type: 'integer', minimum: 0, maximum: 26 },
+        movieId: { format: 'uuid' },
+        imageUrl: { nullable: true, maxLength: 2048 },
+        objectPosition: { nullable: true, maxLength: 40 },
+      },
+    });
+    expect(schemas.ReplaceEditorsPicksRequest).toMatchObject({
+      required: ['movieIds'],
+      properties: {
+        movieIds: {
+          maxItems: 40,
+          uniqueItems: true,
+          items: { type: 'string', format: 'uuid' },
+        },
+      },
+    });
+    expect(schemas.LandingGridResponse).toMatchObject({
+      required: ['data', 'updatedAt', 'apiVersion'],
+    });
+    expect(schemas.AdminLandingGridResponse).toMatchObject({
+      required: ['data', 'updatedAt', 'updatedBy', 'apiVersion'],
+    });
+    expect(schemas.AdminEditorsPicksResponse).toMatchObject({
+      required: ['data', 'updatedAt', 'updatedBy', 'apiVersion'],
+    });
+    // Nothing the frontend generates types from is left without a description.
+    const described = (name: string) => {
+      const schema = schemas[name] as {
+        properties: Record<string, { description?: string; $ref?: string }>;
+      };
+      return Object.entries(schema.properties)
+        .filter(([, value]) => !value.$ref && !value.description)
+        .map(([field]) => `${name}.${field}`);
+    };
+    expect(
+      [
+        'CuratedMovie',
+        'LandingGridItem',
+        'CurationEditor',
+        'LandingGridItemRequest',
+        'ReplaceLandingGridRequest',
+        'ReplaceEditorsPicksRequest',
+      ].flatMap(described),
+    ).toEqual([]);
+  });
+
+  it('documents the movie search parameter', () => {
+    expect(document.paths['/movies'].get!.parameters).toContainEqual(
+      expect.objectContaining({
+        name: 'search',
+        required: false,
+        description: expect.stringContaining('title or original_title'),
+        schema: expect.objectContaining({ type: 'string', maxLength: 100 }),
+      }),
+    );
+  });
+
   it('keeps the committed JSON contract current', () => {
     const exported = JSON.parse(
       readFileSync(resolve(__dirname, '../../openapi.json'), 'utf8'),

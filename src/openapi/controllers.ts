@@ -26,6 +26,8 @@ import { MovieCommentsController } from '../movie-comments/movie-comments.contro
 import { PeopleController } from '../people/people.controller';
 import { AdminFeaturedController } from '../featured-artists/featured-admin.controller';
 import { FeaturedArtistsController } from '../featured-artists/featured-artists.controller';
+import { AdminCurationsController } from '../curations/curations-admin.controller';
+import { CurationsController } from '../curations/curations.controller';
 
 // Keep this list in sync with application controllers. Both runtime docs and the
 // offline exporter use their real route and DTO metadata.
@@ -58,4 +60,6 @@ export const apiControllers = [
   PeopleController,
   FeaturedArtistsController,
   AdminFeaturedController,
+  CurationsController,
+  AdminCurationsController,
 ];

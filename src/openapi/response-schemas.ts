@@ -420,7 +420,91 @@ const featuredPersonPreview = object({
   }),
 });
 
+const curatedMovie = object({
+  id: { ...uuid, description: 'Library movie id (Movie.id).' },
+  dbId: { ...nullable(integer), description: 'TMDb id.' },
+  title: { ...string, description: 'Movie title.' },
+  poster_path: {
+    ...nullable(string),
+    description: 'TMDb poster file path; null when the movie has no poster.',
+  },
+  release_date: {
+    ...nullable(string),
+    description: 'Release date as YYYY-MM-DD; null when unknown.',
+  },
+});
+const landingGridItem = object({
+  slot: {
+    ...integer,
+    minimum: 0,
+    maximum: 26,
+    description: 'Grid cell index, row-major in the frontend grid.',
+  },
+  imageUrl: {
+    ...nullable(string),
+    description:
+      'Hand-graded image for the cell: an absolute https:// URL or a site-relative path starting with /. null: show the movie poster_path.',
+  },
+  objectPosition: {
+    ...nullable(string),
+    description: 'CSS object-position for the image, such as "center 35%".',
+  },
+  movie: ref('CuratedMovie'),
+});
+const editorsPickItem = object({
+  movie: ref('CuratedMovie'),
+});
+const curationEditor = object({
+  id: { ...integer, description: 'User id.' },
+  username: { ...string, description: 'Username.' },
+});
+const curationUpdatedAt: SchemaObject = {
+  ...date,
+  description: 'When the list was last saved (the migration time if never).',
+};
+const curationUpdatedBy: SchemaObject = {
+  ...nullable(ref('CurationEditor')),
+  description:
+    'The admin who saved last; null for the seeded list or when that account is gone.',
+};
+const landingGridData: SchemaObject = {
+  ...array(ref('LandingGridItem')),
+  maxItems: 27,
+  description:
+    'Filled grid cells sorted by slot ascending; empty slots are omitted.',
+};
+const editorsPicksData: SchemaObject = {
+  ...array(ref('EditorsPickItem')),
+  maxItems: 40,
+  description:
+    'The whole pool in the order the admin set (not randomized, not limited).',
+};
+
 export const responseSchemas: Record<string, SchemaObject> = {
+  CuratedMovie: curatedMovie,
+  LandingGridItem: landingGridItem,
+  EditorsPickItem: editorsPickItem,
+  CurationEditor: curationEditor,
+  LandingGridResponse: envelope(
+    object({ data: landingGridData, updatedAt: curationUpdatedAt }),
+  ),
+  EditorsPicksResponse: envelope(
+    object({ data: editorsPicksData, updatedAt: curationUpdatedAt }),
+  ),
+  AdminLandingGridResponse: envelope(
+    object({
+      data: landingGridData,
+      updatedAt: curationUpdatedAt,
+      updatedBy: curationUpdatedBy,
+    }),
+  ),
+  AdminEditorsPicksResponse: envelope(
+    object({
+      data: editorsPicksData,
+      updatedAt: curationUpdatedAt,
+      updatedBy: curationUpdatedBy,
+    }),
+  ),
   CommunityPost: object({
     id: integer,
     kind: { type: 'string', enum: ['post', 'quote', 'repost'] },
@@ -1082,6 +1166,12 @@ export const operationResponses: Record<string, string> = {
   AdminFeatured_removeCandidate: 'EmptyResponse',
   AdminFeatured_searchPeople: 'FeaturedPeopleSearchResponse',
   AdminFeatured_previewPerson: 'FeaturedPersonPreview',
+  Curations_landingGrid: 'LandingGridResponse',
+  Curations_editorsPicks: 'EditorsPicksResponse',
+  AdminCurations_getLandingGrid: 'AdminLandingGridResponse',
+  AdminCurations_putLandingGrid: 'AdminLandingGridResponse',
+  AdminCurations_getEditorsPicks: 'AdminEditorsPicksResponse',
+  AdminCurations_putEditorsPicks: 'AdminEditorsPicksResponse',
   Movies_searchMoviesFromTmdb: 'TmdbSearchResponse',
   Movies_getTmdbGenres: 'TmdbGenresResponse',
   Movies_getTmdbMovieDetails: 'TmdbMovieResponse',

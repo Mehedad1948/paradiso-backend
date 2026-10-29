@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { getDataSourceToken } from '@nestjs/typeorm';
-import { DataSource, In, IsNull, MoreThan } from 'typeorm';
+import { DataSource, In, IsNull, MoreThan, Repository } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -37,6 +37,9 @@ import { CommunityComment } from './community/community-comment.entity';
 import { CommunityPostReaction } from './community/community-post-reaction.entity';
 import { UserFollow } from './community/user-follow.entity';
 import { MovieComment } from './movie-comments/movie-comment.entity';
+import { Curation } from './curations/curation.entity';
+import { CurationItem } from './curations/curation-item.entity';
+import { Curations1793923200000 } from './curations/migrations/1793923200000-curations';
 import { MovieComments1793318400000 } from './movie-comments/migrations/1793318400000-movie-comments';
 import { MovieCommentReplies1793404800000 } from './movie-comments/migrations/1793404800000-movie-comment-replies';
 import {
@@ -129,6 +132,8 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         RoomPoll,
         RoomPollOption,
         RoomPollVote,
+        Curation,
+        CurationItem,
       ],
     }).initialize();
     const { AppModule } = await import('./app.module');
@@ -1806,6 +1811,350 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     } finally {
       await runner.rollbackTransaction();
       await runner.release();
+    }
+  });
+
+  it('applies the curations migration with the entities’ shape and seeds the grid', async () => {
+    const runner = database.createQueryRunner();
+    const migrationSchema = schema + '_curations';
+    const shape = async (target: string) => {
+      const strip = (text: string) => text.split(target + '.').join('');
+      return {
+        columns: (
+          (await runner.query(
+            "SELECT table_name, column_name, data_type, is_nullable, column_default, character_maximum_length FROM information_schema.columns WHERE table_schema = $1 AND table_name IN ('curation', 'curation_item') ORDER BY table_name, column_name",
+            [target],
+          )) as { column_name: string; column_default: string | null }[]
+        ).map((row) =>
+          // uuid_generate_v4() against gen_random_uuid(): both make a v4 UUID.
+          row.column_name === 'id' ? { ...row, column_default: null } : row,
+        ),
+        indexes: (
+          (await runner.query(
+            "SELECT indexname, indexdef FROM pg_indexes WHERE schemaname = $1 AND tablename IN ('curation', 'curation_item') AND (indexname LIKE 'IDX_%' OR indexname LIKE 'UQ_%') ORDER BY indexname",
+            [target],
+          )) as { indexname: string; indexdef: string }[]
+        ).map((row) => ({ ...row, indexdef: strip(row.indexdef) })),
+      };
+    };
+    await runner.connect();
+    await runner.startTransaction();
+    try {
+      await runner.query('CREATE SCHEMA "' + migrationSchema + '"');
+      await runner.query(
+        'SET LOCAL search_path TO "' + migrationSchema + '", "' + schema + '"',
+      );
+      // Two of the grid's films are in the library; Tree of Life fills two cells.
+      await runner.query(
+        'INSERT INTO "' +
+          schema +
+          '"."movie" ("title", "dbId") VALUES (\'The Tree of Life\', 8967), (\'The Matrix\', 603)',
+      );
+      const migration = new Curations1793923200000();
+      await migration.up(runner);
+      expect(await shape(migrationSchema)).toEqual(await shape(schema));
+      expect(
+        await runner.query(
+          'SELECT "key", "updated_by" FROM "curation" ORDER BY "key"',
+        ),
+      ).toEqual([
+        { key: 'editors-picks', updated_by: null },
+        { key: 'landing-grid', updated_by: null },
+      ]);
+      expect(
+        await runner.query(
+          'SELECT i."curation_key", i."slot", m."dbId", i."image_url", i."object_position" FROM "curation_item" i JOIN "' +
+            schema +
+            '"."movie" m ON m."id" = i."movie_id" ORDER BY i."slot"',
+        ),
+      ).toEqual([
+        {
+          curation_key: 'landing-grid',
+          slot: 0,
+          dbId: 8967,
+          image_url: '/posters/grids/blue/tree-of-life.jpg',
+          object_position: 'center',
+        },
+        {
+          curation_key: 'landing-grid',
+          slot: 9,
+          dbId: 603,
+          image_url: '/posters/grids/green/matrix.jpg',
+          object_position: 'center 35%',
+        },
+        {
+          curation_key: 'landing-grid',
+          slot: 15,
+          dbId: 8967,
+          image_url: '/posters/grids/blue/tree-of-life.jpg',
+          object_position: 'center',
+        },
+      ]);
+      await migration.down(runner);
+    } finally {
+      await runner.rollbackTransaction();
+      await runner.release();
+    }
+  });
+
+  it('curates the landing lists end to end and searches the library', async () => {
+    const server = app.getHttpServer();
+    const document = createOpenApiDocument(app);
+    const movies = database.getRepository(Movie);
+    const items = database.getRepository(CurationItem);
+    await database
+      .getRepository(Curation)
+      .insert([{ key: 'landing-grid' }, { key: 'editors-picks' }]);
+    const [a, b, c] = await movies.save([
+      {
+        title: 'Zyxcurated Alpha',
+        original_title: 'Le Cabinet Secret',
+        dbId: 7001,
+        poster_path: '/alpha.jpg',
+      },
+      { title: 'Zyxcurated Beta', dbId: 7002, poster_path: '/beta.jpg' },
+      { title: 'Zyxcurated Gamma', dbId: 7003 },
+    ]);
+    const adminRole = await database
+      .getRepository(Role)
+      .save({ name: 'admin' });
+    const curator = await database.getRepository(User).save({
+      email: 'curator@example.test',
+      username: 'Curator',
+      password: 'private-password-hash',
+      isEmailVerified: true,
+      role: adminRole,
+    });
+    const curatorToken = (await tokens.generateTokens(curator)).accessToken;
+    const admin = (path: string) => ({
+      get: () =>
+        request(server).get(path).auth(curatorToken, { type: 'bearer' }),
+      put: (body: object, token = curatorToken) =>
+        request(server).put(path).auth(token, { type: 'bearer' }).send(body),
+    });
+    const grid = admin('/admin/curations/landing-grid');
+    const picks = admin('/admin/curations/editors-picks');
+    const slotsOf = (body: { data: { slot: number }[] }) =>
+      body.data.map((cell) => cell.slot);
+    const movieIds = (body: { data: { movie: { id: string } }[] }) =>
+      body.data.map((entry) => entry.movie.id);
+
+    try {
+      // Empty lists are valid and public.
+      for (const [path, operation] of [
+        ['/curations/landing-grid', 'Curations_landingGrid'],
+        ['/curations/editors-picks', 'Curations_editorsPicks'],
+      ]) {
+        const empty = await request(server).get(path).expect(200);
+        assertOpenApiResponse(document, operation, empty.body);
+        expect(empty.body.data).toEqual([]);
+        expect(empty.headers['cache-control']).toBeUndefined();
+      }
+
+      // Only admins read or write the admin routes.
+      await request(server).get('/admin/curations/landing-grid').expect(401);
+      await request(server)
+        .put('/admin/curations/editors-picks')
+        .send({ movieIds: [] })
+        .expect(401);
+      await request(server)
+        .get('/admin/curations/editors-picks')
+        .auth(access[0], { type: 'bearer' })
+        .expect(403);
+      await grid.put({ items: [] }, access[0]).expect(403);
+
+      // Replace the grid: one movie in two cells, a posterless movie with an image.
+      const saved = await grid
+        .put({
+          items: [
+            { slot: 20, movieId: a.id },
+            {
+              slot: 3,
+              movieId: a.id,
+              imageUrl: '/posters/grids/a.jpg',
+              objectPosition: 'center 35%',
+            },
+            { slot: 1, movieId: c.id, imageUrl: 'https://cdn.test/c.jpg' },
+          ],
+        })
+        .expect(200);
+      assertOpenApiResponse(
+        document,
+        'AdminCurations_putLandingGrid',
+        saved.body,
+      );
+      expect(slotsOf(saved.body)).toEqual([1, 3, 20]);
+      expect(saved.body.updatedBy).toEqual({
+        id: curator.id,
+        username: 'Curator',
+      });
+      expect(saved.body.data[1]).toEqual({
+        slot: 3,
+        imageUrl: '/posters/grids/a.jpg',
+        objectPosition: 'center 35%',
+        movie: {
+          id: a.id,
+          dbId: 7001,
+          title: 'Zyxcurated Alpha',
+          poster_path: '/alpha.jpg',
+          release_date: null,
+        },
+      });
+      expect(saved.body.data[2]).toMatchObject({
+        imageUrl: null,
+        objectPosition: null,
+      });
+      const publicGrid = await request(server)
+        .get('/curations/landing-grid')
+        .expect(200);
+      assertOpenApiResponse(document, 'Curations_landingGrid', publicGrid.body);
+      expect(slotsOf(publicGrid.body)).toEqual([1, 3, 20]);
+      expect(publicGrid.body).not.toHaveProperty('updatedBy');
+      expect(publicGrid.body.updatedAt).toBe(saved.body.updatedAt);
+
+      // Every rejected save leaves the grid exactly as it was.
+      const unchanged = async () =>
+        expect((await grid.get().expect(200)).body).toEqual(saved.body);
+      const missing = randomUUID();
+      await grid.put({ items: [{ slot: 27, movieId: a.id }] }).expect(400);
+      await grid.put({ items: [{ slot: -1, movieId: a.id }] }).expect(400);
+      const repeated = await grid
+        .put({
+          items: [
+            { slot: 4, movieId: a.id },
+            { slot: 4, movieId: b.id },
+          ],
+        })
+        .expect(400);
+      expect(repeated.body.message).toContain('4');
+      await grid
+        .put({
+          items: [{ slot: 4, movieId: a.id, imageUrl: 'http://x.test/a.jpg' }],
+        })
+        .expect(400);
+      await grid
+        .put({ items: [{ slot: 4, movieId: a.id, imageUrl: 'a.jpg' }] })
+        .expect(400);
+      await grid
+        .put({
+          items: [{ slot: 4, movieId: a.id, objectPosition: 'x'.repeat(41) }],
+        })
+        .expect(400);
+      const unknown = await grid
+        .put({
+          items: [
+            { slot: 4, movieId: b.id },
+            { slot: 5, movieId: missing },
+          ],
+        })
+        .expect(422);
+      expect(unknown.body.message).toContain(missing);
+      await unchanged();
+
+      // A failure while writing rolls the delete back too.
+      const insert = jest
+        .spyOn(Repository.prototype, 'insert')
+        .mockRejectedValueOnce(new Error('disk full'));
+      try {
+        await grid.put({ items: [{ slot: 8, movieId: b.id }] }).expect(500);
+      } finally {
+        insert.mockRestore();
+      }
+      await unchanged();
+
+      // Editors' picks: ordered, unique, with posters.
+      const pool = await picks.put({ movieIds: [b.id, a.id] }).expect(200);
+      assertOpenApiResponse(
+        document,
+        'AdminCurations_putEditorsPicks',
+        pool.body,
+      );
+      expect(movieIds(pool.body)).toEqual([b.id, a.id]);
+      expect(pool.body.updatedBy).toMatchObject({ id: curator.id });
+      await picks.put({ movieIds: [a.id, b.id, a.id] }).expect(400);
+      await picks
+        .put({ movieIds: Array.from({ length: 41 }, () => randomUUID()) })
+        .expect(400);
+      const posterless = await picks
+        .put({ movieIds: [b.id, c.id] })
+        .expect(422);
+      expect(posterless.body.message).toContain('Zyxcurated Gamma');
+      await picks.put({ movieIds: [b.id, missing] }).expect(422);
+      expect((await picks.get().expect(200)).body).toEqual(pool.body);
+      // The database also keeps a movie to one pick, though the grid may repeat.
+      await expect(
+        items.insert({ curationKey: 'editors-picks', movieId: a.id, slot: 9 }),
+      ).rejects.toThrow();
+      const publicPicks = await request(server)
+        .get('/curations/editors-picks')
+        .expect(200);
+      assertOpenApiResponse(
+        document,
+        'Curations_editorsPicks',
+        publicPicks.body,
+      );
+      expect(movieIds(publicPicks.body)).toEqual([b.id, a.id]);
+
+      // A movie that lost its poster stays visible to the admin only.
+      await movies.update({ id: b.id }, { poster_path: null as never });
+      expect(
+        (await request(server).get('/curations/editors-picks').expect(200)).body
+          .data,
+      ).toHaveLength(1);
+      expect((await picks.get().expect(200)).body.data).toHaveLength(2);
+      await movies.update({ id: b.id }, { poster_path: '/beta.jpg' });
+
+      // Replacing with nothing clears the pool.
+      expect((await picks.put({ movieIds: [] }).expect(200)).body.data).toEqual(
+        [],
+      );
+      await picks.put({ movieIds: [b.id, a.id] }).expect(200);
+
+      // Removing a movie from the library removes it from both lists.
+      await movies.delete({ id: a.id });
+      expect(slotsOf((await grid.get().expect(200)).body)).toEqual([1]);
+      expect(movieIds((await picks.get().expect(200)).body)).toEqual([b.id]);
+      expect(await items.countBy({ movieId: a.id })).toBe(0);
+
+      // Library search: case-insensitive on both titles, literal wildcards.
+      const search = async (query: string) =>
+        (
+          await request(server)
+            .get('/movies?' + query)
+            .expect(200)
+        ).body as {
+          data: { id: string }[];
+          meta: Record<string, number>;
+        };
+      expect((await search('search=ZYXCURATED')).meta.totalItems).toBe(2);
+      expect((await search('search=zyxcurated%20beta')).data).toHaveLength(1);
+      expect((await search('search=zyxcurated%25')).meta.totalItems).toBe(0);
+      expect((await search('search=%25')).meta.totalItems).toBe(0);
+      const paged = await search('search=zyxcurated&limit=1&page=2');
+      expect(paged.data).toHaveLength(1);
+      expect(paged.meta).toMatchObject({
+        totalItems: 2,
+        itemsPerPage: 1,
+        currentPage: 2,
+        totalPages: 2,
+      });
+      await movies.update(
+        { id: b.id },
+        { original_title: 'Le Cabinet Secret' },
+      );
+      expect((await search('search=cabinet%20SECRET')).data[0]).toMatchObject({
+        id: b.id,
+      });
+    } finally {
+      await items.createQueryBuilder().delete().execute();
+      await database
+        .getRepository(Curation)
+        .createQueryBuilder()
+        .delete()
+        .execute();
+      await movies.delete({ dbId: In([7001, 7002, 7003]) });
+      await database.getRepository(User).delete({ id: curator.id });
+      await database.getRepository(Role).delete({ id: adminRole.id });
     }
   });
 

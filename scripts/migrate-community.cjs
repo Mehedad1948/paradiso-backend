@@ -68,6 +68,9 @@ const {
 const {
   FeaturedArtists1793836800000,
 } = require('../dist/featured-artists/migrations/1793836800000-featured-artists');
+const {
+  Curations1793923200000,
+} = require('../dist/curations/migrations/1793923200000-curations');
 
 const migrations = [
   Community1790985600000,
@@ -91,6 +94,7 @@ const migrations = [
   MovieCreditIds1793664000000,
   ContentBlocks1793750400000,
   FeaturedArtists1793836800000,
+  Curations1793923200000,
 ];
 
 async function main() {

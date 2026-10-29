@@ -1794,6 +1794,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/curations/landing-grid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The landing page poster grid.
+         * @description Movies by grid slot (0–26), sorted by slot; empty slots are omitted. A cell shows imageUrl, or the movie poster_path when imageUrl is null. Cells whose movie has neither, or is blocked from the catalogue, are omitted. The same movie can fill several slots.
+         */
+        get: operations["Curations_landingGrid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/curations/editors-picks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The editors' picks pool for the landing page shelf.
+         * @description The whole pool (up to 40 movies) in the order the admin set, neither randomized nor limited: the frontend picks the day’s subset itself. Movies without a poster, or blocked from the catalogue, are omitted. An empty pool is a valid answer.
+         */
+        get: operations["Curations_editorsPicks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/curations/landing-grid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The landing grid as stored, for editing.
+         * @description Same as GET /curations/landing-grid plus updatedBy, but nothing is hidden: movies without a poster or image are returned so they can be fixed.
+         *     Requires role: admin.
+         */
+        get: operations["AdminCurations_getLandingGrid"];
+        /**
+         * Replace the whole landing grid.
+         * @description Saves the list in one transaction: all of it or none. 400 for a slot outside 0–26, a repeated slot, an imageUrl that is neither an https:// URL nor a path starting with /, or an objectPosition over 40 characters. 422 when a movieId is not in the library (the message names the ids). Returns the stored grid like GET /admin/curations/landing-grid.
+         *     Requires role: admin.
+         */
+        put: operations["AdminCurations_putLandingGrid"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/curations/editors-picks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The editors' picks pool as stored, for editing.
+         * @description Same as GET /curations/editors-picks plus updatedBy, but nothing is hidden: movies that lost their poster since they were picked are returned so they can be replaced.
+         *     Requires role: admin.
+         */
+        get: operations["AdminCurations_getEditorsPicks"];
+        /**
+         * Replace the whole editors' picks pool.
+         * @description Saves the list in one transaction: all of it or none. The order of movieIds becomes the display order. 400 for more than 40 ids or a repeated id. 422 when a movieId is not in the library (the message names the ids) or a movie has no poster. Returns the stored pool like GET /admin/curations/editors-picks.
+         *     Requires role: admin.
+         */
+        put: operations["AdminCurations_putEditorsPicks"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2151,6 +2243,107 @@ export interface components {
             blocked?: boolean;
             /** @description Why. An empty string clears it. Longer than 500 characters is rejected with 422. */
             note?: string;
+        };
+        LandingGridItemRequest: {
+            /** @description Grid cell index, row-major in the frontend grid. Unique within the request. Outside 0–26 is rejected with 400. */
+            slot: number;
+            /**
+             * Format: uuid
+             * @description Library movie id (Movie.id, not the TMDb id). The same movie may fill several slots. An id that is not in the library is rejected with 422.
+             */
+            movieId: string;
+            /** @description Hand-graded image for this cell: an absolute https:// URL (for example from POST /uploads/file) or a site-relative path starting with /. Omitted, null or blank: the frontend falls back to the movie poster. Anything else is rejected with 400. */
+            imageUrl?: string | null;
+            /**
+             * @description CSS object-position for the image, such as "center 35%". Omitted, null or blank: the frontend default. Longer than 40 characters is rejected with 400.
+             * @example center 35%
+             */
+            objectPosition?: string | null;
+        };
+        ReplaceLandingGridRequest: {
+            /** @description The whole grid. Slots left out become empty; an empty array clears the grid. Replaces the stored list in one transaction. */
+            items: components["schemas"]["LandingGridItemRequest"][];
+        };
+        ReplaceEditorsPicksRequest: {
+            /** @description The whole pool of library movie ids (Movie.id) in display order. No duplicates (400); more than 40 is rejected with 400; an unknown id with 422; a movie without a poster with 422. An empty array clears the pool. Replaces the stored list in one transaction. */
+            movieIds: string[];
+        };
+        CuratedMovie: {
+            /**
+             * Format: uuid
+             * @description Library movie id (Movie.id).
+             */
+            id: string;
+            /** @description TMDb id. */
+            dbId: number | null;
+            /** @description Movie title. */
+            title: string;
+            /** @description TMDb poster file path; null when the movie has no poster. */
+            poster_path: string | null;
+            /** @description Release date as YYYY-MM-DD; null when unknown. */
+            release_date: string | null;
+        };
+        LandingGridItem: {
+            /** @description Grid cell index, row-major in the frontend grid. */
+            slot: number;
+            /** @description Hand-graded image for the cell: an absolute https:// URL or a site-relative path starting with /. null: show the movie poster_path. */
+            imageUrl: string | null;
+            /** @description CSS object-position for the image, such as "center 35%". */
+            objectPosition: string | null;
+            movie: components["schemas"]["CuratedMovie"];
+        };
+        EditorsPickItem: {
+            movie: components["schemas"]["CuratedMovie"];
+        };
+        CurationEditor: {
+            /** @description User id. */
+            id: number;
+            /** @description Username. */
+            username: string;
+        };
+        LandingGridResponse: {
+            /** @description Filled grid cells sorted by slot ascending; empty slots are omitted. */
+            data: components["schemas"]["LandingGridItem"][];
+            /**
+             * Format: date-time
+             * @description When the list was last saved (the migration time if never).
+             */
+            updatedAt: string;
+            apiVersion: string;
+        };
+        EditorsPicksResponse: {
+            /** @description The whole pool in the order the admin set (not randomized, not limited). */
+            data: components["schemas"]["EditorsPickItem"][];
+            /**
+             * Format: date-time
+             * @description When the list was last saved (the migration time if never).
+             */
+            updatedAt: string;
+            apiVersion: string;
+        };
+        AdminLandingGridResponse: {
+            /** @description Filled grid cells sorted by slot ascending; empty slots are omitted. */
+            data: components["schemas"]["LandingGridItem"][];
+            /**
+             * Format: date-time
+             * @description When the list was last saved (the migration time if never).
+             */
+            updatedAt: string;
+            /** @description The admin who saved last; null for the seeded list or when that account is gone. */
+            updatedBy: components["schemas"]["CurationEditor"] | (never | null);
+            apiVersion: string;
+        };
+        AdminEditorsPicksResponse: {
+            /** @description The whole pool in the order the admin set (not randomized, not limited). */
+            data: components["schemas"]["EditorsPickItem"][];
+            /**
+             * Format: date-time
+             * @description When the list was last saved (the migration time if never).
+             */
+            updatedAt: string;
+            /** @description The admin who saved last; null for the seeded list or when that account is gone. */
+            updatedBy: components["schemas"]["CurationEditor"] | (never | null);
+            apiVersion: string;
         };
         CommunityPost: {
             id: number;
@@ -3991,6 +4184,8 @@ export interface operations {
     Movies_getMovies: {
         parameters: {
             query?: {
+                /** @description Case-insensitive text found in title or original_title. Blank is ignored. Combines with the date filters and pagination. */
+                search?: string;
                 startDate?: string | null;
                 endDate?: string | null;
                 limit?: number | null;
@@ -7909,6 +8104,188 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FeaturedPersonPreview"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Curations_landingGrid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LandingGridResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    Curations_editorsPicks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditorsPicksResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminCurations_getLandingGrid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLandingGridResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminCurations_putLandingGrid: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceLandingGridRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminLandingGridResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminCurations_getEditorsPicks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEditorsPicksResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminCurations_putEditorsPicks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReplaceEditorsPicksRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminEditorsPicksResponse"];
                 };
             };
             /** @description Error response */
