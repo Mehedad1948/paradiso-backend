@@ -2525,6 +2525,8 @@ export interface components {
             release_date: string | null;
             poster_path: string | null;
             vote_average: number | null;
+            /** @description TMDb votes behind vote_average; weigh the average by it when ranking. */
+            vote_count: number;
             /** @description Acting credits only. */
             character?: string | null;
             /** @description Crew credits only: every job on the film, merged. */

@@ -90,6 +90,7 @@ describe('toPersonProfile', () => {
         release_date: '2010-07-15',
         poster_path: '/27205.jpg',
         vote_average: 7.5,
+        vote_count: 100,
         jobs: ['Writer', 'Producer'],
       },
     ]);

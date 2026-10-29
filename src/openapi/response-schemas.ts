@@ -77,6 +77,11 @@ const creditItem = object(
     release_date: nullable(string),
     poster_path: nullable(string),
     vote_average: nullable(number),
+    vote_count: {
+      ...integer,
+      description:
+        'TMDb votes behind vote_average; weigh the average by it when ranking.',
+    },
     character: { ...nullable(string), description: 'Acting credits only.' },
     jobs: {
       ...array(string),
@@ -84,7 +89,15 @@ const creditItem = object(
       description: 'Crew credits only: every job on the film, merged.',
     },
   },
-  ['tmdbId', 'movieId', 'title', 'release_date', 'poster_path', 'vote_average'],
+  [
+    'tmdbId',
+    'movieId',
+    'title',
+    'release_date',
+    'poster_path',
+    'vote_average',
+    'vote_count',
+  ],
 );
 const creditList = (description: string): SchemaObject => ({
   ...array(ref('CreditItem')),

@@ -9,6 +9,8 @@ export interface CreditItem {
   release_date: string | null;
   poster_path: string | null;
   vote_average: number | null;
+  // How many people rated it; weighs vote_average when ranking.
+  vote_count: number;
   character?: string | null;
   jobs?: string[];
 }
@@ -105,6 +107,7 @@ const toItem = (credit: TmdbCredit): CreditItem => ({
   poster_path: credit.poster_path || null,
   // TMDb reports 0 for films nobody has rated yet.
   vote_average: credit.vote_count ? (credit.vote_average ?? null) : null,
+  vote_count: credit.vote_count ?? 0,
 });
 
 // Unreleased (undated) films first, then newest first, then by title.

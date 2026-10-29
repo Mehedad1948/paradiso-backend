@@ -9918,6 +9918,10 @@
             "type": "number",
             "nullable": true
           },
+          "vote_count": {
+            "type": "integer",
+            "description": "TMDb votes behind vote_average; weigh the average by it when ranking."
+          },
           "character": {
             "type": "string",
             "nullable": true,
@@ -9938,7 +9942,8 @@
           "title",
           "release_date",
           "poster_path",
-          "vote_average"
+          "vote_average",
+          "vote_count"
         ]
       },
       "PersonResponse": {
