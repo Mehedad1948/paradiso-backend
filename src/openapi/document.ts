@@ -96,7 +96,9 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
       for (const p of operation.parameters ?? []) {
         if (!('in' in p) || p.in !== 'path') continue;
         const parameter = p;
-        if (
+        if (parameter.name === 'date') {
+          parameter.schema = { type: 'string', format: 'date' };
+        } else if (
           parameter.name === 'token' ||
           // Our movie IDs; only the TMDb passthrough takes TMDb's integer IDs.
           (parameter.name === 'movieId' && !path.startsWith('/movies/tmdb/')) ||

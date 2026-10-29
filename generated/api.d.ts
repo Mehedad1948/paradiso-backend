@@ -1636,6 +1636,164 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/featured-artists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The featured artist of the day and the days before it.
+         * @description Item 0 is today (UTC) and the same for everyone; the rest are earlier days, newest first. Only item 0 carries knownFor and libraryFilmCount. Open the artist with GET /people/{tmdbPersonId}.
+         */
+        get: operations["FeaturedArtists_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/featured-artists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Featured days in a date range, scheduled future days included.
+         * @description Defaults to 30 days back and 30 days ahead; at most 120 days between from and to.
+         *     Requires role: admin.
+         */
+        get: operations["AdminFeatured_listDays"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/featured-artists/{date}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One featured day, or 404.
+         * @description Requires role: admin.
+         */
+        get: operations["AdminFeatured_getDay"];
+        /**
+         * Set or replace the pick for today or a future day.
+         * @description Marks the pick manual. Ignores cooldowns and blocks. 422 when the person is unknown to TMDb or has no photo or biography; 409 for a past day.
+         *     Requires role: admin.
+         */
+        put: operations["AdminFeatured_setDay"];
+        post?: never;
+        /**
+         * Remove the pick for today or a future day.
+         * @description A removed pick for today is refilled by the next automatic draw. 409 for a past day.
+         *     Requires role: admin.
+         */
+        delete: operations["AdminFeatured_removeDay"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/featured-candidates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * People with an editorial boost or block, newest change first.
+         * @description Requires role: admin.
+         */
+        get: operations["AdminFeatured_listCandidates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/featured-candidates/{tmdbPersonId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Boost, block or annotate a person; only the fields sent change.
+         * @description Affects future automatic picks only. 422 for a boost outside 0–10, a person TMDb does not know, or a boost above 1 for someone without a photo.
+         *     Requires role: admin.
+         */
+        put: operations["AdminFeatured_upsertCandidate"];
+        post?: never;
+        /**
+         * Remove the editorial row; the person is treated normally again.
+         * @description Requires role: admin.
+         */
+        delete: operations["AdminFeatured_removeCandidate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/featured-people/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search TMDb people by name, with their featured status.
+         * @description eligible means the person has a photo and a biography. Pages hold 20 people.
+         *     Requires role: admin.
+         */
+        get: operations["AdminFeatured_searchPeople"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/featured-people/{tmdbPersonId}/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * How the next automatic draw would treat this person.
+         * @description Score, boost, cooldown and final weight, plus the reasons if they cannot be picked.
+         *     Requires role: admin.
+         */
+        get: operations["AdminFeatured_previewPerson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1979,6 +2137,20 @@ export interface components {
              * @default false
              */
             spoiler: boolean;
+        };
+        SetFeaturedArtistRequest: {
+            /** @description TMDb person ID. */
+            tmdbPersonId: number;
+            /** @description Editorial line shown with the artist. Longer than 140 characters is rejected with 422. */
+            tagline?: string;
+        };
+        UpsertFeaturedCandidateRequest: {
+            /** @description Multiplies the person’s chance of being picked: 0 never, 1 normal. Outside 0–10 is rejected with 422. */
+            boost?: number;
+            /** @description Never auto-picked. Manual scheduling still works. */
+            blocked?: boolean;
+            /** @description Why. An empty string clears it. Longer than 500 characters is rejected with 422. */
+            note?: string;
         };
         CommunityPost: {
             id: number;
@@ -2551,6 +2723,142 @@ export interface components {
                 acting: components["schemas"]["CreditItem"][];
                 /** @description Other crew work, one entry per film with jobs merged. Same order. */
                 crew: components["schemas"]["CreditItem"][];
+            };
+            apiVersion: string;
+        };
+        FeaturedArtistPerson: {
+            id: number;
+            name: string;
+            profile_path: string;
+            knownForDepartment: string | null;
+        };
+        FeaturedPersonRef: {
+            id: number;
+            name: string;
+            profile_path: string | null;
+            knownForDepartment: string | null;
+        };
+        FeaturedKnownFor: {
+            tmdbId: number;
+            /** Format: uuid */
+            movieId: string | null;
+            title: string;
+            poster_path: string;
+            release_date: string | null;
+        };
+        FeaturedArtistItem: {
+            /**
+             * Format: date
+             * @description UTC feature date.
+             */
+            date: string;
+            /** @description True only for the row of the current UTC date. */
+            isToday: boolean;
+            person: components["schemas"]["FeaturedArtistPerson"];
+            tagline: string | null;
+            /** @description Up to 3 films by vote count; empty except for the first item. */
+            knownFor: components["schemas"]["FeaturedKnownFor"][];
+            /** @description Their credits that are films in our library; null except for the first item. */
+            libraryFilmCount: number | null;
+        };
+        FeaturedArtistListResponse: {
+            data: components["schemas"]["FeaturedArtistItem"][];
+            apiVersion: string;
+        };
+        AdminFeaturedArtistItem: {
+            /** Format: date */
+            date: string;
+            person: components["schemas"]["FeaturedArtistPerson"];
+            tagline: string | null;
+            /** @enum {string} */
+            source: "auto" | "manual";
+            createdBy: number | null;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        AdminFeaturedArtistResponse: {
+            /** Format: date */
+            date: string;
+            person: components["schemas"]["FeaturedArtistPerson"];
+            tagline: string | null;
+            /** @enum {string} */
+            source: "auto" | "manual";
+            createdBy: number | null;
+            /** Format: date-time */
+            createdAt: string;
+            apiVersion: string;
+        };
+        AdminFeaturedArtistListResponse: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            data: components["schemas"]["AdminFeaturedArtistItem"][];
+            apiVersion: string;
+        };
+        FeaturedCandidate: {
+            tmdbPersonId: number;
+            boost: number;
+            blocked: boolean;
+            note: string | null;
+            updatedBy: number;
+            /** Format: date-time */
+            updatedAt: string;
+            person: components["schemas"]["FeaturedPersonRef"] | (never | null);
+        };
+        FeaturedCandidateResponse: {
+            tmdbPersonId: number;
+            boost: number;
+            blocked: boolean;
+            note: string | null;
+            updatedBy: number;
+            /** Format: date-time */
+            updatedAt: string;
+            person: components["schemas"]["FeaturedPersonRef"] | (never | null);
+            apiVersion: string;
+        };
+        FeaturedCandidateListResponse: {
+            data: components["schemas"]["FeaturedCandidate"][];
+            meta: components["schemas"]["PaginationMeta"];
+            links: components["schemas"]["PaginationLinks"];
+            apiVersion: string;
+        };
+        FeaturedPeopleSearchItem: {
+            id: number;
+            name: string;
+            profile_path: string | null;
+            knownForDepartment: string | null;
+            popularity: number;
+            /** @description Has a photo and a biography. */
+            eligible: boolean;
+            boost: number;
+            blocked: boolean;
+            /** Format: date */
+            lastFeaturedDate: string | null;
+        };
+        FeaturedPeopleSearchResponse: {
+            data: components["schemas"]["FeaturedPeopleSearchItem"][];
+            meta: components["schemas"]["PaginationMeta"];
+            links: components["schemas"]["PaginationLinks"];
+            apiVersion: string;
+        };
+        FeaturedPersonPreview: {
+            person: components["schemas"]["FeaturedPersonRef"];
+            baseScore: number;
+            editorialBoost: number;
+            cooldownFactor: number;
+            /** @description baseScore × editorialBoost × cooldownFactor. */
+            weight: number;
+            /** Format: date */
+            lastFeaturedDate: string | null;
+            eligible: boolean;
+            /** @description Why the person cannot be auto-picked; empty if eligible. */
+            reasons: ("blocked" | "no_profile_path" | "empty_biography" | "too_few_credits" | "featured_within_hard_gap")[];
+            signals: {
+                popularity: number;
+                totalVotes: number;
+                creditCount: number;
+                libraryCount: number;
             };
             apiVersion: string;
         };
@@ -7273,6 +7581,334 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PersonResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    FeaturedArtists_list: {
+        parameters: {
+            query?: {
+                /** @description How many days to return: today first, then the days before it. */
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeaturedArtistListResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminFeatured_listDays: {
+        parameters: {
+            query?: {
+                /** @description First UTC day. Default: 30 days before today. */
+                from?: string;
+                /** @description Last UTC day. Default: 30 days after today. At most 120 days after from. */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminFeaturedArtistListResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminFeatured_getDay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminFeaturedArtistResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminFeatured_setDay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetFeaturedArtistRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminFeaturedArtistResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminFeatured_removeDay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmptyResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminFeatured_listCandidates: {
+        parameters: {
+            query?: {
+                limit?: number | null;
+                page?: number | null;
+                /** @description true: boost above 1. false: boost of 1 or less. */
+                boosted?: boolean;
+                blocked?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeaturedCandidateListResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminFeatured_upsertCandidate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tmdbPersonId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertFeaturedCandidateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeaturedCandidateResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminFeatured_removeCandidate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tmdbPersonId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmptyResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminFeatured_searchPeople: {
+        parameters: {
+            query: {
+                query: string;
+                /** @description TMDb pages hold 20 people and stop at 500. */
+                page?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeaturedPeopleSearchResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminFeatured_previewPerson: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tmdbPersonId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeaturedPersonPreview"];
                 };
             };
             /** @description Error response */

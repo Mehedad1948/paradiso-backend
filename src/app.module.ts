@@ -32,6 +32,7 @@ import { RoomInvitationsModule } from './room-invitations/room-invitations.modul
 import { RoomInviteLinksModule } from './room-invite-links/room-invite-links.module';
 import { CommunityModule } from './community/community.module';
 import { RoomChatModule } from './room-chat/room-chat.module';
+import { FeaturedArtistsModule } from './featured-artists/featured-artists.module';
 const ENV = process.env.NODE_ENV || 'development';
 @Module({
   imports: [
@@ -76,6 +77,7 @@ const ENV = process.env.NODE_ENV || 'development';
     FavoritesModule,
     NotificationsModule,
     MovieCommentsModule,
+    FeaturedArtistsModule,
   ],
   controllers: [AppController],
   providers: [

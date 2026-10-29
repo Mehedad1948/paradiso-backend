@@ -88,11 +88,28 @@ export interface TmdbPerson {
   profile_path?: string | null;
   known_for_department?: string | null;
   adult?: boolean;
+  popularity?: number;
   movie_credits?: {
     cast?: (TmdbPersonCredit & { character?: string | null })[];
     crew?: (TmdbPersonCredit & { job?: string; department?: string })[];
   };
   external_ids?: { imdb_id?: string | null };
+}
+
+// A row of TMDb's person search and popular lists; no biography or credits.
+export interface TmdbPersonSummary {
+  id: number;
+  name: string;
+  profile_path?: string | null;
+  known_for_department?: string | null;
+  adult?: boolean;
+  popularity?: number;
+}
+export interface TmdbPersonPage {
+  results: TmdbPersonSummary[];
+  page: number;
+  total_pages: number;
+  total_results: number;
 }
 
 export const DEFAULT_LANGUAGE = 'en-US';
@@ -237,6 +254,17 @@ export class MovieDbService {
       append_to_response: 'movie_credits,external_ids',
       language,
     });
+  }
+  searchPeople(query: string, page = 1): Promise<TmdbPersonPage> {
+    return this.get<TmdbPersonPage>('search/person', {
+      query,
+      page,
+      include_adult: 'false',
+    });
+  }
+  // TMDb's popular people, 20 per page.
+  getPopularPeople(page = 1): Promise<TmdbPersonPage> {
+    return this.get<TmdbPersonPage>('person/popular', { page });
   }
   // Just the profile, for the English biography fallback.
   getPersonProfile(personId: number, language = DEFAULT_LANGUAGE) {

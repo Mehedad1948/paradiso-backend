@@ -49,4 +49,12 @@ export default Joi.object({
   TMDB_BASE_URL: Joi.string()
     .uri({ scheme: ['https'] })
     .default('https://api.themoviedb.org/3'),
+  // Featured artist of the day; see src/featured-artists/featured-config.ts.
+  COOLDOWN_DAYS: Joi.number().integer().min(1),
+  HARD_MIN_GAP_DAYS: Joi.number().integer().min(11),
+  MIN_CREDITS: Joi.number().integer().min(0),
+  SCORE_WEIGHTS: Joi.string(),
+  FEATURED_SHORTLIST_SIZE: Joi.number().integer().min(1),
+  FEATURED_POPULAR_PAGES: Joi.number().integer().min(0),
+  FEATURED_FETCH_CONCURRENCY: Joi.number().integer().min(1),
 }).or('NEON_DB', 'DATABASE_URL');

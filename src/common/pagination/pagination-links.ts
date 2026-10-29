@@ -1,8 +1,9 @@
 import { Request } from 'express';
 
+// limit is left out of the links for lists with a fixed page size.
 export function paginationLinks(
   request: Request,
-  limit: number,
+  limit: number | undefined,
   page: number,
   totalPages: number,
 ) {
@@ -11,7 +12,7 @@ export function paginationLinks(
     request.protocol + '://' + request.get('host'),
   );
   const link = (target: number) => {
-    url.searchParams.set('limit', String(limit));
+    if (limit !== undefined) url.searchParams.set('limit', String(limit));
     url.searchParams.set('page', String(target));
     return url.toString();
   };

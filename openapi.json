@@ -6755,6 +6755,557 @@
         "security": [],
         "summary": "get Person"
       }
+    },
+    "/featured-artists": {
+      "get": {
+        "description": "Item 0 is today (UTC) and the same for everyone; the rest are earlier days, newest first. Only item 0 carries knownFor and libraryFilmCount. Open the artist with GET /people/{tmdbPersonId}.",
+        "operationId": "FeaturedArtists_list",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "How many days to return: today first, then the days before it.",
+            "schema": {
+              "minimum": 1,
+              "maximum": 11,
+              "default": 11,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeaturedArtistListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "The featured artist of the day and the days before it.",
+        "tags": [
+          "FeaturedArtists"
+        ],
+        "security": []
+      }
+    },
+    "/admin/featured-artists": {
+      "get": {
+        "description": "Defaults to 30 days back and 30 days ahead; at most 120 days between from and to.\nRequires role: admin.",
+        "operationId": "AdminFeatured_listDays",
+        "parameters": [
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "First UTC day. Default: 30 days before today.",
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "Last UTC day. Default: 30 days after today. At most 120 days after from.",
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminFeaturedArtistListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Featured days in a date range, scheduled future days included.",
+        "tags": [
+          "AdminFeatured"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/admin/featured-artists/{date}": {
+      "get": {
+        "operationId": "AdminFeatured_getDay",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminFeaturedArtistResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "One featured day, or 404.",
+        "tags": [
+          "AdminFeatured"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "description": "Requires role: admin."
+      },
+      "put": {
+        "description": "Marks the pick manual. Ignores cooldowns and blocks. 422 when the person is unknown to TMDb or has no photo or biography; 409 for a past day.\nRequires role: admin.",
+        "operationId": "AdminFeatured_setDay",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetFeaturedArtistRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminFeaturedArtistResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Set or replace the pick for today or a future day.",
+        "tags": [
+          "AdminFeatured"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      },
+      "delete": {
+        "description": "A removed pick for today is refilled by the next automatic draw. 409 for a past day.\nRequires role: admin.",
+        "operationId": "AdminFeatured_removeDay",
+        "parameters": [
+          {
+            "name": "date",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Remove the pick for today or a future day.",
+        "tags": [
+          "AdminFeatured"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/admin/featured-candidates": {
+      "get": {
+        "operationId": "AdminFeatured_listCandidates",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "format": "int32",
+              "nullable": true,
+              "default": 10,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 1000000,
+              "format": "int32",
+              "nullable": true,
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "name": "boosted",
+            "required": false,
+            "in": "query",
+            "description": "true: boost above 1. false: boost of 1 or less.",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "blocked",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeaturedCandidateListResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "People with an editorial boost or block, newest change first.",
+        "tags": [
+          "AdminFeatured"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "description": "Requires role: admin."
+      }
+    },
+    "/admin/featured-candidates/{tmdbPersonId}": {
+      "put": {
+        "description": "Affects future automatic picks only. 422 for a boost outside 0–10, a person TMDb does not know, or a boost above 1 for someone without a photo.\nRequires role: admin.",
+        "operationId": "AdminFeatured_upsertCandidate",
+        "parameters": [
+          {
+            "name": "tmdbPersonId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertFeaturedCandidateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeaturedCandidateResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Boost, block or annotate a person; only the fields sent change.",
+        "tags": [
+          "AdminFeatured"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "AdminFeatured_removeCandidate",
+        "parameters": [
+          {
+            "name": "tmdbPersonId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmptyResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Remove the editorial row; the person is treated normally again.",
+        "tags": [
+          "AdminFeatured"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ],
+        "description": "Requires role: admin."
+      }
+    },
+    "/admin/featured-people/search": {
+      "get": {
+        "description": "eligible means the person has a photo and a biography. Pages hold 20 people.\nRequires role: admin.",
+        "operationId": "AdminFeatured_searchPeople",
+        "parameters": [
+          {
+            "name": "query",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "minLength": 1,
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "TMDb pages hold 20 people and stop at 500.",
+            "schema": {
+              "minimum": 1,
+              "maximum": 500,
+              "default": 1,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeaturedPeopleSearchResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Search TMDb people by name, with their featured status.",
+        "tags": [
+          "AdminFeatured"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
+    },
+    "/admin/featured-people/{tmdbPersonId}/preview": {
+      "get": {
+        "description": "Score, boost, cooldown and final weight, plus the reasons if they cannot be picked.\nRequires role: admin.",
+        "operationId": "AdminFeatured_previewPerson",
+        "parameters": [
+          {
+            "name": "tmdbPersonId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeaturedPersonPreview"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "How the next automatic draw would treat this person.",
+        "tags": [
+          "AdminFeatured"
+        ],
+        "security": [
+          {
+            "accessToken": []
+          }
+        ]
+      }
     }
   },
   "info": {
@@ -7787,6 +8338,46 @@
             "type": "boolean",
             "default": false,
             "description": "Marks the comment as revealing the plot."
+          }
+        },
+        "additionalProperties": false
+      },
+      "SetFeaturedArtistRequest": {
+        "type": "object",
+        "properties": {
+          "tmdbPersonId": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "TMDb person ID."
+          },
+          "tagline": {
+            "type": "string",
+            "maxLength": 140,
+            "description": "Editorial line shown with the artist. Longer than 140 characters is rejected with 422."
+          }
+        },
+        "required": [
+          "tmdbPersonId"
+        ],
+        "additionalProperties": false
+      },
+      "UpsertFeaturedCandidateRequest": {
+        "type": "object",
+        "properties": {
+          "boost": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10,
+            "description": "Multiplies the person’s chance of being picked: 0 never, 1 normal. Outside 0–10 is rejected with 422."
+          },
+          "blocked": {
+            "type": "boolean",
+            "description": "Never auto-picked. Manual scheduling still works."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Why. An empty string clears it. Longer than 500 characters is rejected with 422."
           }
         },
         "additionalProperties": false
@@ -10030,6 +10621,544 @@
           "knownForDepartment",
           "imdbId",
           "credits",
+          "apiVersion"
+        ]
+      },
+      "FeaturedArtistPerson": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "profile_path": {
+            "type": "string"
+          },
+          "knownForDepartment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "profile_path",
+          "knownForDepartment"
+        ]
+      },
+      "FeaturedPersonRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "profile_path": {
+            "type": "string",
+            "nullable": true
+          },
+          "knownForDepartment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "profile_path",
+          "knownForDepartment"
+        ]
+      },
+      "FeaturedKnownFor": {
+        "type": "object",
+        "properties": {
+          "tmdbId": {
+            "type": "integer"
+          },
+          "movieId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "title": {
+            "type": "string"
+          },
+          "poster_path": {
+            "type": "string"
+          },
+          "release_date": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "tmdbId",
+          "movieId",
+          "title",
+          "poster_path",
+          "release_date"
+        ]
+      },
+      "FeaturedArtistItem": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "UTC feature date."
+          },
+          "isToday": {
+            "type": "boolean",
+            "description": "True only for the row of the current UTC date."
+          },
+          "person": {
+            "$ref": "#/components/schemas/FeaturedArtistPerson"
+          },
+          "tagline": {
+            "type": "string",
+            "nullable": true
+          },
+          "knownFor": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeaturedKnownFor"
+            },
+            "maxItems": 3,
+            "description": "Up to 3 films by vote count; empty except for the first item."
+          },
+          "libraryFilmCount": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Their credits that are films in our library; null except for the first item."
+          }
+        },
+        "required": [
+          "date",
+          "isToday",
+          "person",
+          "tagline",
+          "knownFor",
+          "libraryFilmCount"
+        ]
+      },
+      "FeaturedArtistListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeaturedArtistItem"
+            }
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "apiVersion"
+        ]
+      },
+      "AdminFeaturedArtistItem": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "person": {
+            "$ref": "#/components/schemas/FeaturedArtistPerson"
+          },
+          "tagline": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "manual"
+            ]
+          },
+          "createdBy": {
+            "type": "integer",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "date",
+          "person",
+          "tagline",
+          "source",
+          "createdBy",
+          "createdAt"
+        ]
+      },
+      "AdminFeaturedArtistResponse": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "person": {
+            "$ref": "#/components/schemas/FeaturedArtistPerson"
+          },
+          "tagline": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "manual"
+            ]
+          },
+          "createdBy": {
+            "type": "integer",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "date",
+          "person",
+          "tagline",
+          "source",
+          "createdBy",
+          "createdAt",
+          "apiVersion"
+        ]
+      },
+      "AdminFeaturedArtistListResponse": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date"
+          },
+          "to": {
+            "type": "string",
+            "format": "date"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminFeaturedArtistItem"
+            }
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "data",
+          "apiVersion"
+        ]
+      },
+      "FeaturedCandidate": {
+        "type": "object",
+        "properties": {
+          "tmdbPersonId": {
+            "type": "integer"
+          },
+          "boost": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "blocked": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedBy": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "person": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FeaturedPersonRef"
+              },
+              {
+                "type": "object",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          }
+        },
+        "required": [
+          "tmdbPersonId",
+          "boost",
+          "blocked",
+          "note",
+          "updatedBy",
+          "updatedAt",
+          "person"
+        ]
+      },
+      "FeaturedCandidateResponse": {
+        "type": "object",
+        "properties": {
+          "tmdbPersonId": {
+            "type": "integer"
+          },
+          "boost": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 10
+          },
+          "blocked": {
+            "type": "boolean"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "updatedBy": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "person": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/FeaturedPersonRef"
+              },
+              {
+                "type": "object",
+                "nullable": true,
+                "enum": [
+                  null
+                ]
+              }
+            ]
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "tmdbPersonId",
+          "boost",
+          "blocked",
+          "note",
+          "updatedBy",
+          "updatedAt",
+          "person",
+          "apiVersion"
+        ]
+      },
+      "FeaturedCandidateListResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeaturedCandidate"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          },
+          "links": {
+            "$ref": "#/components/schemas/PaginationLinks"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "links",
+          "apiVersion"
+        ]
+      },
+      "FeaturedPeopleSearchItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "profile_path": {
+            "type": "string",
+            "nullable": true
+          },
+          "knownForDepartment": {
+            "type": "string",
+            "nullable": true
+          },
+          "popularity": {
+            "type": "number"
+          },
+          "eligible": {
+            "type": "boolean",
+            "description": "Has a photo and a biography."
+          },
+          "boost": {
+            "type": "number"
+          },
+          "blocked": {
+            "type": "boolean"
+          },
+          "lastFeaturedDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "profile_path",
+          "knownForDepartment",
+          "popularity",
+          "eligible",
+          "boost",
+          "blocked",
+          "lastFeaturedDate"
+        ]
+      },
+      "FeaturedPeopleSearchResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FeaturedPeopleSearchItem"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/PaginationMeta"
+          },
+          "links": {
+            "$ref": "#/components/schemas/PaginationLinks"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "data",
+          "meta",
+          "links",
+          "apiVersion"
+        ]
+      },
+      "FeaturedPersonPreview": {
+        "type": "object",
+        "properties": {
+          "person": {
+            "$ref": "#/components/schemas/FeaturedPersonRef"
+          },
+          "baseScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "editorialBoost": {
+            "type": "number"
+          },
+          "cooldownFactor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "weight": {
+            "type": "number",
+            "description": "baseScore × editorialBoost × cooldownFactor."
+          },
+          "lastFeaturedDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "eligible": {
+            "type": "boolean"
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "blocked",
+                "no_profile_path",
+                "empty_biography",
+                "too_few_credits",
+                "featured_within_hard_gap"
+              ]
+            },
+            "description": "Why the person cannot be auto-picked; empty if eligible."
+          },
+          "signals": {
+            "type": "object",
+            "properties": {
+              "popularity": {
+                "type": "number"
+              },
+              "totalVotes": {
+                "type": "integer"
+              },
+              "creditCount": {
+                "type": "integer"
+              },
+              "libraryCount": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "popularity",
+              "totalVotes",
+              "creditCount",
+              "libraryCount"
+            ]
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "person",
+          "baseScore",
+          "editorialBoost",
+          "cooldownFactor",
+          "weight",
+          "lastFeaturedDate",
+          "eligible",
+          "reasons",
+          "signals",
           "apiVersion"
         ]
       },

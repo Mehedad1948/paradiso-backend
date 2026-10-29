@@ -8,6 +8,7 @@ import { PeopleService } from './people.service';
 @Module({
   controllers: [PeopleController],
   providers: [PeopleService],
+  exports: [PeopleService],
   imports: [TypeOrmModule.forFeature([Movie]), MoviesModule],
 })
 export class PeopleModule {}

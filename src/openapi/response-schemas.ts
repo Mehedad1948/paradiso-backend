@@ -324,6 +324,102 @@ const ratedMovie = object({
   ratings: array(ref('Rating')),
 });
 
+const day: SchemaObject = { type: 'string', format: 'date' };
+const featuredArtistPerson = object({
+  id: integer,
+  name: string,
+  profile_path: string,
+  knownForDepartment: nullable(string),
+});
+const featuredPersonRef = object({
+  id: integer,
+  name: string,
+  profile_path: nullable(string),
+  knownForDepartment: nullable(string),
+});
+const featuredArtistItem = object({
+  date: { ...day, description: 'UTC feature date.' },
+  isToday: {
+    ...boolean,
+    description: 'True only for the row of the current UTC date.',
+  },
+  person: ref('FeaturedArtistPerson'),
+  tagline: nullable(string),
+  knownFor: {
+    ...array(ref('FeaturedKnownFor')),
+    maxItems: 3,
+    description:
+      'Up to 3 films by vote count; empty except for the first item.',
+  },
+  libraryFilmCount: {
+    ...nullable(integer),
+    description:
+      'Their credits that are films in our library; null except for the first item.',
+  },
+});
+const adminFeaturedArtistItem = object({
+  date: day,
+  person: ref('FeaturedArtistPerson'),
+  tagline: nullable(string),
+  source: { type: 'string', enum: ['auto', 'manual'] },
+  createdBy: nullable(integer),
+  createdAt: date,
+});
+const featuredCandidate = object({
+  tmdbPersonId: integer,
+  boost: { ...number, minimum: 0, maximum: 10 },
+  blocked: boolean,
+  note: nullable(string),
+  updatedBy: integer,
+  updatedAt: date,
+  person: nullable(ref('FeaturedPersonRef')),
+});
+const featuredPeopleSearchItem = object({
+  id: integer,
+  name: string,
+  profile_path: nullable(string),
+  knownForDepartment: nullable(string),
+  popularity: number,
+  eligible: {
+    ...boolean,
+    description: 'Has a photo and a biography.',
+  },
+  boost: number,
+  blocked: boolean,
+  lastFeaturedDate: nullable(day),
+});
+const featuredPersonPreview = object({
+  person: ref('FeaturedPersonRef'),
+  baseScore: { ...number, minimum: 0, maximum: 1 },
+  editorialBoost: number,
+  cooldownFactor: { ...number, minimum: 0, maximum: 1 },
+  weight: {
+    ...number,
+    description: 'baseScore × editorialBoost × cooldownFactor.',
+  },
+  lastFeaturedDate: nullable(day),
+  eligible: boolean,
+  reasons: {
+    ...array({
+      type: 'string',
+      enum: [
+        'blocked',
+        'no_profile_path',
+        'empty_biography',
+        'too_few_credits',
+        'featured_within_hard_gap',
+      ],
+    }),
+    description: 'Why the person cannot be auto-picked; empty if eligible.',
+  },
+  signals: object({
+    popularity: number,
+    totalVotes: integer,
+    creditCount: integer,
+    libraryCount: integer,
+  }),
+});
+
 export const responseSchemas: Record<string, SchemaObject> = {
   CommunityPost: object({
     id: integer,
@@ -555,6 +651,32 @@ export const responseSchemas: Record<string, SchemaObject> = {
   MovieCrewMember: object(personProperties),
   CreditItem: creditItem,
   PersonResponse: envelope(person),
+  FeaturedArtistPerson: featuredArtistPerson,
+  FeaturedPersonRef: featuredPersonRef,
+  FeaturedKnownFor: object({
+    tmdbId: integer,
+    movieId: nullable(uuid),
+    title: string,
+    poster_path: string,
+    release_date: nullable(string),
+  }),
+  FeaturedArtistItem: featuredArtistItem,
+  FeaturedArtistListResponse: data(array(ref('FeaturedArtistItem'))),
+  AdminFeaturedArtistItem: adminFeaturedArtistItem,
+  AdminFeaturedArtistResponse: envelope(adminFeaturedArtistItem),
+  AdminFeaturedArtistListResponse: envelope(
+    object({
+      from: day,
+      to: day,
+      data: array(ref('AdminFeaturedArtistItem')),
+    }),
+  ),
+  FeaturedCandidate: featuredCandidate,
+  FeaturedCandidateResponse: envelope(featuredCandidate),
+  FeaturedCandidateListResponse: envelope(page(ref('FeaturedCandidate'))),
+  FeaturedPeopleSearchItem: featuredPeopleSearchItem,
+  FeaturedPeopleSearchResponse: envelope(page(ref('FeaturedPeopleSearchItem'))),
+  FeaturedPersonPreview: envelope(featuredPersonPreview),
   ResolvedMovieResponse: envelope(object({ id: uuid })),
   MovieListResponse: envelope(page(ref('Movie'))),
   CreatedMovieResponse: envelope(
@@ -950,6 +1072,16 @@ export const operationResponses: Record<string, string> = {
   Movies_createMovie: 'CreatedMovieResponse',
   Movies_resolveMovie: 'ResolvedMovieResponse',
   People_getPerson: 'PersonResponse',
+  FeaturedArtists_list: 'FeaturedArtistListResponse',
+  AdminFeatured_listDays: 'AdminFeaturedArtistListResponse',
+  AdminFeatured_getDay: 'AdminFeaturedArtistResponse',
+  AdminFeatured_setDay: 'AdminFeaturedArtistResponse',
+  AdminFeatured_removeDay: 'EmptyResponse',
+  AdminFeatured_listCandidates: 'FeaturedCandidateListResponse',
+  AdminFeatured_upsertCandidate: 'FeaturedCandidateResponse',
+  AdminFeatured_removeCandidate: 'EmptyResponse',
+  AdminFeatured_searchPeople: 'FeaturedPeopleSearchResponse',
+  AdminFeatured_previewPerson: 'FeaturedPersonPreview',
   Movies_searchMoviesFromTmdb: 'TmdbSearchResponse',
   Movies_getTmdbGenres: 'TmdbGenresResponse',
   Movies_getTmdbMovieDetails: 'TmdbMovieResponse',

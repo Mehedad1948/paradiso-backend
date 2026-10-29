@@ -174,6 +174,64 @@ describe('OpenAPI frontend contract', () => {
     expect(schemas.PublicUser).not.toHaveProperty('properties.password');
   });
 
+  it('documents the featured artist endpoints and schemas', () => {
+    const schemas = document.components!.schemas!;
+    for (const name of [
+      'FeaturedArtistItem',
+      'FeaturedArtistListResponse',
+      'AdminFeaturedArtistItem',
+      'AdminFeaturedArtistListResponse',
+      'FeaturedCandidate',
+      'FeaturedCandidateListResponse',
+      'FeaturedPeopleSearchResponse',
+      'FeaturedPersonPreview',
+      'SetFeaturedArtistRequest',
+      'UpsertFeaturedCandidateRequest',
+    ])
+      expect(schemas).toHaveProperty(name);
+    const operations: [string, 'get' | 'put' | 'delete'][] = [
+      ['/featured-artists', 'get'],
+      ['/admin/featured-artists', 'get'],
+      ['/admin/featured-artists/{date}', 'get'],
+      ['/admin/featured-artists/{date}', 'put'],
+      ['/admin/featured-artists/{date}', 'delete'],
+      ['/admin/featured-candidates', 'get'],
+      ['/admin/featured-candidates/{tmdbPersonId}', 'put'],
+      ['/admin/featured-candidates/{tmdbPersonId}', 'delete'],
+      ['/admin/featured-people/search', 'get'],
+      ['/admin/featured-people/{tmdbPersonId}/preview', 'get'],
+    ];
+    for (const [path, method] of operations) {
+      const operation = document.paths[path]?.[method];
+      expect(operation).toBeDefined();
+      // Only the public feed is open; the rest need an admin.
+      if (path === '/featured-artists') {
+        expect(operation!.security).toEqual([]);
+      } else {
+        expect(operation!.security).toEqual([{ accessToken: [] }]);
+        expect(operation!.description).toContain('Requires role: admin');
+      }
+    }
+    expect(
+      document.paths['/admin/featured-artists/{date}'].put!.parameters,
+    ).toContainEqual({
+      name: 'date',
+      required: true,
+      in: 'path',
+      schema: { type: 'string', format: 'date' },
+    });
+    expect(document.paths['/featured-artists'].get!.parameters).toContainEqual(
+      expect.objectContaining({
+        name: 'limit',
+        schema: expect.objectContaining({
+          minimum: 1,
+          maximum: 11,
+          default: 11,
+        }),
+      }),
+    );
+  });
+
   it('keeps the committed JSON contract current', () => {
     const exported = JSON.parse(
       readFileSync(resolve(__dirname, '../../openapi.json'), 'utf8'),

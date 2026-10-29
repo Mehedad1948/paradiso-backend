@@ -27,6 +27,8 @@ export const PERSON_CACHE_ENTRIES = 2000;
 interface CacheEntry {
   // null: TMDb said the person does not exist.
   profile: PersonProfile | null;
+  // TMDb's popularity score; not part of the public profile.
+  popularity: number;
   storedAt: number;
 }
 
@@ -51,6 +53,39 @@ export class PeopleService {
     language = DEFAULT_LANGUAGE,
     now = Date.now(),
   ): Promise<PersonProfile> {
+    const { profile } = await this.cached(personId, language, now);
+    return this.withLibrary(profile);
+  }
+
+  // The en-US profile plus the signals that rank artists for the featured
+  // pick. Shares getPerson's cache, so ranking a pool is cheap on repeat.
+  async getRankingProfile(
+    personId: number,
+    now = Date.now(),
+  ): Promise<{ profile: PersonProfile; popularity: number }> {
+    const { profile, popularity } = await this.cached(
+      personId,
+      DEFAULT_LANGUAGE,
+      now,
+    );
+    return { profile: await this.withLibrary(profile), popularity };
+  }
+
+  // Name, photo and biography without the library lookup, so credits carry no
+  // movieId. For lists that only need to show or vet a person.
+  getBasics(
+    personId: number,
+    now = Date.now(),
+  ): Promise<{ profile: PersonProfile; popularity: number }> {
+    return this.cached(personId, DEFAULT_LANGUAGE, now);
+  }
+
+  // Throws NotFoundException for blocked, adult and unknown people.
+  private async cached(
+    personId: number,
+    language: string,
+    now: number,
+  ): Promise<CacheEntry & { profile: PersonProfile }> {
     if (await this.contentBlocks.isBlocked('person', personId))
       throw new NotFoundException('Person not found');
     const key = personId + ':' + language;
@@ -71,12 +106,16 @@ export class PeopleService {
         );
     }
     if (!entry.profile) throw new NotFoundException('Person not found');
-    const tmdbIds = creditTmdbIds(entry.profile.credits);
+    return { ...entry, profile: entry.profile };
+  }
+
+  private async withLibrary(profile: PersonProfile): Promise<PersonProfile> {
+    const tmdbIds = creditTmdbIds(profile.credits);
     const [movieIds, blocked] = await Promise.all([
       this.libraryIds(tmdbIds),
       this.contentBlocks.blocked('movie', tmdbIds),
     ]);
-    return withLibraryIds(entry.profile, movieIds, blocked);
+    return withLibraryIds(profile, movieIds, blocked);
   }
 
   private load(
@@ -87,8 +126,8 @@ export class PeopleService {
     let pending = this.pending.get(key);
     if (!pending) {
       pending = this.fetch(personId, language)
-        .then((profile) => {
-          const entry = { profile, storedAt: Date.now() };
+        .then((fetched) => {
+          const entry = { ...fetched, storedAt: Date.now() };
           this.touch(key, entry);
           return entry;
         })
@@ -101,12 +140,13 @@ export class PeopleService {
   private async fetch(
     personId: number,
     language: string,
-  ): Promise<PersonProfile | null> {
+  ): Promise<Pick<CacheEntry, 'profile' | 'popularity'>> {
+    const missing = { profile: null, popularity: 0 };
     let person: TmdbPerson;
     try {
       person = await this.movieDbService.getPerson(personId, language);
     } catch (error) {
-      if (error instanceof NotFoundException) return null;
+      if (error instanceof NotFoundException) return missing;
       throw error;
     }
     let biography = person.biography?.trim() ?? '';
@@ -129,9 +169,12 @@ export class PeopleService {
       isAdultPerson({ ...person, credits }) ||
       isAdultPerson({ biography: english, credits })
     )
-      return null;
+      return missing;
     biography ||= english;
-    return toPersonProfile(person, biography);
+    return {
+      profile: toPersonProfile(person, biography),
+      popularity: person.popularity ?? 0,
+    };
   }
 
   // Map order is recency: re-inserting marks a key as recently used.
