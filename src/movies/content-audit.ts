@@ -38,6 +38,9 @@ export interface AuditOptions {
   // Reported by people; blocked whatever the rules say.
   manualMovies?: number[];
   manualPeople?: number[];
+  // Kept by hand; never blocked, so nothing is linked through them either.
+  keepMovies?: number[];
+  keepPeople?: number[];
   // Top-billed cast checked for every examined film.
   castLimit?: number;
   // Rounds of following links from blocked items to their films and casts.
@@ -65,6 +68,8 @@ export async function auditContent(
     libraryTmdbIds,
     manualMovies = [],
     manualPeople = [],
+    keepMovies = [],
+    keepPeople = [],
     castLimit = 15,
     rounds = 3,
     mainstreamVotes = 500,
@@ -73,9 +78,13 @@ export async function auditContent(
 ): Promise<AuditBlock[]> {
   const blocks = new Map<string, AuditBlock>();
   const key = (kind: ContentBlockKind, id: number) => kind + ':' + id;
+  const kept = new Set([
+    ...keepMovies.map((id) => key('movie', id)),
+    ...keepPeople.map((id) => key('person', id)),
+  ]);
   const block = (entry: AuditBlock) => {
     const id = key(entry.kind, entry.tmdbId);
-    if (blocks.has(id)) return false;
+    if (blocks.has(id) || kept.has(id)) return false;
     blocks.set(id, entry);
     return true;
   };

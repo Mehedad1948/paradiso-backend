@@ -28,6 +28,10 @@ const MANUAL_LIBRARY_MOVIES = [
   '933f9f26-8ea5-49a5-b720-7a4712c49fa8',
   '14309cdb-bb56-4af3-aaac-cf52f3301fb3',
 ];
+// Kept by hand despite the rules: legitimate films users added, and the
+// person whose bio linked one of them.
+const KEEP_MOVIES = [110, 54328]; // Three Colors: Red, Ocean Heaven
+const KEEP_PEOPLE = [74022]; // Gao Yuanyuan
 const OUT = path.join(__dirname, '../audit');
 const DELAY_MS = 250;
 
@@ -184,6 +188,8 @@ async function main() {
         libraryTmdbIds: library.map((movie) => movie.dbId),
         manualMovies,
         manualPeople: MANUAL_PEOPLE,
+        keepMovies: KEEP_MOVIES,
+        keepPeople: KEEP_PEOPLE,
         rounds: option('rounds', 2),
         castLimit: option('cast', 15),
         log: console.log,

@@ -78,6 +78,19 @@ describe('auditContent', () => {
     expect(by['person:11']).toBeUndefined();
   });
 
+  it('never blocks kept items or links through them', async () => {
+    const blocks = await auditContent(sources, {
+      libraryTmdbIds: [1, 2],
+      keepMovies: [2],
+      keepPeople: [10],
+    });
+    const keys = blocks.map((entry) => entry.kind + ':' + entry.tmdbId);
+    expect(keys).not.toContain('movie:2');
+    expect(keys).not.toContain('person:10');
+    // Only reachable through the kept person.
+    expect(keys).not.toContain('movie:3');
+  });
+
   it('blocks reported items whatever the rules say', async () => {
     const blocks = await auditContent(sources, {
       libraryTmdbIds: [],
