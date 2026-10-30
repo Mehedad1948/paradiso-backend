@@ -9273,13 +9273,17 @@
               "poster_path": {
                 "type": "string",
                 "nullable": true
+              },
+              "inWatchlist": {
+                "type": "boolean"
               }
             },
             "required": [
               "id",
               "dbId",
               "title",
-              "poster_path"
+              "poster_path",
+              "inWatchlist"
             ],
             "nullable": true
           },
@@ -9344,15 +9348,65 @@
                   "poster_path": {
                     "type": "string",
                     "nullable": true
+                  },
+                  "inWatchlist": {
+                    "type": "boolean"
                   }
                 },
                 "required": [
                   "id",
                   "dbId",
                   "title",
-                  "poster_path"
+                  "poster_path",
+                  "inWatchlist"
                 ],
                 "nullable": true
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "room": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "nullable": true
+              },
+              "commentCount": {
+                "type": "integer"
+              },
+              "likeCount": {
+                "type": "integer"
+              },
+              "dislikeCount": {
+                "type": "integer"
+              },
+              "repostCount": {
+                "type": "integer"
+              },
+              "quoteCount": {
+                "type": "integer"
+              },
+              "myReaction": {
+                "type": "integer",
+                "enum": [
+                  1,
+                  -1
+                ],
+                "nullable": true
+              },
+              "reposted": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -9362,7 +9416,16 @@
               "imageUrl",
               "createdAt",
               "author",
-              "movie"
+              "movie",
+              "updatedAt",
+              "room",
+              "commentCount",
+              "likeCount",
+              "dislikeCount",
+              "repostCount",
+              "quoteCount",
+              "myReaction",
+              "reposted"
             ],
             "nullable": true
           },
@@ -9593,13 +9656,17 @@
               "poster_path": {
                 "type": "string",
                 "nullable": true
+              },
+              "inWatchlist": {
+                "type": "boolean"
               }
             },
             "required": [
               "id",
               "dbId",
               "title",
-              "poster_path"
+              "poster_path",
+              "inWatchlist"
             ],
             "nullable": true
           },
@@ -9664,15 +9731,65 @@
                   "poster_path": {
                     "type": "string",
                     "nullable": true
+                  },
+                  "inWatchlist": {
+                    "type": "boolean"
                   }
                 },
                 "required": [
                   "id",
                   "dbId",
                   "title",
-                  "poster_path"
+                  "poster_path",
+                  "inWatchlist"
                 ],
                 "nullable": true
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "room": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "nullable": true
+              },
+              "commentCount": {
+                "type": "integer"
+              },
+              "likeCount": {
+                "type": "integer"
+              },
+              "dislikeCount": {
+                "type": "integer"
+              },
+              "repostCount": {
+                "type": "integer"
+              },
+              "quoteCount": {
+                "type": "integer"
+              },
+              "myReaction": {
+                "type": "integer",
+                "enum": [
+                  1,
+                  -1
+                ],
+                "nullable": true
+              },
+              "reposted": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -9682,7 +9799,16 @@
               "imageUrl",
               "createdAt",
               "author",
-              "movie"
+              "movie",
+              "updatedAt",
+              "room",
+              "commentCount",
+              "likeCount",
+              "dislikeCount",
+              "repostCount",
+              "quoteCount",
+              "myReaction",
+              "reposted"
             ],
             "nullable": true
           },

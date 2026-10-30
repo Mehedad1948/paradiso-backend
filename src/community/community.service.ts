@@ -78,6 +78,7 @@ export class CommunityService {
       .leftJoin('post.quotedPost', 'quoted')
       .leftJoin('quoted.author', 'quotedAuthor')
       .leftJoin('quoted.movie', 'quotedMovie')
+      .leftJoin('quoted.room', 'quotedRoom')
       .select([
         'post',
         'author.id',
@@ -104,6 +105,10 @@ export class CommunityService {
         'quoted.rating',
         'quoted.imageUrl',
         'quoted.createdAt',
+        'quoted.updatedAt',
+        'quoted.roomId',
+        'quotedRoom.id',
+        'quotedRoom.name',
         'quotedAuthor.id',
         'quotedAuthor.username',
         'quotedAuthor.avatar',
@@ -115,15 +120,42 @@ export class CommunityService {
       .loadRelationCountAndMap('post.commentCount', 'post.comments');
   }
 
-  private serializeMovie(movie: Movie | null) {
+  private serializeMovie(movie: Movie | null, watchlist: Set<string>) {
     return movie
       ? {
           id: movie.id,
           dbId: movie.dbId,
           title: movie.title,
           poster_path: movie.poster_path ?? null,
+          inWatchlist: watchlist.has(movie.id),
         }
       : null;
+  }
+
+  // Which of these movies are on the viewer's watchlist (anonymous: none).
+  private async watchlistedMovies(movieIds: string[], userId?: number) {
+    if (movieIds.length === 0 || userId === undefined) return new Set<string>();
+    const rows: { movieId: string }[] = await this.reactions.query(
+      `SELECT "movieId" FROM watchlist_item WHERE "userId" = $1::int AND "movieId" = ANY($2::uuid[])`,
+      [userId, movieIds],
+    );
+    return new Set(rows.map((row) => row.movieId));
+  }
+
+  // Of these rooms, the ones the viewer may read: the same rule as
+  // RoomAccessService.canRead (member or owner, or public and not banned).
+  private async readableRooms(roomIds: number[], userId?: number) {
+    if (roomIds.length === 0) return new Set<number>();
+    const rows: { id: number }[] = await this.reactions.query(
+      `SELECT r.id FROM room r
+       WHERE r.id = ANY($1::int[]) AND (
+         r."ownerId" = $2::int
+         OR EXISTS (SELECT 1 FROM room_users_user m WHERE m."roomId" = r.id AND m."userId" = $2::int)
+         OR (r."isPublic" AND NOT EXISTS (SELECT 1 FROM room_ban b WHERE b."roomId" = r.id AND b."userId" = $2::int))
+       )`,
+      [roomIds, userId ?? null],
+    );
+    return new Set(rows.map((row) => row.id));
   }
 
   // Like/dislike/repost/quote counts and the viewer's own state, per post.
@@ -149,16 +181,64 @@ export class CommunityService {
     posts: (CommunityPost & { commentCount?: number })[],
     userId?: number,
   ) {
-    const stats = await this.engagement(
-      posts.map((post) => post.id),
-      userId,
+    const quotedIds = posts.flatMap((post) =>
+      post.quotedPost ? [post.quotedPost.id] : [],
     );
-    return posts.map((post) => this.serializePost(post, stats.get(post.id)));
+    const movieIds = posts.flatMap((post) =>
+      [post.movie?.id, post.quotedPost?.movie?.id].filter(
+        (id): id is string => !!id,
+      ),
+    );
+    const quotedRoomIds = posts.flatMap((post) =>
+      post.quotedPost?.roomId ? [post.quotedPost.roomId] : [],
+    );
+    // One query each for the whole page, whatever the number of posts.
+    const [stats, watchlist, readable, quotedCounts] = await Promise.all([
+      this.engagement(
+        [...new Set([...posts.map((post) => post.id), ...quotedIds])],
+        userId,
+      ),
+      this.watchlistedMovies([...new Set(movieIds)], userId),
+      this.readableRooms([...new Set(quotedRoomIds)], userId),
+      this.quotedCommentCounts([...new Set(quotedIds)]),
+    ]);
+    return posts.map((post) => {
+      const quoted = post.quotedPost;
+      // The original may sit in a room the viewer cannot read; hide it the
+      // way GET /community/posts/{id} would.
+      const visible =
+        !!quoted && (!quoted.roomId || readable.has(quoted.roomId));
+      return this.serializePost(post, stats.get(post.id), {
+        watchlist,
+        quotedStats: quoted && visible ? stats.get(quoted.id) : undefined,
+        quotedCommentCount:
+          quoted && visible ? (quotedCounts.get(quoted.id) ?? 0) : 0,
+        quotedVisible: visible,
+      });
+    });
+  }
+
+  private async quotedCommentCounts(ids: number[]) {
+    const counts = new Map<number, number>();
+    if (ids.length === 0) return counts;
+    const rows: { postId: number; count: number }[] =
+      await this.reactions.query(
+        `SELECT "postId", count(*)::int AS count FROM community_comment WHERE "postId" = ANY($1::int[]) GROUP BY "postId"`,
+        [ids],
+      );
+    for (const row of rows) counts.set(row.postId, row.count);
+    return counts;
   }
 
   private serializePost(
     post: CommunityPost & { commentCount?: number },
-    stats?: PostEngagement,
+    stats: PostEngagement | undefined,
+    extra: {
+      watchlist: Set<string>;
+      quotedStats?: PostEngagement;
+      quotedCommentCount: number;
+      quotedVisible: boolean;
+    },
   ) {
     const invite = post.promotedInvite;
     const canJoin =
@@ -177,20 +257,32 @@ export class CommunityService {
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
       author: this.publicUser(post.author),
-      movie: this.serializeMovie(post.movie),
+      movie: this.serializeMovie(post.movie, extra.watchlist),
       room: post.room ? { id: post.room.id, name: post.room.name } : null,
       quotedPostId: post.quotedPostId ?? null,
-      quotedPost: quoted
-        ? {
-            id: quoted.id,
-            text: quoted.text,
-            rating: quoted.rating ?? null,
-            imageUrl: quoted.imageUrl ?? quoted.movie?.poster_path ?? null,
-            createdAt: quoted.createdAt,
-            author: this.publicUser(quoted.author),
-            movie: this.serializeMovie(quoted.movie),
-          }
-        : null,
+      quotedPost:
+        quoted && extra.quotedVisible
+          ? {
+              id: quoted.id,
+              text: quoted.text,
+              rating: quoted.rating ?? null,
+              imageUrl: quoted.imageUrl ?? quoted.movie?.poster_path ?? null,
+              createdAt: quoted.createdAt,
+              updatedAt: quoted.updatedAt,
+              author: this.publicUser(quoted.author),
+              movie: this.serializeMovie(quoted.movie, extra.watchlist),
+              room: quoted.room
+                ? { id: quoted.room.id, name: quoted.room.name }
+                : null,
+              commentCount: extra.quotedCommentCount,
+              likeCount: extra.quotedStats?.likeCount ?? 0,
+              dislikeCount: extra.quotedStats?.dislikeCount ?? 0,
+              repostCount: extra.quotedStats?.repostCount ?? 0,
+              quoteCount: extra.quotedStats?.quoteCount ?? 0,
+              myReaction: extra.quotedStats?.myReaction ?? null,
+              reposted: extra.quotedStats?.reposted ?? false,
+            }
+          : null,
       promotion: invite
         ? {
             room: {

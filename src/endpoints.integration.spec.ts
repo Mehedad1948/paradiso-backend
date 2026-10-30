@@ -377,6 +377,73 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     ).toBe(0);
   });
 
+  it('embeds live counts, viewer state and watchlist state in quoted posts and movies', async () => {
+    const server = app.getHttpServer();
+    const document = createOpenApiDocument(app);
+    const original = (
+      await request(server)
+        .post('/community/posts')
+        .auth(access[0], { type: 'bearer' })
+        .send({ movieId, text: 'Embed me', rating: 9 })
+        .expect(201)
+    ).body.id as number;
+    const repost = (
+      await request(server)
+        .post('/community/posts/' + original + '/repost')
+        .auth(access[1], { type: 'bearer' })
+        .expect(201)
+    ).body;
+    assertOpenApiResponse(document, 'Community_repost', repost);
+    await request(server)
+      .put('/community/posts/' + original + '/reaction')
+      .auth(access[2], { type: 'bearer' })
+      .send({ value: 1 })
+      .expect(200);
+    await request(server)
+      .put('/watchlist/' + movieId)
+      .auth(access[2], { type: 'bearer' })
+      .expect(200);
+    const find = (body: { data: { id: number }[] }) =>
+      body.data.find((post) => post.id === repost.id) as unknown as {
+        quotedPost: Record<string, unknown>;
+      };
+    const feedFor = async (token?: string) => {
+      const req = request(server).get('/community/posts?limit=50');
+      const res = await (token ? req.auth(token, { type: 'bearer' }) : req);
+      expect(res.status).toBe(200);
+      return res.body;
+    };
+    const liker = await feedFor(access[2]);
+    assertOpenApiResponse(document, 'Community_feed', liker);
+    expect(find(liker).quotedPost).toMatchObject({
+      id: original,
+      likeCount: 1,
+      repostCount: 1,
+      myReaction: 1,
+      reposted: false,
+      room: null,
+      movie: { inWatchlist: true },
+    });
+    const reposter = find(await feedFor(access[1]));
+    expect(reposter.quotedPost).toMatchObject({
+      reposted: true,
+      myReaction: null,
+      movie: { inWatchlist: false },
+    });
+    expect(find(await feedFor()).quotedPost).toMatchObject({
+      likeCount: 1,
+      myReaction: null,
+      reposted: false,
+      movie: { inWatchlist: false },
+    });
+    const detail = await request(server)
+      .get('/community/posts/' + original)
+      .auth(access[2], { type: 'bearer' })
+      .expect(200);
+    expect(detail.body.movie.inWatchlist).toBe(true);
+    expect(find(liker).quotedPost.likeCount).toBe(detail.body.likeCount);
+  });
+
   it('keeps ordered profile favorites and derives recommendations from rated posts', async () => {
     const server = app.getHttpServer();
     const document = createOpenApiDocument(app);
