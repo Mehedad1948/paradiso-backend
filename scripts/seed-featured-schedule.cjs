@@ -8,13 +8,19 @@
 //   node scripts/seed-featured-schedule.cjs --apply
 //   options: --admin-id=<user id>  (default: the first site admin)
 //            --start=YYYY-MM-DD    (default: tomorrow, UTC)
+//            --curl                send TMDb requests through curl (slow or
+//                                  blocked Node connections)
 require('reflect-metadata');
 const { execFile } = require('node:child_process');
 const { NestFactory } = require('@nestjs/core');
 
 // Node's fetch ignores HTTPS_PROXY; behind a proxy, TMDb requests go
 // through curl, which honours it.
-if (process.env.HTTPS_PROXY || process.env.https_proxy) {
+if (
+  process.argv.includes('--curl') ||
+  process.env.HTTPS_PROXY ||
+  process.env.https_proxy
+) {
   globalThis.fetch = (input) =>
     new Promise((resolve, reject) =>
       execFile(
@@ -36,6 +42,7 @@ if (process.env.HTTPS_PROXY || process.env.https_proxy) {
 }
 
 const BOOST = 10;
+const ATTEMPTS = 3;
 const NOTE = 'Editorial favourite: scheduled by hand.';
 // TMDb person ids, in schedule order.
 const PEOPLE = [
@@ -91,6 +98,7 @@ async function main() {
     }
 
     console.log(apply ? 'APPLYING' : 'PREVIEW (add --apply to write)');
+    const failed = [];
     let date = start;
     for (const [id, label] of PEOPLE) {
       while (await store.findByDate(date)) {
@@ -98,11 +106,31 @@ async function main() {
         date = addDays(date, 1);
       }
       console.log(`${date}  ${label}  #${id}  boost ${BOOST}`);
-      if (apply) {
-        await admin.upsertCandidate(id, { boost: BOOST, note: NOTE }, adminId);
-        await admin.setDay(date, { tmdbPersonId: id }, adminId);
+      if (!apply) {
+        date = addDays(date, 1);
+        continue;
       }
-      date = addDays(date, 1);
+      let done = false;
+      for (let attempt = 1; attempt <= ATTEMPTS && !done; attempt++) {
+        try {
+          await admin.upsertCandidate(
+            id,
+            { boost: BOOST, note: NOTE },
+            adminId,
+          );
+          await admin.setDay(date, { tmdbPersonId: id }, adminId);
+          done = true;
+        } catch (error) {
+          console.log(`  attempt ${attempt} failed: ${error.message}`);
+        }
+      }
+      // A failed person keeps their day free for the next one.
+      if (done) date = addDays(date, 1);
+      else failed.push(label);
+    }
+    if (failed.length) {
+      console.log(`Not scheduled: ${failed.join(', ')}. Run again to retry.`);
+      process.exitCode = 1;
     }
   } finally {
     await app.close();
