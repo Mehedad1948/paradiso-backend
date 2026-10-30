@@ -66,6 +66,15 @@ export interface TmdbMovieWithExtras extends TmdbMovie {
   };
 }
 
+export interface TmdbPoster {
+  file_path: string;
+  width: number;
+  height: number;
+  iso_639_1: string | null;
+  vote_average?: number;
+  vote_count?: number;
+}
+
 interface TmdbPersonCredit {
   id: number;
   title?: string;
@@ -242,6 +251,16 @@ export class MovieDbService {
       include_video_language: 'en,null',
       include_image_language: 'null,en',
     });
+  }
+  // Every poster TMDb holds for a film: the ones in English or with no text.
+  async getMoviePosters(movieId: number): Promise<TmdbPoster[]> {
+    if (!Number.isSafeInteger(movieId) || movieId < 1)
+      throw new BadRequestException('Invalid TMDb movie ID');
+    const { posters = [] } = await this.get<{ posters?: TmdbPoster[] }>(
+      'movie/' + movieId + '/images',
+      { include_image_language: 'en,null' },
+    );
+    return posters;
   }
   // Profile, filmography and IMDb ID in one request.
   getPerson(

@@ -8,7 +8,7 @@ import {
   MovieKeyCrewMember,
 } from '../movie.entity';
 import { DETAILS_VERSION, toMovieExtras } from '../tmdb-extras';
-import { isArchiveFootage } from '../content-filter';
+import { isArchiveFootage, isBlockedImage } from '../content-filter';
 import { MovieDbService } from './MovieDb.serviec';
 
 export type MovieDetails = Pick<
@@ -227,6 +227,10 @@ export class MovieDetailsProvider {
   }
 
   private toDetails(movie: Movie): MovieDetails {
+    // Rows stored before an image was blocked may still hold it.
+    const backdrops = (movie.backdrops ?? []).filter(
+      (path) => !isBlockedImage(path),
+    );
     return {
       id: movie.id,
       dbId: movie.dbId,
@@ -237,8 +241,10 @@ export class MovieDetailsProvider {
       release_date: movie.release_date ?? null,
       runtime: movie.runtime,
       poster_path: movie.poster_path ?? null,
-      backdrop_path: movie.backdrop_path,
-      backdrops: movie.backdrops ?? [],
+      backdrop_path: isBlockedImage(movie.backdrop_path)
+        ? (backdrops[0] ?? null)
+        : movie.backdrop_path,
+      backdrops,
       vote_average: movie.vote_average ?? null,
       imdbRate: movie.imdbRate ?? null,
       imdbLink: movie.imdbLink ?? null,

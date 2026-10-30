@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await -- the fake store mimics async queries */
 import { Logger } from '@nestjs/common';
 import { ContentBlocksService } from '../movies/providers/content-blocks.service';
+import { MovieDbService } from '../movies/providers/MovieDb.serviec';
 import { CurationKey } from './curations.constants';
 import { CurationsService } from './curations.service';
 import {
@@ -59,6 +60,10 @@ class FakeStore {
     };
   }
 
+  async findMovie(movieId: string) {
+    return this.movies.find((m) => m.id === movieId) ?? null;
+  }
+
   async transaction<T>(work: (tx: CurationsTx) => Promise<T>): Promise<T> {
     this.transactions++;
     const before = structuredClone(this.lists);
@@ -91,6 +96,7 @@ describe('CurationsService', () => {
   let store: FakeStore;
   let blocked: Set<number>;
   let service: CurationsService;
+  let posters: jest.Mock;
 
   beforeEach(() => {
     jest.spyOn(Logger.prototype, 'log').mockImplementation();
@@ -103,7 +109,10 @@ describe('CurationsService', () => {
         tmdbId: (item: T) => number | null | undefined,
       ) => items.filter((item) => !blocked.has(tmdbId(item) ?? -1)),
     } as unknown as ContentBlocksService;
-    service = new CurationsService(store as unknown as CurationsStore, blocks);
+    posters = jest.fn().mockResolvedValue([]);
+    service = new CurationsService(store as unknown as CurationsStore, blocks, {
+      getMoviePosters: posters,
+    } as unknown as MovieDbService);
     store.movies = [1, 2, 3, 4].map((n) => movie(n));
   });
   afterEach(() => jest.restoreAllMocks());
@@ -314,6 +323,137 @@ describe('CurationsService', () => {
     });
   });
 
+  describe("editors' pick covers", () => {
+    const cover = 'https://image.tmdb.org/t/p/w500/alt.jpg';
+
+    it('stores a pick cover and returns it, leaving other picks on their poster', async () => {
+      const result = await service.replaceEditorsPicks(
+        { items: [{ movieId: id(2), imageUrl: cover }, { movieId: id(1) }] },
+        ADMIN.id,
+      );
+      expect(result.data.map((item) => item.imageUrl)).toEqual([cover, null]);
+      expect(store.lists['editors-picks'].items[0]).toMatchObject({
+        movieId: id(2),
+        imageUrl: cover,
+        objectPosition: null,
+      });
+    });
+
+    it('accepts a movie without a poster when it has a cover', async () => {
+      store.movies.push(movie(5, { poster_path: null }));
+      const result = await service.replaceEditorsPicks(
+        { items: [{ movieId: id(5), imageUrl: cover }] },
+        ADMIN.id,
+      );
+      expect(result.data).toHaveLength(1);
+    });
+
+    it('still rejects a movie with neither a poster nor a cover', async () => {
+      store.movies.push(movie(5, { poster_path: null }));
+      await expect(
+        service.replaceEditorsPicks({ items: [{ movieId: id(5) }] }, ADMIN.id),
+      ).rejects.toThrow(/Movie 5/);
+    });
+
+    it('rejects repeated movies in items with 400', async () => {
+      await expect(
+        service.replaceEditorsPicks(
+          { items: [{ movieId: id(1) }, { movieId: id(1), imageUrl: cover }] },
+          ADMIN.id,
+        ),
+      ).rejects.toThrow(/repeated/);
+    });
+
+    it('rejects items together with movieIds', async () => {
+      await expect(
+        service.replaceEditorsPicks(
+          { items: [{ movieId: id(1) }], movieIds: [id(1)] },
+          ADMIN.id,
+        ),
+      ).rejects.toThrow('not both');
+    });
+
+    it('resets covers when the deprecated movieIds form is saved', async () => {
+      await service.replaceEditorsPicks(
+        { items: [{ movieId: id(1), imageUrl: cover }] },
+        ADMIN.id,
+      );
+      const result = await service.replaceEditorsPicks(
+        { movieIds: [id(1)] },
+        ADMIN.id,
+      );
+      expect(result.data[0].imageUrl).toBeNull();
+    });
+
+    it('serves a pick that has a cover but no poster to the public', async () => {
+      store.movies.push(movie(5, { poster_path: null }));
+      await service.replaceEditorsPicks(
+        { items: [{ movieId: id(5), imageUrl: cover }, { movieId: id(1) }] },
+        ADMIN.id,
+      );
+      const result = await service.editorsPicks();
+      expect(result.data.map((item) => item.movie.id)).toEqual([id(5), id(1)]);
+    });
+
+    describe('choosing a cover', () => {
+      it('lists the TMDb posters best rated first, ready to save', async () => {
+        posters.mockResolvedValue([
+          {
+            file_path: '/low.jpg',
+            width: 1000,
+            height: 1500,
+            iso_639_1: 'en',
+            vote_average: 3,
+            vote_count: 2,
+          },
+          {
+            file_path: '/poster-1.jpg',
+            width: 2000,
+            height: 3000,
+            iso_639_1: null,
+            vote_average: 5.5,
+            vote_count: 9,
+          },
+        ]);
+        const result = await service.moviePosters(id(1));
+        expect(posters).toHaveBeenCalledWith(1001);
+        expect(result.data.map((poster) => poster.imageUrl)).toEqual([
+          'https://image.tmdb.org/t/p/w500/poster-1.jpg',
+          'https://image.tmdb.org/t/p/w500/low.jpg',
+        ]);
+        expect(result.data[0]).toMatchObject({
+          thumbnailUrl: 'https://image.tmdb.org/t/p/w185/poster-1.jpg',
+          isDefault: true,
+          language: null,
+        });
+        expect(result.data[1].isDefault).toBe(false);
+      });
+
+      it('keeps at most 30 posters', async () => {
+        posters.mockResolvedValue(
+          Array.from({ length: 45 }, (_, n) => ({
+            file_path: `/p${n}.jpg`,
+            width: 1,
+            height: 1,
+            iso_639_1: 'en',
+            vote_average: n,
+          })),
+        );
+        expect((await service.moviePosters(id(1))).data).toHaveLength(30);
+      });
+
+      it('is empty for a movie that did not come from TMDb, without asking TMDb', async () => {
+        store.movies.push(movie(5, { dbId: null }));
+        expect(await service.moviePosters(id(5))).toEqual({ data: [] });
+        expect(posters).not.toHaveBeenCalled();
+      });
+
+      it('is 404 for a movie outside the library', async () => {
+        await expect(service.moviePosters(id(99))).rejects.toThrow('not found');
+      });
+    });
+  });
+
   describe('reading', () => {
     beforeEach(async () => {
       store.movies.push(
@@ -368,7 +508,7 @@ describe('CurationsService', () => {
 
     it('serves the public pool in order, without posterless or blocked movies', async () => {
       const result = await service.editorsPicks();
-      expect(result.data).toEqual([{ movie: movie(2) }]);
+      expect(result.data).toEqual([{ movie: movie(2), imageUrl: null }]);
       expect(result).not.toHaveProperty('updatedBy');
     });
 

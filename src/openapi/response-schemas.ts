@@ -453,6 +453,33 @@ const landingGridItem = object({
 });
 const editorsPickItem = object({
   movie: ref('CuratedMovie'),
+  imageUrl: {
+    ...nullable(string),
+    description:
+      "The pick's own cover, a TMDb image URL. null: show the movie poster_path.",
+  },
+});
+const moviePoster = object({
+  imageUrl: {
+    ...string,
+    description:
+      "A TMDb image URL (w500), ready to send as a pick's imageUrl and to show as its cover.",
+  },
+  thumbnailUrl: { ...string, description: 'The same image, small (w185).' },
+  width: integer,
+  height: integer,
+  language: {
+    ...nullable(string),
+    description: 'ISO 639-1 language of the text on the poster; null if none.',
+  },
+  voteAverage: {
+    ...number,
+    description: 'TMDb community rating of the image.',
+  },
+  isDefault: {
+    ...boolean,
+    description: "True for the movie's current poster_path.",
+  },
 });
 const curationEditor = object({
   id: { ...integer, description: 'User id.' },
@@ -484,6 +511,17 @@ export const responseSchemas: Record<string, SchemaObject> = {
   CuratedMovie: curatedMovie,
   LandingGridItem: landingGridItem,
   EditorsPickItem: editorsPickItem,
+  MoviePoster: moviePoster,
+  MoviePostersResponse: envelope(
+    object({
+      data: {
+        ...array(ref('MoviePoster')),
+        maxItems: 30,
+        description:
+          "The movie's TMDb posters, best rated first; empty for a movie that did not come from TMDb.",
+      },
+    }),
+  ),
   CurationEditor: curationEditor,
   LandingGridResponse: envelope(
     object({ data: landingGridData, updatedAt: curationUpdatedAt }),
@@ -1180,6 +1218,7 @@ export const operationResponses: Record<string, string> = {
   AdminCurations_putLandingGrid: 'AdminLandingGridResponse',
   AdminCurations_getEditorsPicks: 'AdminEditorsPicksResponse',
   AdminCurations_putEditorsPicks: 'AdminEditorsPicksResponse',
+  AdminCurations_getMoviePosters: 'MoviePostersResponse',
   Movies_searchMoviesFromTmdb: 'TmdbSearchResponse',
   Movies_getTmdbGenres: 'TmdbGenresResponse',
   Movies_getTmdbMovieDetails: 'TmdbMovieResponse',

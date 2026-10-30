@@ -44,6 +44,7 @@ describe('curations HTTP', () => {
     adminEditorsPicks: jest.fn(),
     replaceLandingGrid: jest.fn(),
     replaceEditorsPicks: jest.fn(),
+    moviePosters: jest.fn(),
   };
 
   beforeAll(async () => {
@@ -99,6 +100,7 @@ describe('curations HTTP', () => {
       ['put', '/admin/curations/landing-grid'],
       ['get', '/admin/curations/editors-picks'],
       ['put', '/admin/curations/editors-picks'],
+      ['get', `/admin/curations/movies/${A}/posters`],
     ];
     const body = (path: string) =>
       path.endsWith('landing-grid') ? { items: [] } : { movieIds: [] };
@@ -285,6 +287,85 @@ describe('curations HTTP', () => {
         { movieIds: [A, A] },
         42,
       );
+    });
+
+    describe('items with a cover image', () => {
+      const tmdb = 'https://image.tmdb.org/t/p/w500/abc_1-2.jpg';
+
+      it('takes 0 to 40 items and rejects 41 with 400', async () => {
+        await put({ items: [] }).expect(200);
+        await put({ items: ids(40).map((movieId) => ({ movieId })) }).expect(
+          200,
+        );
+        await put({ items: ids(41).map((movieId) => ({ movieId })) }).expect(
+          400,
+        );
+      });
+
+      it('passes a TMDb cover and treats blank as none', async () => {
+        await put({
+          items: [
+            { movieId: A.toUpperCase(), imageUrl: tmdb },
+            { movieId: B, imageUrl: '  ' },
+            { movieId: B },
+          ],
+        }).expect(200);
+        expect(service.replaceEditorsPicks).toHaveBeenCalledWith(
+          {
+            items: [
+              { movieId: A, imageUrl: tmdb },
+              { movieId: B, imageUrl: null },
+              { movieId: B },
+            ],
+          },
+          42,
+        );
+      });
+
+      it.each([
+        'http://image.tmdb.org/t/p/w500/a.jpg',
+        'https://evil.example/t/p/w500/a.jpg',
+        'https://image.tmdb.org.evil.example/t/p/w500/a.jpg',
+        'https://image.tmdb.org/t/p/w500/a.jpg?x=1',
+        'https://image.tmdb.org/t/p/w500/../a.jpg',
+        '/posters/local.jpg',
+        'data:image/png;base64,AAAA',
+      ])('rejects %s as a cover', async (imageUrl) => {
+        await put({ items: [{ movieId: A, imageUrl }] }).expect(400);
+        expect(service.replaceEditorsPicks).not.toHaveBeenCalled();
+      });
+
+      it('rejects bad items and unknown item fields', async () => {
+        await put({ items: [{ movieId: 'nope' }] }).expect(400);
+        await put({ items: [{ imageUrl: tmdb }] }).expect(400);
+        await put({ items: [{ movieId: A, objectPosition: 'center' }] }).expect(
+          400,
+        );
+        await put({ items: A }).expect(400);
+      });
+
+      it('leaves items together with movieIds to the service, which answers 400 itself', async () => {
+        await put({ items: [{ movieId: A }], movieIds: [A] }).expect(200);
+        expect(service.replaceEditorsPicks).toHaveBeenCalledTimes(1);
+      });
+    });
+  });
+
+  describe('GET /admin/curations/movies/:movieId/posters', () => {
+    it('passes a lowercased movie id to the service', async () => {
+      await request(app.getHttpServer())
+        .get(`/admin/curations/movies/${A.toUpperCase()}/posters`)
+        .set('Authorization', 'Bearer admin')
+        .expect(200);
+      expect(service.moviePosters).toHaveBeenCalledWith(A);
+    });
+
+    it('rejects a movie id that is not a uuid', async () => {
+      await request(app.getHttpServer())
+        .get('/admin/curations/movies/123/posters')
+        .set('Authorization', 'Bearer admin')
+        .expect(400);
+      expect(service.moviePosters).not.toHaveBeenCalled();
     });
   });
 });

@@ -241,6 +241,7 @@ describe('OpenAPI frontend contract', () => {
       ['/admin/curations/landing-grid', 'put'],
       ['/admin/curations/editors-picks', 'get'],
       ['/admin/curations/editors-picks', 'put'],
+      ['/admin/curations/movies/{movieId}/posters', 'get'],
     ];
     for (const [path, method] of operations) {
       const operation = document.paths[path]?.[method];
@@ -279,14 +280,33 @@ describe('OpenAPI frontend contract', () => {
       },
     });
     expect(schemas.ReplaceEditorsPicksRequest).toMatchObject({
-      required: ['movieIds'],
       properties: {
+        items: {
+          maxItems: 40,
+          items: { $ref: '#/components/schemas/EditorsPickItemRequest' },
+        },
         movieIds: {
+          deprecated: true,
           maxItems: 40,
           uniqueItems: true,
           items: { type: 'string', format: 'uuid' },
         },
       },
+    });
+    expect(schemas.ReplaceEditorsPicksRequest).not.toHaveProperty('required');
+    expect(schemas.EditorsPickItemRequest).toMatchObject({
+      required: ['movieId'],
+      additionalProperties: false,
+      properties: {
+        movieId: { format: 'uuid' },
+        imageUrl: { nullable: true, maxLength: 2048 },
+      },
+    });
+    expect(schemas.EditorsPickItem).toMatchObject({
+      required: ['movie', 'imageUrl'],
+    });
+    expect(schemas.MoviePostersResponse).toMatchObject({
+      required: ['data', 'apiVersion'],
     });
     expect(schemas.LandingGridResponse).toMatchObject({
       required: ['data', 'updatedAt', 'apiVersion'],

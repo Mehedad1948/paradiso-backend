@@ -206,6 +206,15 @@ export function adultPersonReason(person: PersonSignals): string | null {
 export const isAdultPerson = (person: PersonSignals) =>
   adultPersonReason(person) !== null;
 
+// TMDb image file paths we never store or serve, e.g. an inappropriate
+// backdrop on an otherwise fine film (movie f41a8b6d-4c39-4833-bc97-67df7f2bb7f0).
+export const BLOCKED_IMAGE_PATHS: ReadonlySet<string> = new Set([
+  '/AcgGV8gwTBpTZJTNJHjsytotNYo.jpg',
+]);
+
+export const isBlockedImage = (path?: string | null) =>
+  !!path && BLOCKED_IMAGE_PATHS.has(path);
+
 // "Herself (archive footage)": reused clips, not a part in the film.
 export const isArchiveFootage = (character?: string | null) =>
   /archive\s+footage/i.test(character ?? '');

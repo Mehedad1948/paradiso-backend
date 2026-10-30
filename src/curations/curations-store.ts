@@ -104,6 +104,22 @@ export class CurationsStore {
     };
   }
 
+  async findMovie(id: string): Promise<LibraryMovie | null> {
+    const movie = await this.dataSource
+      .getRepository(Movie)
+      .createQueryBuilder('movie')
+      .select([
+        'movie.id',
+        'movie.dbId',
+        'movie.title',
+        'movie.poster_path',
+        'movie.release_date',
+      ])
+      .where('movie.id = :id', { id })
+      .getOne();
+    return movie ? toLibraryMovie(movie) : null;
+  }
+
   // Commits when `work` resolves and rolls everything back when it throws.
   transaction<T>(work: (tx: CurationsTx) => Promise<T>): Promise<T> {
     return this.dataSource

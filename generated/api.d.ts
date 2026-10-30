@@ -1919,10 +1919,31 @@ export interface paths {
         get: operations["AdminCurations_getEditorsPicks"];
         /**
          * Replace the whole editors' picks pool.
-         * @description Saves the list in one transaction: all of it or none. The order of movieIds becomes the display order. 400 for more than 40 ids or a repeated id. 422 when a movieId is not in the library (the message names the ids) or a movie has no poster. Returns the stored pool like GET /admin/curations/editors-picks.
+         * @description Saves the list in one transaction: all of it or none. The order of items becomes the display order, and an item's imageUrl (a TMDb image from GET /admin/curations/movies/{movieId}/posters) replaces the movie poster as that pick's cover. Send items or the deprecated movieIds (which resets every cover to the poster), not both. 400 for more than 40 picks, a repeated movie, a bad movieId or an imageUrl that is not a TMDb image URL. 422 when a movie is not in the library (the message names the ids) or has neither a poster nor an imageUrl. Returns the stored pool like GET /admin/curations/editors-picks.
          *     Requires role: admin.
          */
         put: operations["AdminCurations_putEditorsPicks"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/curations/movies/{movieId}/posters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * TMDb posters to choose a pick cover from.
+         * @description Every poster TMDb has for a library movie (English or textless), best rated first, at most 30. Each has imageUrl, ready to save as a pick's imageUrl, and a small thumbnailUrl for the picker. isDefault marks the movie's current poster. movieId is the library id (Movie.id). 404 when the movie is not in the library; an empty list for a movie that did not come from TMDb. 502/504 when TMDb is unreachable.
+         *     Requires role: admin.
+         */
+        get: operations["AdminCurations_getMoviePosters"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -2308,9 +2329,26 @@ export interface components {
             /** @description The whole grid. Slots left out become empty; an empty array clears the grid. Replaces the stored list in one transaction. */
             items: components["schemas"]["LandingGridItemRequest"][];
         };
+        EditorsPickItemRequest: {
+            /**
+             * Format: uuid
+             * @description Library movie id (Movie.id, not the TMDb id). Each movie can be a pick once.
+             */
+            movieId: string;
+            /**
+             * @description Cover shown for this pick instead of the movie poster: a TMDb image URL, as offered by GET /admin/curations/movies/{movieId}/posters. Omitted, null or blank: the movie poster. Any other URL is rejected with 400.
+             * @example https://image.tmdb.org/t/p/w500/abc123.jpg
+             */
+            imageUrl?: string | null;
+        };
         ReplaceEditorsPicksRequest: {
-            /** @description The whole pool of library movie ids (Movie.id) in display order. No duplicates (400); more than 40 is rejected with 400; an unknown id with 422; a movie without a poster with 422. An empty array clears the pool. Replaces the stored list in one transaction. */
-            movieIds: string[];
+            /** @description The whole pool in display order, each pick with an optional cover image. No repeated movie (400); more than 40 is rejected with 400; an unknown movie with 422; a movie with neither a poster nor an imageUrl with 422. An empty array clears the pool. Replaces the stored list in one transaction. Send this or movieIds, not both (400). */
+            items?: components["schemas"]["EditorsPickItemRequest"][];
+            /**
+             * @deprecated
+             * @description Deprecated, use items. The whole pool of library movie ids (Movie.id) in display order, every pick on its movie poster: saving this clears any cover images. Same rules as items.
+             */
+            movieIds?: string[];
         };
         CuratedMovie: {
             /**
@@ -2338,6 +2376,27 @@ export interface components {
         };
         EditorsPickItem: {
             movie: components["schemas"]["CuratedMovie"];
+            /** @description The pick's own cover, a TMDb image URL. null: show the movie poster_path. */
+            imageUrl: string | null;
+        };
+        MoviePoster: {
+            /** @description A TMDb image URL (w500), ready to send as a pick's imageUrl and to show as its cover. */
+            imageUrl: string;
+            /** @description The same image, small (w185). */
+            thumbnailUrl: string;
+            width: number;
+            height: number;
+            /** @description ISO 639-1 language of the text on the poster; null if none. */
+            language: string | null;
+            /** @description TMDb community rating of the image. */
+            voteAverage: number;
+            /** @description True for the movie's current poster_path. */
+            isDefault: boolean;
+        };
+        MoviePostersResponse: {
+            /** @description The movie's TMDb posters, best rated first; empty for a movie that did not come from TMDb. */
+            data: components["schemas"]["MoviePoster"][];
+            apiVersion: string;
         };
         CurationEditor: {
             /** @description User id. */
@@ -8417,6 +8476,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminEditorsPicksResponse"];
+                };
+            };
+            /** @description Error response */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    AdminCurations_getMoviePosters: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movieId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoviePostersResponse"];
                 };
             };
             /** @description Error response */

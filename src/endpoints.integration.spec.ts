@@ -40,6 +40,7 @@ import { MovieComment } from './movie-comments/movie-comment.entity';
 import { Curation } from './curations/curation.entity';
 import { CurationItem } from './curations/curation-item.entity';
 import { Curations1793923200000 } from './curations/migrations/1793923200000-curations';
+import { CurationPickImages1794009600000 } from './curations/migrations/1794009600000-curation-pick-images';
 import { MovieComments1793318400000 } from './movie-comments/migrations/1793318400000-movie-comments';
 import { MovieCommentReplies1793404800000 } from './movie-comments/migrations/1793404800000-movie-comment-replies';
 import {
@@ -1970,6 +1971,74 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
     }
   });
 
+  it('lets editors’ picks carry an image after the pick-images migration, and undoes it', async () => {
+    const runner = database.createQueryRunner();
+    const migrationSchema = schema + '_pickimages';
+    await runner.connect();
+    await runner.startTransaction();
+    try {
+      await runner.query('CREATE SCHEMA "' + migrationSchema + '"');
+      await runner.query(
+        'SET LOCAL search_path TO "' + migrationSchema + '", "' + schema + '"',
+      );
+      await runner.query(
+        'INSERT INTO "' +
+          schema +
+          '"."movie" ("title", "dbId") VALUES (\'Pick Cover Film\', 424242)',
+      );
+      await new Curations1793923200000().up(runner);
+      const insert = (position: string, image: string) =>
+        runner.query(
+          'INSERT INTO "curation_item" ("curation_key", "movie_id", "slot", "image_url", "object_position") SELECT \'editors-picks\', "id", 0, ' +
+            image +
+            ', ' +
+            position +
+            ' FROM "' +
+            schema +
+            '"."movie" WHERE "dbId" = 424242',
+        );
+      const rejected = async (position: string, image: string) => {
+        await runner.query('SAVEPOINT attempt');
+        try {
+          await insert(position, image);
+          return false;
+        } catch {
+          return true;
+        } finally {
+          await runner.query('ROLLBACK TO SAVEPOINT attempt');
+        }
+      };
+      // Before: a pick may not carry an image.
+      expect(
+        await rejected('NULL', "'https://image.tmdb.org/t/p/w500/a.jpg'"),
+      ).toBe(true);
+
+      const migration = new CurationPickImages1794009600000();
+      await migration.up(runner);
+      // After: an image is fine, a focus point is still grid-only.
+      expect(
+        await rejected('NULL', "'https://image.tmdb.org/t/p/w500/a.jpg'"),
+      ).toBe(false);
+      expect(
+        await rejected("'center'", "'https://image.tmdb.org/t/p/w500/a.jpg'"),
+      ).toBe(true);
+
+      await insert('NULL', "'https://image.tmdb.org/t/p/w500/a.jpg'");
+      await migration.down(runner);
+      expect(
+        await runner.query(
+          'SELECT "image_url" FROM "curation_item" WHERE "curation_key" = \'editors-picks\'',
+        ),
+      ).toEqual([{ image_url: null }]);
+      expect(
+        await rejected('NULL', "'https://image.tmdb.org/t/p/w500/b.jpg'"),
+      ).toBe(true);
+    } finally {
+      await runner.rollbackTransaction();
+      await runner.release();
+    }
+  });
+
   it('curates the landing lists end to end and searches the library', async () => {
     const server = app.getHttpServer();
     const document = createOpenApiDocument(app);
@@ -2182,6 +2251,99 @@ databaseSuite('Endpoint integration with isolated PostgreSQL schema', () => {
         [],
       );
       await picks.put({ movieIds: [b.id, a.id] }).expect(200);
+
+      // A pick can carry its own TMDb cover, which also stands in for a missing poster.
+      const cover = 'https://image.tmdb.org/t/p/w500/alt-cover.jpg';
+      const covered = await picks
+        .put({ items: [{ movieId: c.id, imageUrl: cover }, { movieId: a.id }] })
+        .expect(200);
+      assertOpenApiResponse(
+        document,
+        'AdminCurations_putEditorsPicks',
+        covered.body,
+      );
+      expect(
+        covered.body.data.map(
+          (item: { movie: { id: string }; imageUrl: string | null }) => [
+            item.movie.id,
+            item.imageUrl,
+          ],
+        ),
+      ).toEqual([
+        [c.id, cover],
+        [a.id, null],
+      ]);
+      const publicCovered = await request(server)
+        .get('/curations/editors-picks')
+        .expect(200);
+      assertOpenApiResponse(
+        document,
+        'Curations_editorsPicks',
+        publicCovered.body,
+      );
+      expect(movieIds(publicCovered.body)).toEqual([c.id, a.id]);
+      await picks
+        .put({
+          items: [{ movieId: a.id, imageUrl: 'https://evil.example/x.jpg' }],
+        })
+        .expect(400);
+      await picks.put({ items: [{ movieId: c.id }] }).expect(422);
+      await picks
+        .put({ items: [{ movieId: a.id }], movieIds: [a.id] })
+        .expect(400);
+      // The old form puts every pick back on its poster.
+      const reset = await picks.put({ movieIds: [a.id, b.id] }).expect(200);
+      expect(
+        reset.body.data.map(
+          (item: { imageUrl: string | null }) => item.imageUrl,
+        ),
+      ).toEqual([null, null]);
+
+      // Posters to choose from come from TMDb for the library movie's TMDb id.
+      const tmdbPosters = jest
+        .spyOn(MovieDbService.prototype, 'getMoviePosters')
+        .mockResolvedValue([
+          {
+            file_path: '/alpha.jpg',
+            width: 1000,
+            height: 1500,
+            iso_639_1: 'en',
+            vote_average: 5,
+            vote_count: 3,
+          },
+          {
+            file_path: '/other.jpg',
+            width: 1000,
+            height: 1500,
+            iso_639_1: null,
+            vote_average: 7,
+            vote_count: 1,
+          },
+        ]);
+      const offered = await admin(`/admin/curations/movies/${a.id}/posters`)
+        .get()
+        .expect(200);
+      assertOpenApiResponse(
+        document,
+        'AdminCurations_getMoviePosters',
+        offered.body,
+      );
+      expect(tmdbPosters).toHaveBeenCalledWith(7001);
+      expect(
+        offered.body.data.map(
+          (poster: { imageUrl: string; isDefault: boolean }) => [
+            poster.imageUrl,
+            poster.isDefault,
+          ],
+        ),
+      ).toEqual([
+        ['https://image.tmdb.org/t/p/w500/other.jpg', false],
+        ['https://image.tmdb.org/t/p/w500/alpha.jpg', true],
+      ]);
+      await admin(`/admin/curations/movies/${randomUUID()}/posters`)
+        .get()
+        .expect(404);
+      tmdbPosters.mockRestore();
 
       // Removing a movie from the library removes it from both lists.
       await movies.delete({ id: a.id });

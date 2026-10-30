@@ -1,6 +1,6 @@
 import { Movie, MovieCrewMember, MovieKeyCrewMember } from './movie.entity';
 import { TmdbMovieWithExtras } from './providers/MovieDb.serviec';
-import { isArchiveFootage } from './content-filter';
+import { isArchiveFootage, isBlockedImage } from './content-filter';
 
 export const CAST_LIMIT = 8;
 export const BACKDROP_LIMIT = 8;
@@ -72,12 +72,18 @@ export function toMovieExtras(details: TmdbMovieWithExtras): MovieExtras {
     .map((image) => image.file_path);
   // The main backdrop leads, so the gallery opens on the hero image.
   const backdrops = [
-    ...new Set([details.backdrop_path, ...ranked].filter(Boolean)),
+    ...new Set(
+      [details.backdrop_path, ...ranked].filter(
+        (path) => path && !isBlockedImage(path),
+      ),
+    ),
   ].slice(0, BACKDROP_LIMIT);
   return {
     runtime: details.runtime || null,
     tagline: details.tagline || null,
-    backdrop_path: details.backdrop_path || null,
+    backdrop_path: isBlockedImage(details.backdrop_path)
+      ? (backdrops[0] ?? null)
+      : details.backdrop_path || null,
     backdrops,
     director:
       [...new Set([...directors.values()].map(({ name }) => name))].join(

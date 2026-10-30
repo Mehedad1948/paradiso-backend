@@ -2,10 +2,19 @@ import {
   BadRequestException,
   Injectable,
   Logger,
+  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { ContentBlocksService } from '../movies/providers/content-blocks.service';
-import { EDITORS_PICKS, LANDING_GRID } from './curations.constants';
+import { MovieDbService } from '../movies/providers/MovieDb.serviec';
+import {
+  EDITORS_PICKS,
+  LANDING_GRID,
+  MAX_POSTER_CHOICES,
+  PICK_IMAGE_SIZE,
+  PICK_THUMBNAIL_SIZE,
+  TMDB_IMAGE_BASE,
+} from './curations.constants';
 import {
   ReplaceEditorsPicksRequest,
   ReplaceLandingGridRequest,
@@ -41,7 +50,10 @@ const gridItem = (item: StoredItem) => ({
   movie: toCuratedMovie(item.movie),
 });
 
-const pick = (item: StoredItem) => ({ movie: toCuratedMovie(item.movie) });
+const pick = (item: StoredItem) => ({
+  movie: toCuratedMovie(item.movie),
+  imageUrl: item.imageUrl,
+});
 
 // Values that occur more than once, first repeat first.
 function repeated<T>(values: T[]): T[] {
@@ -63,6 +75,7 @@ export class CurationsService {
   constructor(
     private readonly store: CurationsStore,
     private readonly contentBlocks: ContentBlocksService,
+    private readonly tmdb: MovieDbService,
   ) {}
 
   // ---- Public ----
@@ -78,12 +91,13 @@ export class CurationsService {
     return { data: items.map(gridItem), updatedAt: curation.updatedAt };
   }
 
-  // The whole pool, in admin order; the shelf needs a poster.
+  // The whole pool, in admin order; the shelf needs a cover (the pick's own
+  // image, or the movie poster).
   async editorsPicks() {
     const curation = await this.store.read(EDITORS_PICKS);
     const items = await this.visible(
       curation,
-      (item) => !!item.movie.poster_path,
+      (item) => !!(item.imageUrl || item.movie.poster_path),
     );
     return { data: items.map(pick), updatedAt: curation.updatedAt };
   }
@@ -137,37 +151,70 @@ export class CurationsService {
     return this.adminLandingGrid();
   }
 
+  // The TMDb posters an admin can pick as a movie's cover, best rated first.
+  async moviePosters(movieId: string) {
+    const movie = await this.store.findMovie(movieId);
+    if (!movie) throw new NotFoundException('Movie not found in the library');
+    // A custom movie has no TMDb page, so there is nothing to choose from.
+    if (movie.dbId === null) return { data: [] };
+    const posters = await this.tmdb.getMoviePosters(movie.dbId);
+    const ranked = [...posters]
+      .sort(
+        (a, b) =>
+          (b.vote_average ?? 0) - (a.vote_average ?? 0) ||
+          (b.vote_count ?? 0) - (a.vote_count ?? 0),
+      )
+      .slice(0, MAX_POSTER_CHOICES);
+    return {
+      data: ranked.map((poster) => ({
+        imageUrl: `${TMDB_IMAGE_BASE}/${PICK_IMAGE_SIZE}${poster.file_path}`,
+        thumbnailUrl: `${TMDB_IMAGE_BASE}/${PICK_THUMBNAIL_SIZE}${poster.file_path}`,
+        width: poster.width,
+        height: poster.height,
+        language: poster.iso_639_1,
+        voteAverage: poster.vote_average ?? 0,
+        isDefault: poster.file_path === movie.poster_path,
+      })),
+    };
+  }
+
   async replaceEditorsPicks(dto: ReplaceEditorsPicksRequest, adminId: number) {
-    const again = repeated(dto.movieIds);
+    if (dto.items !== undefined && dto.movieIds !== undefined)
+      throw new BadRequestException('Send items or movieIds, not both');
+    const picks: { movieId: string; imageUrl?: string | null }[] =
+      dto.items ?? (dto.movieIds ?? []).map((movieId) => ({ movieId }));
+    const ids = picks.map((item) => item.movieId);
+    const again = repeated(ids);
     if (again.length)
       throw new BadRequestException(
         `Each movie can be an editors' pick once; repeated: ${again.join(', ')}`,
       );
     await this.store.transaction(async (tx) => {
       await tx.lock(EDITORS_PICKS);
-      const movies = await this.requireMovies(tx, dto.movieIds);
-      const posterless = dto.movieIds
-        .map((id) => movies.get(id)!)
-        .filter((movie) => !movie.poster_path);
-      if (posterless.length)
+      const movies = await this.requireMovies(tx, ids);
+      const coverless = picks.filter(
+        (item) => !item.imageUrl && !movies.get(item.movieId)!.poster_path,
+      );
+      if (coverless.length)
         throw new UnprocessableEntityException(
-          `The shelf needs a poster; these movies have none: ${posterless
+          `The shelf needs a poster; these movies have none: ${coverless
+            .map((item) => movies.get(item.movieId)!)
             .map((movie) => `${movie.title} (${movie.id})`)
             .join(', ')}`,
         );
       await tx.replaceItems(
         EDITORS_PICKS,
-        dto.movieIds.map((movieId, slot) => ({
+        picks.map((item, slot) => ({
           slot,
-          movieId,
-          imageUrl: null,
+          movieId: item.movieId,
+          imageUrl: item.imageUrl ?? null,
           objectPosition: null,
         })),
       );
       await tx.touch(EDITORS_PICKS, adminId);
     });
     this.logger.log(
-      `Editors' picks replaced by user ${adminId}: ${dto.movieIds.length} movies`,
+      `Editors' picks replaced by user ${adminId}: ${picks.length} movies`,
     );
     return this.adminEditorsPicks();
   }

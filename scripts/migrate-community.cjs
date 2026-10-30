@@ -71,6 +71,9 @@ const {
 const {
   Curations1793923200000,
 } = require('../dist/curations/migrations/1793923200000-curations');
+const {
+  CurationPickImages1794009600000,
+} = require('../dist/curations/migrations/1794009600000-curation-pick-images');
 
 const migrations = [
   Community1790985600000,
@@ -95,6 +98,7 @@ const migrations = [
   ContentBlocks1793750400000,
   FeaturedArtists1793836800000,
   Curations1793923200000,
+  CurationPickImages1794009600000,
 ];
 
 async function main() {
