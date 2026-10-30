@@ -21,5 +21,7 @@ export default registerAs('appConfig', () => ({
   mailHeaderImageUrl: process.env.MAIL_HEADER_IMAGE_URL,
   tmdbApiKey: process.env.TMDB_API_KEY,
   baseUrl: process.env.TMDB_BASE_URL,
+  // Optional: without it the app runs uncached.
+  redisUrl: process.env.REDIS_URL,
   productBaseUrl: process.env.PRODUCT_BASE_URL,
 }));

@@ -49,6 +49,8 @@ export default Joi.object({
   TMDB_BASE_URL: Joi.string()
     .uri({ scheme: ['https'] })
     .default('https://api.themoviedb.org/3'),
+  // Optional cache (Upstash etc.); use the rediss:// TCP URL, not REST.
+  REDIS_URL: Joi.string().uri({ scheme: ['redis', 'rediss'] }),
   // Featured artist of the day; see src/featured-artists/featured-config.ts.
   COOLDOWN_DAYS: Joi.number().integer().min(1),
   HARD_MIN_GAP_DAYS: Joi.number().integer().min(11),

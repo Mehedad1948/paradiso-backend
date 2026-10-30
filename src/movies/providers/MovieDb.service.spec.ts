@@ -6,7 +6,15 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { MovieDbService, RATE_LIMIT_RETRIES } from './MovieDb.serviec';
+import { CacheService } from '../../cache/cache.service';
+import {
+  MovieDbService,
+  RATE_LIMIT_RETRIES,
+  TMDB_CACHE_TTL,
+} from './MovieDb.serviec';
+
+// No Redis: every lookup is a miss and runs the loader.
+const noCache = () => new CacheService(new ConfigService({}));
 
 describe('Movie catalogue failure handling', () => {
   const waits: number[] = [];
@@ -24,6 +32,7 @@ describe('Movie catalogue failure handling', () => {
         baseUrl: 'https://catalogue.example.test/3',
       },
     }),
+    noCache(),
   );
   afterEach(() => {
     jest.restoreAllMocks();
@@ -115,6 +124,7 @@ describe('Movie catalogue search filtering', () => {
         baseUrl: 'https://catalogue.example.test/3',
       },
     }),
+    noCache(),
   );
   afterEach(() => jest.restoreAllMocks());
   it('excludes adult and erotic-keyword titles', async () => {
@@ -155,5 +165,98 @@ describe('Movie catalogue search filtering', () => {
     const searchUrl = new URL(fetch.mock.calls[0][0] as URL);
     expect(searchUrl.searchParams.get('include_adult')).toBe('false');
     expect(fetch).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe('Movie catalogue caching', () => {
+  // Remembers answers by key, like Redis would, and records the expiries.
+  const kept = new Map<string, unknown>();
+  const ttls: Record<string, number> = {};
+  const cache = {
+    remember: async (
+      key: string,
+      ttl: number,
+      load: () => Promise<unknown>,
+    ) => {
+      if (kept.has(key)) return kept.get(key);
+      const value = await load();
+      kept.set(key, value);
+      ttls[key] = ttl;
+      return value;
+    },
+  } as unknown as CacheService;
+  const service = new MovieDbService(
+    new ConfigService({
+      appConfig: {
+        tmdbApiKey: 'secret-key',
+        baseUrl: 'https://catalogue.example.test/3',
+      },
+    }),
+    cache,
+  );
+  afterEach(() => {
+    jest.restoreAllMocks();
+    kept.clear();
+  });
+
+  it('asks TMDb once for a repeated movie and keeps it for hours', async () => {
+    const fetch = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(() =>
+        Promise.resolve(Response.json({ id: 550, title: 'Fight Club' })),
+      );
+    await service.getMovieDetails(550);
+    await expect(service.getMovieDetails(550)).resolves.toMatchObject({
+      title: 'Fight Club',
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(ttls['tmdb:movie/550?language=en-US']).toBe(TMDB_CACHE_TTL.movie);
+  });
+
+  it('keeps languages apart and never puts the API key in a key', async () => {
+    jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(() => Promise.resolve(Response.json({ id: 1 })));
+    await service.getPerson(1, 'en-US');
+    await service.getPerson(1, 'fr-FR');
+    const keys = [...kept.keys()];
+    expect(keys).toHaveLength(2);
+    expect(keys.join()).not.toContain('secret-key');
+    expect(keys.some((key) => key.includes('language=fr-FR'))).toBe(true);
+  });
+
+  it('does not cache a failed lookup', async () => {
+    const fetch = jest
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response('', { status: 500 }))
+      .mockResolvedValueOnce(Response.json({ id: 9, title: 'Back' }));
+    await expect(service.getMovieDetails(9)).rejects.toBeInstanceOf(
+      BadGatewayException,
+    );
+    await expect(service.getMovieDetails(9)).resolves.toMatchObject({
+      title: 'Back',
+    });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('caches a whole search, so a repeat makes no TMDb calls', async () => {
+    const fetch = jest.spyOn(globalThis, 'fetch').mockImplementation((input) =>
+      Promise.resolve(
+        Response.json(
+          /keywords$/.test(new URL(input as URL).pathname)
+            ? { keywords: [] }
+            : {
+                page: 1,
+                total_pages: 1,
+                total_results: 1,
+                results: [{ id: 1, title: 'Kept', adult: false }],
+              },
+        ),
+      ),
+    );
+    await service.searchMovies('batman');
+    const calls = fetch.mock.calls.length;
+    await service.searchMovies('batman');
+    expect(fetch.mock.calls.length).toBe(calls);
   });
 });

@@ -34,6 +34,7 @@ import { CommunityModule } from './community/community.module';
 import { RoomChatModule } from './room-chat/room-chat.module';
 import { FeaturedArtistsModule } from './featured-artists/featured-artists.module';
 import { CurationsModule } from './curations/curations.module';
+import { CacheModule } from './cache/cache.module';
 const ENV = process.env.NODE_ENV || 'development';
 @Module({
   imports: [
@@ -46,6 +47,7 @@ const ENV = process.env.NODE_ENV || 'development';
     }),
     ConfigModule.forFeature(jwtConfig),
     ScheduleModule.forRoot(),
+    CacheModule,
     JwtModule.registerAsync({ ...jwtConfig.asProvider(), global: true }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

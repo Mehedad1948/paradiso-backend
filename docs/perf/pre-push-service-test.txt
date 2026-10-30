@@ -1,0 +1,21 @@
+Pre-push test of the Redis cache (2026-10-30), local code, live TMDb via SOCKS proxy.
+TMDb client only: no HTTP server, no database. TMDb requests go through the
+local proxy (adds ~400 ms); Redis is reached directly from the developer PC,
+~350 ms away, so Redis hits here are much slower than they will be from Render.
+Phases: A = cache off; B = Redis, empty (fills); C = new process memory, Redis
+already filled (what a restart or wake-up looks like). Times in ms per call.
+
+Redis connection status: ready
+Redis round trip from this PC (ms): 338, 388, 375, 354
+A no cache               movie 550 x3           505 / 494 / 540            TMDb calls: 3
+A no cache               genres x3              487 / 497 / 508            TMDb calls: 3
+A no cache               search batman x3       1292 / 483 / 478           TMDb calls: 22
+A no cache               search 6 new queries   1234 / 1230 / 1299 / 1177 / 1058 / 1177 TMDb calls: 111
+B redis, cold fill       movie 550 x3           805 / 413 / 348            TMDb calls: 1
+B redis, cold fill       genres x3              824 / 342 / 327            TMDb calls: 1
+B redis, cold fill       search batman x3       1888 / 860 / 325           TMDb calls: 21
+B redis, cold fill       search 6 new queries   1822 / 1758 / 1837 / 1734 / 1640 / 1769 TMDb calls: 111
+C redis, after restart   movie 550 x3           344 / 360 / 339            TMDb calls: 0
+C redis, after restart   genres x3              348 / 348 / 331            TMDb calls: 0
+C redis, after restart   search batman x3       327 / 327 / 333            TMDb calls: 0
+C redis, after restart   search 6 new queries   326 / 326 / 326 / 326 / 324 / 332 TMDb calls: 0

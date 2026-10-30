@@ -8,6 +8,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { CacheService } from '../../cache/cache.service';
 import { isAdultContent } from '../content-filter';
 
 export interface TmdbGenre {
@@ -127,18 +128,52 @@ export const RATE_LIMIT_RETRIES = 2;
 const RETRY_AFTER_CAP_MS = 5000;
 const RETRY_BACKOFF_MS = 500;
 
+// How long Redis keeps each kind of TMDb answer. Catalogue data changes
+// slowly; searches get a shorter life so new releases show up sooner.
+const HOUR = 60 * 60;
+export const TMDB_CACHE_TTL = {
+  genres: 24 * HOUR,
+  movie: 6 * HOUR,
+  posters: 6 * HOUR,
+  person: 6 * HOUR,
+  popularPeople: HOUR,
+  search: 30 * 60,
+  eroticVerdict: 7 * 24 * HOUR,
+} as const;
+
 @Injectable()
 export class MovieDbService {
   private readonly logger = new Logger('TMDb');
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly cache: CacheService,
+  ) {}
 
   // Overridable so tests do not wait out real backoff.
   protected wait(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  private async get<T>(
+  // Cached for ttlSeconds when given. Only successful answers are kept, so a
+  // TMDb outage or a 404 is asked again on the next request.
+  private get<T>(
+    endpoint: string,
+    params: Record<string, string | number> = {},
+    ttlSeconds = 0,
+  ): Promise<T> {
+    if (!ttlSeconds) return this.request<T>(endpoint, params);
+    // The API key is not part of the key; the language always is.
+    const query = Object.entries({ language: DEFAULT_LANGUAGE, ...params })
+      .map(([name, value]) => `${name}=${encodeURIComponent(String(value))}`)
+      .sort()
+      .join('&');
+    return this.cache.remember(`tmdb:${endpoint}?${query}`, ttlSeconds, () =>
+      this.request<T>(endpoint, params),
+    );
+  }
+
+  private async request<T>(
     endpoint: string,
     params: Record<string, string | number> = {},
   ): Promise<T> {
@@ -200,7 +235,16 @@ export class MovieDbService {
   // results omit keywords, so each hit is checked (and cached) separately.
   private readonly eroticVerdicts = new Map<number, boolean>();
 
-  async searchMovies(query: string, page = 1) {
+  // The filtered page is what gets cached: a hit skips the search and the
+  // per-result keyword lookups below in one step.
+  searchMovies(query: string, page = 1) {
+    return this.cache.remember(
+      `tmdb:search-movies:${page}:${encodeURIComponent(query)}`,
+      TMDB_CACHE_TTL.search,
+      () => this.searchMoviesUncached(query, page),
+    );
+  }
+  private async searchMoviesUncached(query: string, page: number) {
     const response = await this.get<{
       results: TmdbMovie[];
       page: number;
@@ -222,21 +266,33 @@ export class MovieDbService {
     const cached = this.eroticVerdicts.get(movieId);
     if (cached !== undefined) return cached;
     // Fails closed: a lookup error propagates rather than leaking the title.
-    const { keywords = [] } = await this.get<{
-      keywords?: { id: number; name: string }[];
-    }>('movie/' + movieId + '/keywords');
-    const verdict = keywords.some(({ name }) => /erotic/i.test(name));
+    const verdict = await this.cache.remember(
+      `tmdb:erotic:${movieId}`,
+      TMDB_CACHE_TTL.eroticVerdict,
+      async () => {
+        const { keywords = [] } = await this.get<{
+          keywords?: { id: number; name: string }[];
+        }>('movie/' + movieId + '/keywords');
+        return keywords.some(({ name }) => /erotic/i.test(name));
+      },
+    );
     if (this.eroticVerdicts.size >= 10_000) this.eroticVerdicts.clear();
     this.eroticVerdicts.set(movieId, verdict);
     return verdict;
   }
   async getGenres(): Promise<TmdbGenre[]> {
-    return (await this.get<{ genres: TmdbGenre[] }>('genre/movie/list')).genres;
+    return (
+      await this.get<{ genres: TmdbGenre[] }>(
+        'genre/movie/list',
+        {},
+        TMDB_CACHE_TTL.genres,
+      )
+    ).genres;
   }
   getMovieDetails(movieId: number): Promise<TmdbMovie> {
     if (!Number.isSafeInteger(movieId) || movieId < 1)
       throw new BadRequestException('Invalid TMDb movie ID');
-    return this.get<TmdbMovie>('movie/' + movieId);
+    return this.get<TmdbMovie>('movie/' + movieId, {}, TMDB_CACHE_TTL.movie);
   }
   // One request for everything the details screen stores; never sent to
   // clients as-is because full credits run to hundreds of kilobytes.
@@ -259,6 +315,7 @@ export class MovieDbService {
     const { posters = [] } = await this.get<{ posters?: TmdbPoster[] }>(
       'movie/' + movieId + '/images',
       { include_image_language: 'en,null' },
+      TMDB_CACHE_TTL.posters,
     );
     return posters;
   }
@@ -269,27 +326,33 @@ export class MovieDbService {
   ): Promise<TmdbPerson> {
     if (!Number.isSafeInteger(personId) || personId < 1)
       throw new BadRequestException('Invalid TMDb person ID');
-    return this.get<TmdbPerson>('person/' + personId, {
-      append_to_response: 'movie_credits,external_ids',
-      language,
-    });
+    return this.get<TmdbPerson>(
+      'person/' + personId,
+      { append_to_response: 'movie_credits,external_ids', language },
+      TMDB_CACHE_TTL.person,
+    );
   }
   searchPeople(query: string, page = 1): Promise<TmdbPersonPage> {
-    return this.get<TmdbPersonPage>('search/person', {
-      query,
-      page,
-      include_adult: 'false',
-    });
+    return this.get<TmdbPersonPage>(
+      'search/person',
+      { query, page, include_adult: 'false' },
+      TMDB_CACHE_TTL.search,
+    );
   }
   // TMDb's popular people, 20 per page.
   getPopularPeople(page = 1): Promise<TmdbPersonPage> {
-    return this.get<TmdbPersonPage>('person/popular', { page });
+    return this.get<TmdbPersonPage>(
+      'person/popular',
+      { page },
+      TMDB_CACHE_TTL.popularPeople,
+    );
   }
   // Just the profile, for the English biography fallback.
   getPersonProfile(personId: number, language = DEFAULT_LANGUAGE) {
     return this.get<Pick<TmdbPerson, 'id' | 'biography'>>(
       'person/' + personId,
       { language },
+      TMDB_CACHE_TTL.person,
     );
   }
 }
