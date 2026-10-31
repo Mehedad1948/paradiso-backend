@@ -1,0 +1,18 @@
+Render after the blocklist cache, curations cache and rate limiting (commit 2be945b),
+through the SOCKS proxy, 8 requests per route. Milliseconds. Floor = cached TMDb genres
+(no database work).
+
+                               before (median)   after (median)   after (first request)
+tmdb genres (floor)                 671               679               700
+GET /curations/landing-grid        1438               667               639
+GET /curations/editors-picks       1302               642               642
+GET /movies/:id/details            1034               843              2164 (cold)
+GET /featured-artists               818               839               929   (not changed)
+
+Rate limit, POST /auth/sign-in, one client, one made-up email, wrong password:
+attempts 1-8 -> 401, attempts 9-10 -> 429 with Retry-After 891 and 890,
+body {"statusCode":429,"message":"Too many attempts. Try again in 890 seconds.","error":"Too Many Requests"}.
+Same email with a different forged X-Forwarded-For -> 401 (separate email+IP bucket, as designed).
+A different email from the same client -> 401 (not blocked).
+The block starting at attempt 9 shows Render forwards the client IP: without it the
+email+IP rule would be skipped and only the per-email limit of 60 would apply.

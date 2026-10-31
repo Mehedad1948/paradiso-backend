@@ -188,3 +188,21 @@ counting email and IP together.
 Not done: engagement and unread counters. They change on every like, comment
 and notification, so a cached count would be visibly wrong right after a user
 acts, and clearing it means touching every write path.
+
+### Result on Render (commit `2be945b`)
+
+Same method as before (proxy, 8 requests per route), medians in ms; floor is
+the cached TMDb genres route at about 680. Raw numbers in
+`docs/perf/after-curations-and-ratelimit.txt`.
+
+| Route                          | before | after | note                                |
+| ------------------------------ | ------ | ----- | ----------------------------------- |
+| `GET /curations/landing-grid`  | 1438   | 667   | at the floor                        |
+| `GET /curations/editors-picks` | 1302   | 642   | at the floor                        |
+| `GET /movies/:id/details`      | 1034   | 843   | blocklist cache; first request 2164 |
+| `GET /featured-artists`        | 818    | 839   | not changed, as expected            |
+
+Rate limit check on production: ten wrong sign-ins for one made-up email from
+one client gave `401` for attempts 1 to 8 and `429` (with `Retry-After`) from
+attempt 9, so Render does forward the client IP. A different email from the
+same client was not blocked.
