@@ -129,16 +129,21 @@ const RETRY_AFTER_CAP_MS = 5000;
 const RETRY_BACKOFF_MS = 500;
 
 // How long Redis keeps each kind of TMDb answer. Catalogue data changes
-// slowly; searches get a shorter life so new releases show up sooner.
+// slowly and most titles are opened rarely, so long lifetimes are what turn
+// those rare visits into hits. Searches stay shorter so new releases show up;
+// the erotic verdict stays at a week because it decides what is hidden. A
+// person is also held for a day or more by PeopleService, so this is kept
+// modest to bound the combined staleness.
 const HOUR = 60 * 60;
+const DAY = 24 * HOUR;
 export const TMDB_CACHE_TTL = {
-  genres: 24 * HOUR,
-  movie: 6 * HOUR,
-  posters: 6 * HOUR,
-  person: 6 * HOUR,
-  popularPeople: HOUR,
-  search: 30 * 60,
-  eroticVerdict: 7 * 24 * HOUR,
+  genres: 30 * DAY,
+  movie: 7 * DAY,
+  posters: 30 * DAY,
+  person: 3 * DAY,
+  popularPeople: DAY,
+  search: 6 * HOUR,
+  eroticVerdict: 7 * DAY,
 } as const;
 
 @Injectable()

@@ -1,0 +1,6 @@
+8 search queries that had never been run against Redis, on Render after the Redis deploy
+(commit 4a0ce72), through the SOCKS proxy. Times in ms. Same queries and method as the
+pre-Redis baseline (1.6 to 3.9 s, median ~2.1 s).
+
+cold (cache empty for these queries): zodiac 3916, stalker 2093, oldboy 1559, nomadland 1556, brazil 2032, ikiru 2785, fargo 1588, solaris 1688   (median ~1860)
+warm (second pass):                   zodiac 850,  stalker 868,  oldboy 834,  nomadland 830,  brazil 874,  ikiru 1172, fargo 838,  solaris 843    (median ~846)

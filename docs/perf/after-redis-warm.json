@@ -1,0 +1,144 @@
+{
+  "label": "after-redis-warm",
+  "target": "paradiso-backend-g4zx.onrender.com",
+  "viaProxy": true,
+  "measuredAt": "2026-10-30T20:45:09.197Z",
+  "rounds": 12,
+  "results": [
+    {
+      "name": "movie-details (550)",
+      "kind": "repeat",
+      "okCount": 12,
+      "failures": [],
+      "summary": {
+        "min": 831,
+        "median": 853,
+        "p95": 1171,
+        "max": 1171,
+        "mean": 923
+      },
+      "msPerRequest": [
+        831,
+        841,
+        1171,
+        1094,
+        854,
+        868,
+        853,
+        843,
+        1143,
+        844,
+        849,
+        880
+      ]
+    },
+    {
+      "name": "genres",
+      "kind": "repeat",
+      "okCount": 12,
+      "failures": [],
+      "summary": {
+        "min": 622,
+        "median": 635,
+        "p95": 704,
+        "max": 704,
+        "mean": 641
+      },
+      "msPerRequest": [
+        626,
+        645,
+        622,
+        622,
+        642,
+        635,
+        644,
+        640,
+        627,
+        656,
+        626,
+        704
+      ]
+    },
+    {
+      "name": "search \"batman\"",
+      "kind": "repeat",
+      "okCount": 12,
+      "failures": [],
+      "summary": {
+        "min": 838,
+        "median": 879,
+        "p95": 1180,
+        "max": 1180,
+        "mean": 923
+      },
+      "msPerRequest": [
+        879,
+        843,
+        1164,
+        838,
+        900,
+        924,
+        844,
+        884,
+        888,
+        874,
+        857,
+        1180
+      ]
+    },
+    {
+      "name": "person (287)",
+      "kind": "repeat",
+      "okCount": 12,
+      "failures": [],
+      "summary": {
+        "min": 1074,
+        "median": 1095,
+        "p95": 2399,
+        "max": 2399,
+        "mean": 1246
+      },
+      "msPerRequest": [
+        2399,
+        1079,
+        1074,
+        1089,
+        1095,
+        1562,
+        1114,
+        1096,
+        1086,
+        1172,
+        1091,
+        1099
+      ]
+    },
+    {
+      "name": "search (12 distinct queries)",
+      "kind": "distinct",
+      "okCount": 12,
+      "failures": [],
+      "summary": {
+        "min": 830,
+        "median": 876,
+        "p95": 1212,
+        "max": 1212,
+        "mean": 923
+      },
+      "msPerRequest": [
+        830,
+        1212,
+        840,
+        901,
+        906,
+        868,
+        888,
+        876,
+        851,
+        1170,
+        850,
+        882
+      ]
+    }
+  ]
+}

@@ -19,16 +19,16 @@ Redis, and there is no migration.
 
 ## What is cached (`TMDB_CACHE_TTL` in `MovieDb.serviec.ts`)
 
-| Call                               | Key                                   | TTL    |
-| ---------------------------------- | ------------------------------------- | ------ |
-| genres                             | `tmdb:genre/movie/list?...`           | 24 h   |
-| movie details (`/movies/tmdb/:id`) | `tmdb:movie/<id>?...`                 | 6 h    |
-| posters                            | `tmdb:movie/<id>/images?...`          | 6 h    |
-| person, person profile             | `tmdb:person/<id>?...` (per language) | 6 h    |
-| popular people                     | `tmdb:person/popular?...`             | 1 h    |
-| movie search (filtered result)     | `tmdb:search-movies:<page>:<query>`   | 30 min |
-| people search                      | `tmdb:search/person?...`              | 30 min |
-| erotic-keyword verdict per movie   | `tmdb:erotic:<id>`                    | 7 d    |
+| Call                               | Key                                   | TTL     |
+| ---------------------------------- | ------------------------------------- | ------- |
+| genres                             | `tmdb:genre/movie/list?...`           | 30 days |
+| movie details (`/movies/tmdb/:id`) | `tmdb:movie/<id>?...`                 | 7 days  |
+| posters                            | `tmdb:movie/<id>/images?...`          | 30 days |
+| person, person profile             | `tmdb:person/<id>?...` (per language) | 3 days  |
+| popular people                     | `tmdb:person/popular?...`             | 24 h    |
+| movie search (filtered result)     | `tmdb:search-movies:<page>:<query>`   | 6 h     |
+| people search                      | `tmdb:search/person?...`              | 6 h     |
+| erotic-keyword verdict per movie   | `tmdb:erotic:<id>`                    | 7 days  |
 
 Not cached: `getMovieDetailsWithExtras` (used on import; very large) and
 errors, including 404s. Content blocks and the adult filter run on read, after
@@ -109,3 +109,30 @@ big win is search: 18 to 19 TMDb calls per search become none.
 An earlier run showed no effect because `connectTimeout` was 3 s and this
 PC needs about 4 s to complete the TLS connection; it is now 10 s. Commands
 fail immediately while disconnected, so a long connect timeout costs nothing.
+
+### Result on Render, after Redis (commit `4a0ce72`)
+
+Same script, same proxy, 12 requests per route; `after-redis-cold.json` is the
+first run (cache empty) and `after-redis-warm.json` the second. Medians, ms.
+
+| Route                              | before | after, cold | after, warm | warm p95 (before p95) |
+| ---------------------------------- | ------ | ----------- | ----------- | --------------------- |
+| `/movies/tmdb/550`                 | 1121   | 962         | 853         | 1171 (3343)           |
+| `/movies/tmdb/genres`              | 1037   | 658         | 635         | 704 (1302)            |
+| `/movies/tmdb/search?query=batman` | 1068   | 854         | 879         | 1180 (2336)           |
+| `/people/287`                      | 1124   | 1171        | 1095        | 2399 (2381)           |
+| search, 12 different queries       | ~2130  | 2070        | 876         | 1212 (4399)           |
+
+`docs/perf/after-redis-fresh-search.txt`: 8 queries never seen before, cold
+median about 1860 ms, warm about 846 ms.
+
+- **Search is the clear win**: about 2 s down to about 0.85 s, and the slowest
+  requests (3 to 4 s) are gone. A cold miss costs no more than before.
+- **Single lookups** (movie, genres) are 20 to 40 % faster; the slow tail
+  shrinks the most.
+- **`/people/:id` did not change**, as expected: its time is the Neon lookups.
+- The warm numbers sit near the proxy-and-database floor (genres, which does
+  no database work, is about 635 ms), so Redis from Render is fast enough that
+  the region is not a problem.
+- Single runs of 12 samples through a proxy are noisy; read the pattern, not
+  the last 50 ms.
