@@ -6,6 +6,7 @@ const store = new Map<string, string>();
 const fake = {
   failing: false,
   ttls: new Map<string, number>(),
+  counters: new Map<string, { count: number; ttl: number }>(),
 };
 jest.mock('ioredis', () => ({
   __esModule: true,
@@ -23,6 +24,33 @@ jest.mock('ioredis', () => ({
       return Promise.resolve('OK');
     },
     del: (key: string) => Promise.resolve(Number(store.delete(key))),
+    // Just enough of a transaction for the counter: set NX EX, incr, ttl.
+    multi: () => {
+      const steps: (() => unknown)[] = [];
+      const chain = {
+        set: (key: string, _value: number, _ex: string, ttl: number) => {
+          steps.push(() => {
+            if (!fake.counters.has(key))
+              fake.counters.set(key, { count: 0, ttl });
+            return 'OK';
+          });
+          return chain;
+        },
+        incr: (key: string) => {
+          steps.push(() => ++fake.counters.get(key)!.count);
+          return chain;
+        },
+        ttl: (key: string) => {
+          steps.push(() => fake.counters.get(key)!.ttl);
+          return chain;
+        },
+        exec: () =>
+          fake.failing
+            ? Promise.reject(new Error('down'))
+            : Promise.resolve(steps.map((step) => [null, step()])),
+      };
+      return chain;
+    },
   })),
 }));
 
@@ -34,6 +62,7 @@ describe('CacheService', () => {
   beforeEach(() => {
     store.clear();
     fake.ttls.clear();
+    fake.counters.clear();
     fake.failing = false;
   });
 
@@ -100,6 +129,43 @@ describe('CacheService', () => {
       ]);
       expect([a, b]).toEqual(['ok', 'ok']);
       expect(load).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('counting events', () => {
+    const url = 'rediss://default:pw@example.test:6379';
+
+    it('counts in Redis with the window as expiry', async () => {
+      const cache = new CacheService(configWith({ redisUrl: url }));
+      const first = await cache.increment('rl:a', 900);
+      const second = await cache.increment('rl:a', 900);
+      expect([first.count, second.count]).toEqual([1, 2]);
+      expect(second.resetInSeconds).toBe(900);
+      expect((await cache.increment('rl:b', 900)).count).toBe(1);
+    });
+
+    it('counts in memory without Redis and starts over after the window', async () => {
+      const cache = new CacheService(configWith({}));
+      const now = jest.spyOn(Date, 'now').mockReturnValue(1_000_000);
+      expect((await cache.increment('k', 60)).count).toBe(1);
+      expect((await cache.increment('k', 60)).count).toBe(2);
+      now.mockReturnValue(1_000_000 + 61_000);
+      expect((await cache.increment('k', 60)).count).toBe(1);
+      now.mockRestore();
+    });
+
+    it('keeps counting in memory while Redis fails', async () => {
+      const cache = new CacheService(configWith({ redisUrl: url }));
+      jest
+        .spyOn(
+          (cache as unknown as { logger: { warn: (m: string) => void } })
+            .logger,
+          'warn',
+        )
+        .mockImplementation();
+      fake.failing = true;
+      expect((await cache.increment('x', 60)).count).toBe(1);
+      expect((await cache.increment('x', 60)).count).toBe(2);
     });
   });
 

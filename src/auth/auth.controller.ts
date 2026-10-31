@@ -17,6 +17,7 @@ import { AuthService } from './providers/auth.service';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { ForgetPasswordDto } from './dtos/forget-password.dto';
 import { ResendVerificationDto } from './dtos/resend-verification.dto';
+import { RateLimit } from '../common/rate-limit/rate-limit.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -29,6 +30,15 @@ export class AuthController {
   @Post('sign-in')
   @HttpCode(HttpStatus.OK)
   @Auth(AuthType.none)
+  @RateLimit({
+    name: 'sign-in',
+    windowSeconds: 15 * 60,
+    rules: [
+      { by: 'emailIp', limit: 8 },
+      { by: 'email', limit: 60 },
+      { by: 'ip', limit: 40 },
+    ],
+  })
   public signIn(@Body() signInDto: SignInDto) {
     return this.authService.signIn(signInDto);
   }
@@ -40,12 +50,28 @@ export class AuthController {
   }
 
   @Auth(AuthType.none)
+  @RateLimit({
+    name: 'verify-email',
+    windowSeconds: 15 * 60,
+    rules: [
+      { by: 'email', limit: 10 },
+      { by: 'ip', limit: 40 },
+    ],
+  })
   @Post('verify-email')
   async verifyEmail(@Body() verifyCodeDto: VerifyCodeDto) {
     return await this.authService.verifyEmail(verifyCodeDto);
   }
 
   @Auth(AuthType.none)
+  @RateLimit({
+    name: 'resend-verification',
+    windowSeconds: 15 * 60,
+    rules: [
+      { by: 'email', limit: 3 },
+      { by: 'ip', limit: 10 },
+    ],
+  })
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
   async resendVerification(
@@ -55,12 +81,28 @@ export class AuthController {
   }
 
   @Auth(AuthType.none)
+  @RateLimit({
+    name: 'reset-password',
+    windowSeconds: 15 * 60,
+    rules: [
+      { by: 'email', limit: 10 },
+      { by: 'ip', limit: 40 },
+    ],
+  })
   @Post('reset-password')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return await this.authService.resetPassword(resetPasswordDto);
   }
 
   @Auth(AuthType.none)
+  @RateLimit({
+    name: 'forget-password',
+    windowSeconds: 15 * 60,
+    rules: [
+      { by: 'email', limit: 3 },
+      { by: 'ip', limit: 10 },
+    ],
+  })
   @Post('forget-password')
   async forgetPassword(@Body() forgetPasswordDto: ForgetPasswordDto) {
     return await this.authService.forgetPassword(forgetPasswordDto);

@@ -97,6 +97,62 @@ export class CacheService implements OnModuleDestroy {
     }
   }
 
+  // Counts one event for `key` in a window that starts with the first event
+  // and lasts windowSeconds, for rate limiting. Counted in Redis so every
+  // instance and restart shares it; with no Redis, or while it is failing, in
+  // this process's memory instead, so the limit still holds on one instance.
+  async increment(
+    key: string,
+    windowSeconds: number,
+  ): Promise<{ count: number; resetInSeconds: number }> {
+    if (this.redis) {
+      try {
+        const name = KEY_PREFIX + key;
+        // One transaction: the expiry is set together with the key, so a
+        // crash cannot leave a counter that never resets.
+        const replies = await this.redis
+          .multi()
+          .set(name, 0, 'EX', windowSeconds, 'NX')
+          .incr(name)
+          .ttl(name)
+          .exec();
+        const count = replies?.[1]?.[1];
+        const ttl = replies?.[2]?.[1];
+        if (typeof count === 'number' && typeof ttl === 'number')
+          return {
+            count,
+            resetInSeconds: ttl > 0 ? ttl : windowSeconds,
+          };
+        throw new Error('unexpected reply to a counter transaction');
+      } catch (error) {
+        this.logFailure('increment', error);
+      }
+    }
+    return this.incrementInMemory(key, windowSeconds);
+  }
+
+  private readonly counters = new Map<
+    string,
+    { count: number; resetAt: number }
+  >();
+
+  private incrementInMemory(key: string, windowSeconds: number) {
+    const now = Date.now();
+    if (this.counters.size > 10_000)
+      for (const [name, entry] of this.counters)
+        if (entry.resetAt <= now) this.counters.delete(name);
+    let entry = this.counters.get(key);
+    if (!entry || entry.resetAt <= now) {
+      entry = { count: 0, resetAt: now + windowSeconds * 1000 };
+      this.counters.set(key, entry);
+    }
+    entry.count += 1;
+    return {
+      count: entry.count,
+      resetInSeconds: Math.max(1, Math.ceil((entry.resetAt - now) / 1000)),
+    };
+  }
+
   // Cached value, else load() it and keep the result for ttlSeconds. A load
   // that throws is not cached and its error reaches every waiting caller.
   remember<T>(

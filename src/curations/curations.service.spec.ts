@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await -- the fake store mimics async queries */
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { CacheService } from '../cache/cache.service';
 import { ContentBlocksService } from '../movies/providers/content-blocks.service';
 import { MovieDbService } from '../movies/providers/MovieDb.serviec';
 import { CurationKey } from './curations.constants';
@@ -110,9 +112,12 @@ describe('CurationsService', () => {
       ) => items.filter((item) => !blocked.has(tmdbId(item) ?? -1)),
     } as unknown as ContentBlocksService;
     posters = jest.fn().mockResolvedValue([]);
-    service = new CurationsService(store as unknown as CurationsStore, blocks, {
-      getMoviePosters: posters,
-    } as unknown as MovieDbService);
+    service = new CurationsService(
+      store as unknown as CurationsStore,
+      blocks,
+      { getMoviePosters: posters } as unknown as MovieDbService,
+      new CacheService(new ConfigService({})),
+    );
     store.movies = [1, 2, 3, 4].map((n) => movie(n));
   });
   afterEach(() => jest.restoreAllMocks());
@@ -524,5 +529,62 @@ describe('CurationsService', () => {
       ]);
       expect(picks.updatedBy).toBeNull();
     });
+  });
+});
+
+describe('CurationsService public cache', () => {
+  const kept = new Map<string, unknown>();
+  const cache = {
+    remember: async (
+      key: string,
+      _ttl: number,
+      load: () => Promise<unknown>,
+    ) => {
+      if (!kept.has(key)) kept.set(key, await load());
+      return kept.get(key);
+    },
+    delete: (key: string) => Promise.resolve(kept.delete(key)),
+  } as unknown as CacheService;
+  let store: FakeStore;
+  let service: CurationsService;
+
+  beforeEach(() => {
+    jest.spyOn(Logger.prototype, 'log').mockImplementation();
+    kept.clear();
+    store = new FakeStore();
+    store.movies = [1, 2].map((n) => movie(n));
+    const blocks = {
+      without: async <T>(_kind: string, items: T[]) => items,
+    } as unknown as ContentBlocksService;
+    service = new CurationsService(
+      store as unknown as CurationsStore,
+      blocks,
+      {} as MovieDbService,
+      cache,
+    );
+  });
+  afterEach(() => jest.restoreAllMocks());
+
+  it('reads a list once, then serves the kept answer', async () => {
+    const read = jest.spyOn(store, 'read');
+    await service.editorsPicks();
+    await service.editorsPicks();
+    await service.landingGrid();
+    await service.landingGrid();
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
+  it('forgets a list the moment an editor saves it', async () => {
+    await expect(service.editorsPicks()).resolves.toMatchObject({ data: [] });
+    await service.replaceEditorsPicks({ movieIds: [id(1)] }, ADMIN.id);
+    const after = await service.editorsPicks();
+    expect(after.data.map((pick) => pick.movie.id)).toEqual([id(1)]);
+    await service.landingGrid();
+    await service.replaceLandingGrid(
+      { items: [{ slot: 0, movieId: id(2) }] },
+      ADMIN.id,
+    );
+    const grid = await service.landingGrid();
+    expect(grid.data.map((cell) => cell.movie.id)).toEqual([id(2)]);
   });
 });

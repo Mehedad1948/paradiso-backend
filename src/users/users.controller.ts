@@ -13,6 +13,7 @@ import { AuthType } from '../auth/enums/auth.decorator';
 import { CreateUserDto } from './dtos/create-user.dto';
 import { UsersService } from './providers/users.service';
 import { UpdateUserDto } from './dtos/update-user.dto';
+import { RateLimit } from '../common/rate-limit/rate-limit.guard';
 
 @Controller('users')
 export class UsersController {
@@ -32,6 +33,14 @@ export class UsersController {
 
   @Post()
   @Auth(AuthType.none)
+  @RateLimit({
+    name: 'sign-up',
+    windowSeconds: 15 * 60,
+    rules: [
+      { by: 'email', limit: 5 },
+      { by: 'ip', limit: 10 },
+    ],
+  })
   async createUser(@Body() createUserDto: CreateUserDto) {
     return this.usersService.createUser(createUserDto);
   }

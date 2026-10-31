@@ -1,15 +1,22 @@
 import 'reflect-metadata';
 import { Module, Type } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import { CacheService } from '../cache/cache.service';
 import { RoomAccessService } from '../rooms/providers/room-access.service';
 import { apiControllers } from './controllers';
 import { createOpenApiDocument } from './document';
 
 // A metadata-only application: no AppModule, environment validation, database,
 // mail or cloud services. Never call listen() or use this module to serve requests.
-const dependencies = new Set<Type>([RoomAccessService]);
+// CacheService and ConfigService are what the route guards (rate limits) need.
+const dependencies = new Set<Type>([
+  RoomAccessService,
+  CacheService,
+  ConfigService,
+]);
 for (const controller of apiControllers) {
   const tokens = Reflect.getMetadata('design:paramtypes', controller) as Type[];
   for (const token of tokens ?? []) dependencies.add(token);

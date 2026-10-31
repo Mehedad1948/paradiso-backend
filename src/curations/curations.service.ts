@@ -5,6 +5,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { CacheService } from '../cache/cache.service';
 import { ContentBlocksService } from '../movies/providers/content-blocks.service';
 import { MovieDbService } from '../movies/providers/MovieDb.serviec';
 import {
@@ -66,6 +67,13 @@ function repeated<T>(values: T[]): T[] {
   return [...again];
 }
 
+// The public lists are the same for everyone and cost several queries, so
+// the finished answer is kept a few minutes. Saving a list clears it at once;
+// a blocked or edited movie shows up within the lifetime.
+const PUBLIC_CACHE_SECONDS = 5 * 60;
+export const LANDING_GRID_CACHE_KEY = 'curations:landing-grid';
+export const EDITORS_PICKS_CACHE_KEY = 'curations:editors-picks';
+
 // The two hand-curated lists on the landing page. Admins replace a list as a
 // whole; everyone reads it. The frontend caches and picks the day's subset.
 @Injectable()
@@ -76,30 +84,43 @@ export class CurationsService {
     private readonly store: CurationsStore,
     private readonly contentBlocks: ContentBlocksService,
     private readonly tmdb: MovieDbService,
+    private readonly cache: CacheService,
   ) {}
 
   // ---- Public ----
 
   // Cells whose movie is blocked or shows nothing (no image and no poster)
   // are left out, like empty ones.
-  async landingGrid() {
-    const curation = await this.store.read(LANDING_GRID);
-    const items = await this.visible(
-      curation,
-      (item) => !!(item.imageUrl || item.movie.poster_path),
+  landingGrid() {
+    return this.cache.remember(
+      LANDING_GRID_CACHE_KEY,
+      PUBLIC_CACHE_SECONDS,
+      async () => {
+        const curation = await this.store.read(LANDING_GRID);
+        const items = await this.visible(
+          curation,
+          (item) => !!(item.imageUrl || item.movie.poster_path),
+        );
+        return { data: items.map(gridItem), updatedAt: curation.updatedAt };
+      },
     );
-    return { data: items.map(gridItem), updatedAt: curation.updatedAt };
   }
 
   // The whole pool, in admin order; the shelf needs a cover (the pick's own
   // image, or the movie poster).
-  async editorsPicks() {
-    const curation = await this.store.read(EDITORS_PICKS);
-    const items = await this.visible(
-      curation,
-      (item) => !!(item.imageUrl || item.movie.poster_path),
+  editorsPicks() {
+    return this.cache.remember(
+      EDITORS_PICKS_CACHE_KEY,
+      PUBLIC_CACHE_SECONDS,
+      async () => {
+        const curation = await this.store.read(EDITORS_PICKS);
+        const items = await this.visible(
+          curation,
+          (item) => !!(item.imageUrl || item.movie.poster_path),
+        );
+        return { data: items.map(pick), updatedAt: curation.updatedAt };
+      },
     );
-    return { data: items.map(pick), updatedAt: curation.updatedAt };
   }
 
   // ---- Admin: everything stored, posterless movies included ----
@@ -145,6 +166,7 @@ export class CurationsService {
       );
       await tx.touch(LANDING_GRID, adminId);
     });
+    await this.cache.delete(LANDING_GRID_CACHE_KEY);
     this.logger.log(
       `Landing grid replaced by user ${adminId}: ${dto.items.length} cells`,
     );
@@ -213,6 +235,7 @@ export class CurationsService {
       );
       await tx.touch(EDITORS_PICKS, adminId);
     });
+    await this.cache.delete(EDITORS_PICKS_CACHE_KEY);
     this.logger.log(
       `Editors' picks replaced by user ${adminId}: ${picks.length} movies`,
     );

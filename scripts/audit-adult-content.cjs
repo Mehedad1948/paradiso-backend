@@ -278,12 +278,45 @@ async function main() {
       console.log(
         `Blocked ${blocks.length} items, deleted ${deleted.rowCount} library movies. Backup: ${backupFile}`,
       );
+      await clearAppCache();
     } catch (error) {
       await db.query('ROLLBACK');
       throw error;
     }
   } finally {
     await db?.end();
+  }
+}
+
+// The app keeps the blocklist and the landing lists in Redis for a few
+// minutes; dropping them makes the change show at once. Best effort: without
+// REDIS_URL, or if Redis cannot be reached, the app catches up on its own.
+async function clearAppCache() {
+  const url = process.env.REDIS_URL;
+  const later = 'The app picks the change up within 5 minutes.';
+  if (!url) return console.log(`REDIS_URL is not set. ${later}`);
+  const Redis = require('ioredis');
+  const redis = new Redis(url, {
+    lazyConnect: true,
+    connectTimeout: 10000,
+    maxRetriesPerRequest: 1,
+    retryStrategy: () => null,
+  });
+  redis.on('error', () => undefined);
+  try {
+    await redis.connect();
+    await redis.del(
+      'paradiso:v1:content-block:movie',
+      'paradiso:v1:content-block:person',
+      'paradiso:v1:curations:landing-grid',
+      'paradiso:v1:curations:editors-picks',
+    );
+    console.log('Cleared the cached blocklist and landing lists.');
+  } catch {
+    // Never print the error: it can echo the connection URL.
+    console.log(`Could not clear the Redis cache. ${later}`);
+  } finally {
+    redis.disconnect();
   }
 }
 

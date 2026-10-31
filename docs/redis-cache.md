@@ -31,9 +31,10 @@ Redis, and there is no migration.
 | erotic-keyword verdict per movie   | `tmdb:erotic:<id>`                    | 7 days  |
 
 Not cached: `getMovieDetailsWithExtras` (used on import; very large) and
-errors, including 404s. Content blocks and the adult filter run on read, after
-the cache, so blocking a title takes effect at once. Concurrent requests for
-one key share a single TMDb call.
+errors, including 404s. The adult filter and the blocklist run on read, after
+the TMDb cache. The blocklist is itself cached for up to 5 minutes (see below),
+and the audit script clears it. Concurrent requests for one key share a single
+TMDb call.
 
 Movie search caches the **filtered** page, so a hit skips the search and the
 up to 20 keyword lookups that hide erotic titles.
@@ -136,3 +137,54 @@ median about 1860 ms, warm about 846 ms.
   the region is not a problem.
 - Single runs of 12 samples through a proxy are noisy; read the pattern, not
   the last 50 ms.
+
+## Other uses of the cache
+
+### Blocklist (`ContentBlocksService`)
+
+Before this, every TMDb-facing request asked Neon whether a title or person is
+in `content_block`. The table changes only when the audit script runs, so the
+whole list per kind is kept in Redis for 5 minutes (`content-block:movie`,
+`content-block:person`) and in memory for 30 seconds, because one request often
+checks it several times. With no Redis the old per-request query is used.
+`scripts/audit-adult-content.cjs --apply` clears the Redis keys (best effort);
+otherwise a new block shows within about 5 minutes.
+
+### Public curations (`CurationsService`)
+
+`GET /curations/landing-grid` and `GET /curations/editors-picks` are the same
+for everyone and cost several queries, so the finished answer is kept 5
+minutes (`curations:landing-grid`, `curations:editors-picks`). Saving a list in
+the admin endpoints clears its key at once. A movie edited or removed by other
+means shows within the 5 minutes. Not cached on purpose: featured artists (about
+170 ms over the floor and already cached in process), library movie details and
+anything specific to one user.
+
+### Rate limiting (`RateLimit` decorator)
+
+`src/common/rate-limit/rate-limit.guard.ts`. Counters live in Redis
+(`CacheService.increment`: one transaction, so a counter always has an expiry)
+and fall back to memory on one instance when Redis is off or failing. Window:
+15 minutes. Over the limit: `429` with a `Retry-After` header and
+`{ statusCode: 429, message: "Too many attempts. Try again in N seconds.", error: "Too Many Requests" }`.
+Counter keys hold a hash of the email or IP, never the value. The guard does
+nothing when `NODE_ENV=test`.
+
+| Route                            | Per email + IP | Per email | Per IP |
+| -------------------------------- | -------------- | --------- | ------ |
+| `POST /auth/sign-in`             | 8              | 60        | 40     |
+| `POST /auth/verify-email`        |                | 10        | 40     |
+| `POST /auth/resend-verification` |                | 3         | 10     |
+| `POST /auth/forget-password`     |                | 3         | 10     |
+| `POST /auth/reset-password`      |                | 10        | 40     |
+| `POST /users` (sign-up)          |                | 5         | 10     |
+
+The client IP is the first `X-Forwarded-For` entry (the socket address behind
+Render is the proxy's, shared by everyone). It can be forged, which is why the
+per-email limits exist. A per-email limit on a mail route can be used to stop
+someone requesting their own code for 15 minutes; sign-in avoids that by
+counting email and IP together.
+
+Not done: engagement and unread counters. They change on every like, comment
+and notification, so a cached count would be visibly wrong right after a user
+acts, and clearing it means touching every write path.
